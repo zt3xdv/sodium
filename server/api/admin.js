@@ -6,7 +6,7 @@ import Server from '../models/Server.js';
 import Node from '../models/Node.js';
 import Egg from '../models/Egg.js';
 import db from '../services/database.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 
 const router = Router();
