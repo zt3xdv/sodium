@@ -43,7 +43,15 @@ export class ApiClient {
       const data = isJson ? await response.json() : await response.text();
 
       if (!response.ok) {
-        const error = new Error(data?.message || data || `Request failed with status ${response.status}`);
+        let errorMessage = `Request failed with status ${response.status}`;
+        if (data?.message) {
+          errorMessage = data.message;
+        } else if (data?.error) {
+          errorMessage = data.error;
+        } else if (typeof data === 'string' && data) {
+          errorMessage = data;
+        }
+        const error = new Error(errorMessage);
         error.status = response.status;
         error.data = data;
         throw error;

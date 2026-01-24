@@ -6,6 +6,13 @@ import Allocation from '../models/Allocation.js';
 
 const router = Router();
 
+function resolveServer(idOrUuid) {
+  if (idOrUuid.includes('-')) {
+    return Server.findByUuid(idOrUuid);
+  }
+  return Server.findById(parseInt(idOrUuid));
+}
+
 router.get('/', auth, (req, res) => {
   try {
     let servers;
@@ -22,8 +29,12 @@ router.get('/', auth, (req, res) => {
 
 router.get('/:id', auth, (req, res) => {
   try {
-    const server = Server.getWithDetails(parseInt(req.params.id));
-
+    const base = resolveServer(req.params.id);
+    if (!base) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+    
+    const server = Server.getWithDetails(base.id);
     if (!server) {
       return res.status(404).json({ error: 'Server not found' });
     }
@@ -72,7 +83,7 @@ router.post('/', admin, (req, res) => {
 
 router.put('/:id', auth, (req, res) => {
   try {
-    const server = Server.findById(parseInt(req.params.id));
+    const server = resolveServer(req.params.id);
 
     if (!server) {
       return res.status(404).json({ error: 'Server not found' });
@@ -102,7 +113,7 @@ router.put('/:id', auth, (req, res) => {
 
 router.delete('/:id', admin, (req, res) => {
   try {
-    const server = Server.findById(parseInt(req.params.id));
+    const server = resolveServer(req.params.id);
 
     if (!server) {
       return res.status(404).json({ error: 'Server not found' });
@@ -122,7 +133,7 @@ router.delete('/:id', admin, (req, res) => {
 
 router.post('/:id/power', auth, (req, res) => {
   try {
-    const server = Server.findById(parseInt(req.params.id));
+    const server = resolveServer(req.params.id);
 
     if (!server) {
       return res.status(404).json({ error: 'Server not found' });

@@ -1,11 +1,12 @@
 import { Router } from 'express';
+import auth from '../middleware/auth.js';
 import admin from '../middleware/admin.js';
 import Node from '../models/Node.js';
 import Allocation from '../models/Allocation.js';
 
 const router = Router();
 
-router.get('/', admin, (req, res) => {
+router.get('/', auth, admin, (req, res) => {
   try {
     const nodes = Node.findAll();
     res.json({ data: nodes });
@@ -14,7 +15,7 @@ router.get('/', admin, (req, res) => {
   }
 });
 
-router.get('/:id', admin, (req, res) => {
+router.get('/:id', auth, admin, (req, res) => {
   try {
     const node = Node.getStats(parseInt(req.params.id));
 
@@ -28,7 +29,7 @@ router.get('/:id', admin, (req, res) => {
   }
 });
 
-router.post('/', admin, (req, res) => {
+router.post('/', auth, admin, (req, res) => {
   try {
     const { name, fqdn, scheme, daemon_port, memory, memory_overallocate, disk, disk_overallocate, upload_size } = req.body;
 
@@ -54,7 +55,7 @@ router.post('/', admin, (req, res) => {
   }
 });
 
-router.put('/:id', admin, (req, res) => {
+router.put('/:id', auth, admin, (req, res) => {
   try {
     const node = Node.findById(parseInt(req.params.id));
 
@@ -69,7 +70,7 @@ router.put('/:id', admin, (req, res) => {
   }
 });
 
-router.delete('/:id', admin, (req, res) => {
+router.delete('/:id', auth, admin, (req, res) => {
   try {
     const node = Node.findById(parseInt(req.params.id));
 
@@ -95,7 +96,7 @@ router.delete('/:id', admin, (req, res) => {
   }
 });
 
-router.get('/:id/allocations', admin, (req, res) => {
+router.get('/:id/allocations', auth, admin, (req, res) => {
   try {
     const node = Node.findById(parseInt(req.params.id));
 
@@ -110,7 +111,7 @@ router.get('/:id/allocations', admin, (req, res) => {
   }
 });
 
-router.post('/:id/allocations', admin, (req, res) => {
+router.post('/:id/allocations', auth, admin, (req, res) => {
   try {
     const node = Node.findById(parseInt(req.params.id));
 

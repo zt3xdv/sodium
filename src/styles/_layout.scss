@@ -97,33 +97,305 @@
   left: 0;
   right: 0;
   height: var(--navbar-height);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--space-4);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   z-index: var(--z-sticky);
+}
 
-  &__brand {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
+.nav-container {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 var(--space-4);
+  max-width: 100%;
+  gap: var(--space-4);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  text-decoration: none;
+  flex-shrink: 0;
+
+  &:hover {
     color: var(--text-primary);
   }
 
-  &__nav {
+  .nav-logo-icon {
+    font-size: var(--text-xl);
+  }
+
+  .nav-logo-text {
+    font-weight: var(--font-bold);
+  }
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  &.active {
+    background: var(--accent-muted);
+    color: var(--accent);
+  }
+
+  &--exit {
+    color: var(--text-tertiary);
+  }
+}
+
+.nav-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 var(--space-2);
+  flex-shrink: 0;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.nav-user {
+  position: relative;
+
+  .nav-user-btn {
     display: flex;
     align-items: center;
     gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--border-hover);
+    }
   }
 
-  &__actions {
+  .nav-user-avatar {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--accent-muted);
+    color: var(--accent);
+    border-radius: var(--radius-full);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
+  }
+
+  .nav-user-name {
+    font-size: var(--text-sm);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 180px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.15s ease;
+  z-index: var(--z-dropdown);
+  padding: var(--space-1);
+
+  &.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  transition: all 0.15s ease;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  text-align: left;
+
+  &:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  &.dropdown-item-danger {
+    color: var(--danger);
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+  }
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--space-1) 0;
+}
+
+.nav-mobile-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--border-hover);
+  }
+}
+
+.nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  top: var(--navbar-height);
+  background: rgba(0, 0, 0, 0.5);
+  z-index: calc(var(--z-sticky) - 1);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+
+  &.open {
+    display: block;
+    opacity: 1;
+  }
+}
+
+// Mobile Navigation
+@media (max-width: 768px) {
+  .nav-container {
+    padding: 0 var(--space-3);
+  }
+
+  .nav-links {
+    position: fixed;
+    top: var(--navbar-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--bg-secondary);
+    padding: var(--space-3);
+    gap: var(--space-1);
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: var(--z-sticky);
+
+    &.open {
+      transform: translateX(0);
+    }
+  }
+
+  .nav-link {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-base);
+    border-radius: var(--radius-md);
+
+    &--exit {
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+      padding-top: var(--space-4);
+    }
+  }
+
+  .nav-divider {
+    width: 100%;
+    height: 1px;
+    margin: var(--space-2) 0;
+  }
+
+  .nav-actions {
+    margin-left: auto;
+  }
+
+  .nav-user-name {
+    display: none;
+  }
+
+  .nav-mobile-toggle {
+    display: flex;
+  }
+
+  body.nav-open {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-logo-text {
+    display: none;
   }
 }
 

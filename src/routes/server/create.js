@@ -7,8 +7,8 @@ export default async function render() {
 
   try {
     const [nodesRes, eggsRes] = await Promise.all([
-      api.get('/api/nodes'),
-      api.get('/api/eggs')
+      api.get('/nodes'),
+      api.get('/eggs')
     ]);
     nodes = nodesRes.data || [];
     eggs = eggsRes.data || [];
@@ -78,7 +78,7 @@ export function mount() {
     const data = Object.fromEntries(formData);
 
     try {
-      const res = await api.post('/api/servers', data);
+      const res = await api.post('/servers', data);
       router.navigate(`/server/${res.data.uuid}/console`);
     } catch (err) {
       alert('Failed to create server: ' + (err.message || 'Unknown error'));

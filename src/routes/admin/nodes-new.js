@@ -78,7 +78,7 @@ export function mount() {
     const data = Object.fromEntries(formData);
 
     try {
-      await api.post('/api/nodes', data);
+      await api.post('/nodes', data);
       router.navigate('/admin/nodes');
     } catch (err) {
       alert('Failed to create node: ' + (err.message || 'Unknown error'));

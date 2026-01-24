@@ -213,7 +213,27 @@ router.get('/eggs', async (req, res) => {
 // Create egg
 router.post('/eggs', async (req, res) => {
   try {
-    const egg = Egg.create(req.body);
+    const data = { ...req.body };
+    
+    if (!data.name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    // Si no tiene nest_id, asignar al nest por defecto o crear uno
+    if (!data.nest_id) {
+      let defaultNest = db.prepare("SELECT id FROM nests WHERE name = 'Imported' OR name = 'Default' LIMIT 1").get();
+      if (!defaultNest) {
+        const result = db.prepare(`
+          INSERT INTO nests (uuid, name, description, created_at)
+          VALUES (?, 'Imported', 'Auto-created nest for imported eggs', ?)
+        `).run(randomUUID(), new Date().toISOString());
+        data.nest_id = result.lastInsertRowid;
+      } else {
+        data.nest_id = defaultNest.id;
+      }
+    }
+
+    const egg = Egg.create(data);
     res.status(201).json({ data: egg });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -142,10 +142,10 @@ class DatabaseService {
 
   transaction(fn) {
     this._ensureInit();
-    return () => {
+    return (data) => {
       this.db.run('BEGIN TRANSACTION');
       try {
-        fn();
+        fn(data);
         this.db.run('COMMIT');
         this.save();
       } catch (e) {

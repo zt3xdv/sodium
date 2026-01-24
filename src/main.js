@@ -1,5 +1,7 @@
 import { router, authGuard, guestGuard, adminGuard } from './router.js';
 import { isAuthenticated } from './utils/auth.js';
+import { initSidebar } from './components/sidebar.js';
+import { initNav } from './components/nav.js';
 import './styles/main.scss';
 
 function registerRoutes() {
@@ -69,6 +71,7 @@ function registerServiceWorker() {
 
 function init() {
   registerRoutes();
+  initNav();
 
   router.on('beforeNavigate', ({ path }) => {
     document.body.classList.add('navigating');
@@ -77,6 +80,7 @@ function init() {
   router.on('afterNavigate', ({ path }) => {
     document.body.classList.remove('navigating');
     window.scrollTo(0, 0);
+    initSidebar();
   });
 
   if (!isAuthenticated() && !window.location.pathname.match(/^\/(login|register)/)) {

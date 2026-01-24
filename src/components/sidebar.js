@@ -40,23 +40,24 @@ export function sidebar({ type = 'admin', currentPath = '', serverId = null, col
       : currentPath.endsWith(section.path);
 
     return `
-      <a href="${href}" class="sidebar-item ${isActive ? 'active' : ''}">
+      <a href="${href}" class="sidebar-link ${isActive ? 'active' : ''}">
         ${icon(section.icon, 18)}
-        <span class="sidebar-label">${section.label}</span>
+        <span>${section.label}</span>
       </a>
     `;
   }).join('');
 
   return `
-    <aside class="sidebar ${collapsed ? 'collapsed' : ''}" data-sidebar>
+    <aside class="admin-sidebar ${collapsed ? 'sidebar--collapsed' : ''}" data-sidebar>
       <div class="sidebar-header">
-        <button class="sidebar-toggle" data-action="toggle-sidebar">
-          ${icon('chevron-right', 20)}
+        <h2>${icon(type === 'admin' ? 'shield' : 'server', 20)} ${type === 'admin' ? 'Admin' : 'Server'}</h2>
+        <button class="sidebar-toggle" data-action="toggle-sidebar" title="Toggle sidebar">
+          ${icon('chevrons-left', 18)}
         </button>
       </div>
-      <div class="sidebar-content">
+      <nav class="sidebar-nav">
         ${items}
-      </div>
+      </nav>
     </aside>
   `;
 }
@@ -68,7 +69,7 @@ export function renderAdminSidebar(active = 'overview') {
     }
     const isActive = section.id === active || (active === 'dashboard' && section.id === 'overview');
     return `
-      <a href="#${section.path}" class="sidebar-link ${isActive ? 'active' : ''}">
+      <a href="${section.path}" class="sidebar-link ${isActive ? 'active' : ''}" data-link>
         ${icon(section.icon, 18)}
         <span>${section.label}</span>
       </a>
@@ -76,9 +77,12 @@ export function renderAdminSidebar(active = 'overview') {
   }).join('');
 
   return `
-    <aside class="admin-sidebar">
+    <aside class="admin-sidebar" data-sidebar>
       <div class="sidebar-header">
         <h2>${icon('shield', 20)} Admin</h2>
+        <button class="sidebar-toggle" data-action="toggle-sidebar" title="Toggle sidebar">
+          ${icon('chevrons-left', 18)}
+        </button>
       </div>
       <nav class="sidebar-nav">
         ${items}
@@ -93,8 +97,9 @@ export function renderServerSidebar(serverId, active = 'console') {
       return '<div class="sidebar-divider"></div>';
     }
     const isActive = section.id === active;
+    const fullPath = `/server/${serverId}/${section.path}`;
     return `
-      <a href="/server/${serverId}/${section.path}" class="sidebar-link ${isActive ? 'active' : ''}">
+      <a href="${fullPath}" class="sidebar-link ${isActive ? 'active' : ''}" data-link>
         ${icon(section.icon, 18)}
         <span>${section.label}</span>
       </a>
@@ -102,9 +107,12 @@ export function renderServerSidebar(serverId, active = 'console') {
   }).join('');
 
   return `
-    <aside class="admin-sidebar">
+    <aside class="admin-sidebar server-sidebar" data-sidebar>
       <div class="sidebar-header">
         <h2>${icon('server', 20)} Server</h2>
+        <button class="sidebar-toggle" data-action="toggle-sidebar" title="Toggle sidebar">
+          ${icon('chevrons-left', 18)}
+        </button>
       </div>
       <nav class="sidebar-nav">
         ${items}
@@ -118,13 +126,30 @@ export function initSidebar() {
     const toggle = e.target.closest('[data-action="toggle-sidebar"]');
     if (toggle) {
       const sidebar = document.querySelector('[data-sidebar]');
-      sidebar?.classList.toggle('collapsed');
-      localStorage.setItem('sidebar-collapsed', sidebar?.classList.contains('collapsed'));
+      if (sidebar) {
+        sidebar.classList.toggle('sidebar--collapsed');
+        const isCollapsed = sidebar.classList.contains('sidebar--collapsed');
+        localStorage.setItem('sidebar-collapsed', isCollapsed.toString());
+        
+        const icon = toggle.querySelector('svg');
+        if (icon) {
+          icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+      }
     }
   });
 
   const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-  if (isCollapsed) {
-    document.querySelector('[data-sidebar]')?.classList.add('collapsed');
+  const sidebar = document.querySelector('[data-sidebar]');
+  if (isCollapsed && sidebar) {
+    sidebar.classList.add('sidebar--collapsed');
+    const toggle = sidebar.querySelector('[data-action="toggle-sidebar"] svg');
+    if (toggle) {
+      toggle.style.transform = 'rotate(180deg)';
+    }
   }
+}
+
+export function getSidebarSections(type = 'admin') {
+  return type === 'admin' ? adminSections : serverSections;
 }

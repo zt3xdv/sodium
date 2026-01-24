@@ -55,7 +55,7 @@ export function mount() {
     const data = Object.fromEntries(formData);
 
     try {
-      await api.post('/api/admin/users', data);
+      await api.post('/admin/users', data);
       router.navigate('/admin/users');
     } catch (err) {
       alert('Failed to create user: ' + (err.message || 'Unknown error'));

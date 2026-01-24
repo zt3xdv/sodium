@@ -8,9 +8,9 @@ export default async function render() {
 
   try {
     const [nodesRes, eggsRes, usersRes] = await Promise.all([
-      api.get('/api/admin/nodes'),
-      api.get('/api/admin/eggs'),
-      api.get('/api/admin/users')
+      api.get('/admin/nodes'),
+      api.get('/admin/eggs'),
+      api.get('/admin/users')
     ]);
     nodes = nodesRes.data || [];
     eggs = eggsRes.data || [];
@@ -93,7 +93,7 @@ export function mount() {
     const data = Object.fromEntries(formData);
 
     try {
-      await api.post('/api/admin/servers', data);
+      await api.post('/admin/servers', data);
       router.navigate('/admin/servers');
     } catch (err) {
       alert('Failed to create server: ' + (err.message || 'Unknown error'));

@@ -2,7 +2,7 @@
 .file-manager {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--nav-height));
+  height: calc(100vh - var(--navbar-height));
 }
 
 .file-toolbar {
@@ -107,24 +107,6 @@
   .btn-danger {
     background: var(--danger);
     border-color: var(--danger);
-  }
-}
-
-.clipboard-indicator {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
-  background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border);
-  font-size: var(--text-sm);
-
-  &.copy {
-    border-left: 3px solid var(--accent);
-  }
-
-  &.cut {
-    border-left: 3px solid var(--warning);
   }
 }
 

@@ -2,7 +2,7 @@
 .console-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--nav-height));
+  height: calc(100vh - var(--navbar-height));
   padding: var(--space-4);
   gap: var(--space-4);
 }
@@ -130,17 +130,6 @@
     font-size: var(--text-sm);
     outline: none;
   }
-}
-
-// Server Layout
-.server-layout {
-  display: flex;
-  min-height: calc(100vh - var(--nav-height));
-}
-
-.server-content {
-  flex: 1;
-  min-width: 0;
 }
 
 // Server Sidebar

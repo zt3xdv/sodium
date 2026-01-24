@@ -53,7 +53,10 @@ export async function mount() {
   }
 
   function renderEggs() {
+    const headerActions = document.querySelector('.header-actions');
+    
     if (eggs.length === 0) {
+      if (headerActions) headerActions.style.display = 'none';
       eggsGrid.innerHTML = `
         <div class="empty-state">
           ${icon('package', 48)}
@@ -69,6 +72,8 @@ export async function mount() {
       document.getElementById('empty-new')?.addEventListener('click', () => showEggModal());
       return;
     }
+    
+    if (headerActions) headerActions.style.display = 'flex';
 
     eggsGrid.innerHTML = eggs.map(egg => `
       <div class="egg-card card" data-id="${egg.id}">
@@ -276,11 +281,16 @@ export async function mount() {
       delete data.uuid;
       delete data.created_at;
 
+      // Convertir docker_images de objeto a array si es necesario
+      if (data.docker_images && typeof data.docker_images === 'object' && !Array.isArray(data.docker_images)) {
+        data.docker_images = Object.values(data.docker_images);
+      }
+
       await api.post('/admin/eggs', data);
       toast.success('Egg imported');
       loadEggs();
     } catch (err) {
-      toast.error('Failed to import egg: ' + err.message);
+      toast.error('Failed to import egg: ' + (err.message || String(err)));
     }
   }
 

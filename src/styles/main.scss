@@ -4,22 +4,22 @@
 // ============================================
 
 // 1. Variables (CSS Custom Properties)
-@import 'variables';
+@use 'variables';
 
 // 2. Base styles (reset, typography, globals)
-@import 'base';
+@use 'base';
 
 // 3. Layout (grid, flex, app structure)
-@import 'layout';
+@use 'layout';
 
 // 4. Components (buttons, inputs, cards, etc.)
-@import 'components';
+@use 'components';
 
 // 5. Console styles
-@import 'console';
+@use 'console';
 
 // 6. File Manager styles
-@import 'file-manager';
+@use 'file-manager';
 
 // 7. Admin Panel styles
-@import 'admin';
+@use 'admin';
