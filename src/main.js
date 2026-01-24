@@ -1,5 +1,6 @@
 import { router, authGuard, guestGuard, adminGuard } from './router.js';
 import { isAuthenticated } from './utils/auth.js';
+import './styles/main.scss';
 
 function registerRoutes() {
   router.setOutlet('#app');

@@ -28,8 +28,12 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Username already taken' });
     }
 
+    // First user is always admin
+    const allUsers = User.findAll();
+    const role = allUsers.length === 0 ? 'admin' : 'user';
+
     const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
-    const user = User.create({ username, email, password_hash });
+    const user = User.create({ username, email, password_hash, role });
 
     const token = jwt.sign(
       { id: user.id, uuid: user.uuid },
