@@ -116,4 +116,4 @@ process.on('SIGINT', () => {
   });
 });
 
-export { app, server, wss };
+export { app, server };
