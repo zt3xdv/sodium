@@ -1,0 +1,43 @@
+{
+  "name": "Minecraft Forge",
+  "description": "Minecraft Forge modded server",
+  "author": "Sodium",
+  "docker_images": {
+    "Java 21": "eclipse-temurin:21-jre",
+    "Java 17": "eclipse-temurin:17-jre",
+    "Java 8": "eclipse-temurin:8-jre"
+  },
+  "startup": "java -Xms128M -Xmx{{SERVER_MEMORY}}M @libraries/net/minecraftforge/forge/{{FORGE_VERSION}}/unix_args.txt nogui",
+  "config": {
+    "files": {
+      "server.properties": {
+        "parser": "properties",
+        "find": {
+          "server-port": "{{server.build.default.port}}"
+        }
+      }
+    },
+    "startup": {
+      "done": ")! For help, type "
+    },
+    "stop": "stop"
+  },
+  "scripts": {
+    "install": {
+      "container": "eclipse-temurin:17-jre",
+      "entrypoint": "/bin/bash",
+      "script": "#!/bin/bash\ncd /mnt/server\nFORGE_VERSION=${FORGE_VERSION:-1.20.4-49.0.30}\ncurl -o installer.jar https://maven.minecraftforge.net/net/minecraftforge/forge/${FORGE_VERSION}/forge-${FORGE_VERSION}-installer.jar\njava -jar installer.jar --installServer\nrm installer.jar\necho \"eula=true\" > eula.txt"
+    }
+  },
+  "variables": [
+    {
+      "name": "Forge Version",
+      "description": "Forge version (e.g., 1.20.4-49.0.30)",
+      "env_variable": "FORGE_VERSION",
+      "default_value": "1.20.4-49.0.30",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:30"
+    }
+  ]
+}

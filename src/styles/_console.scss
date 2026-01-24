@@ -1,0 +1,226 @@
+// Console Styles
+.console-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--nav-height));
+  padding: var(--space-4);
+  gap: var(--space-4);
+}
+
+.console-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+
+  .server-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    h2 {
+      margin: 0;
+      font-size: var(--text-xl);
+    }
+  }
+
+  .power-controls {
+    display: flex;
+    gap: var(--space-2);
+  }
+}
+
+.console-stats {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
+    .stat-label {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      font-size: var(--text-base);
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+  }
+}
+
+.console-terminal {
+  flex: 1;
+  background: #000;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-output {
+  flex: 1;
+  padding: var(--space-3);
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: #e5e5e5;
+
+  .terminal-line {
+    white-space: pre-wrap;
+    word-break: break-all;
+
+    &.terminal-command {
+      color: var(--accent);
+    }
+
+    &.terminal-info {
+      color: var(--info);
+    }
+
+    &.terminal-error {
+      color: var(--danger);
+    }
+
+    // ANSI colors
+    .ansi-black { color: #4d4d4d; }
+    .ansi-red { color: #ff6b6b; }
+    .ansi-green { color: #69db7c; }
+    .ansi-yellow { color: #ffd43b; }
+    .ansi-blue { color: #74c0fc; }
+    .ansi-magenta { color: #da77f2; }
+    .ansi-cyan { color: #66d9e8; }
+    .ansi-white { color: #f1f3f5; }
+    .bold { font-weight: 700; }
+  }
+}
+
+.console-input {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  gap: var(--space-2);
+
+  .input-prefix {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+
+  input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    outline: none;
+  }
+}
+
+// Server Layout
+.server-layout {
+  display: flex;
+  min-height: calc(100vh - var(--nav-height));
+}
+
+.server-content {
+  flex: 1;
+  min-width: 0;
+}
+
+// Server Sidebar
+.server-sidebar {
+  width: 220px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  .server-sidebar-header {
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: var(--space-2);
+
+    h3 {
+      font-size: var(--text-sm);
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: var(--text-sm);
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    &.active {
+      background: var(--accent-muted);
+      color: var(--accent);
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    background: var(--border);
+    margin: var(--space-2) 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .server-sidebar {
+    display: none;
+  }
+
+  .console-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .power-controls {
+    width: 100%;
+    
+    .btn {
+      flex: 1;
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "Minecraft Bedrock",
+  "description": "Official Minecraft Bedrock dedicated server",
+  "author": "Sodium",
+  "docker_images": {
+    "Ubuntu": "ubuntu:22.04"
+  },
+  "startup": "LD_LIBRARY_PATH=. ./bedrock_server",
+  "config": {
+    "files": {
+      "server.properties": {
+        "parser": "properties",
+        "find": {
+          "server-port": "{{server.build.default.port}}",
+          "server-portv6": "{{server.build.default.port}}"
+        }
+      }
+    },
+    "startup": {
+      "done": "Server started"
+    },
+    "stop": "stop"
+  },
+  "scripts": {
+    "install": {
+      "container": "ubuntu:22.04",
+      "entrypoint": "/bin/bash",
+      "script": "#!/bin/bash\napt-get update && apt-get install -y curl unzip libcurl4\ncd /mnt/server\nDOWNLOAD_URL=$(curl -s https://www.minecraft.net/en-us/download/server/bedrock | grep -o 'https://minecraft.azureedge.net/bin-linux/[^\"]*')\ncurl -o bedrock.zip \"$DOWNLOAD_URL\"\nunzip -o bedrock.zip\nrm bedrock.zip\nchmod +x bedrock_server"
+    }
+  },
+  "variables": [
+    {
+      "name": "Server Name",
+      "description": "Name shown in server list",
+      "env_variable": "SERVER_NAME",
+      "default_value": "Sodium Bedrock Server",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:50"
+    },
+    {
+      "name": "Gamemode",
+      "description": "Default gamemode",
+      "env_variable": "GAMEMODE",
+      "default_value": "survival",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|in:survival,creative,adventure"
+    }
+  ]
+}

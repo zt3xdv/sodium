@@ -1,0 +1,44 @@
+{
+  "name": "Discord.js Bot",
+  "description": "Discord bot using Discord.js",
+  "author": "Sodium",
+  "docker_images": {
+    "Node 20": "node:20-alpine",
+    "Node 18": "node:18-alpine"
+  },
+  "startup": "npm install && node {{MAIN_FILE}}",
+  "config": {
+    "files": {},
+    "startup": {
+      "done": "Ready!"
+    },
+    "stop": "^C"
+  },
+  "scripts": {
+    "install": {
+      "container": "node:20-alpine",
+      "entrypoint": "/bin/sh",
+      "script": "#!/bin/sh\ncd /mnt/server\nif [ ! -f package.json ]; then\n  npm init -y\n  npm install discord.js\n  cat > index.js << 'EOF'\nconst { Client, GatewayIntentBits } = require('discord.js');\nconst client = new Client({ intents: [GatewayIntentBits.Guilds] });\n\nclient.once('ready', () => console.log('Ready!'));\nclient.login(process.env.DISCORD_TOKEN);\nEOF\nfi"
+    }
+  },
+  "variables": [
+    {
+      "name": "Discord Token",
+      "description": "Your Discord bot token",
+      "env_variable": "DISCORD_TOKEN",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string"
+    },
+    {
+      "name": "Main File",
+      "description": "Bot entry point file",
+      "env_variable": "MAIN_FILE",
+      "default_value": "index.js",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:100"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "name": "Node.js Generic",
+  "description": "Generic Node.js application server",
+  "author": "Sodium",
+  "docker_images": {
+    "Node 22": "node:22-alpine",
+    "Node 21": "node:21-alpine",
+    "Node 20 LTS": "node:20-alpine",
+    "Node 18 LTS": "node:18-alpine",
+    "Node 16": "node:16-alpine"
+  },
+  "startup": "npm install && node {{MAIN_FILE}}",
+  "config": {
+    "files": {},
+    "startup": {
+      "done": "listening on"
+    },
+    "stop": "^C"
+  },
+  "scripts": {
+    "install": {
+      "container": "node:20-alpine",
+      "entrypoint": "/bin/sh",
+      "script": "#!/bin/sh\ncd /mnt/server\nif [ ! -f package.json ]; then\n  npm init -y\n  echo 'console.log(\"Hello from Sodium!\");' > index.js\nfi"
+    }
+  },
+  "variables": [
+    {
+      "name": "Main File",
+      "description": "The main entry point file",
+      "env_variable": "MAIN_FILE",
+      "default_value": "index.js",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:100"
+    },
+    {
+      "name": "Node Environment",
+      "description": "Node environment (development/production)",
+      "env_variable": "NODE_ENV",
+      "default_value": "production",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|in:development,production"
+    },
+    {
+      "name": "Additional Arguments",
+      "description": "Additional arguments to pass to node",
+      "env_variable": "NODE_ARGS",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string|max:200"
+    }
+  ]
+}

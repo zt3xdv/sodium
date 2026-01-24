@@ -1,0 +1,61 @@
+{
+  "name": "Terraria",
+  "description": "Terraria dedicated server (TShock)",
+  "author": "Sodium",
+  "docker_images": {
+    "Mono": "mono:latest"
+  },
+  "startup": "mono TerrariaServer.exe -port {{SERVER_PORT}} -maxplayers {{MAX_PLAYERS}} -world {{WORLD_NAME}}.wld -autocreate {{WORLD_SIZE}}",
+  "config": {
+    "files": {},
+    "startup": {
+      "done": "Listening on port"
+    },
+    "stop": "exit"
+  },
+  "scripts": {
+    "install": {
+      "container": "mono:latest",
+      "entrypoint": "/bin/bash",
+      "script": "#!/bin/bash\napt-get update && apt-get install -y curl unzip\ncd /mnt/server\nTSHOCK_VERSION=${TSHOCK_VERSION:-v5.2.0}\ncurl -L -o tshock.zip https://github.com/Pryaxis/TShock/releases/download/${TSHOCK_VERSION}/TShock-5.2-for-Terraria-1.4.4.9-linux-x64-Release.zip\nunzip -o tshock.zip\nrm tshock.zip"
+    }
+  },
+  "variables": [
+    {
+      "name": "Server Port",
+      "description": "Server port",
+      "env_variable": "SERVER_PORT",
+      "default_value": "7777",
+      "user_viewable": true,
+      "user_editable": false,
+      "rules": "required|integer|between:1024,65535"
+    },
+    {
+      "name": "Max Players",
+      "description": "Maximum players",
+      "env_variable": "MAX_PLAYERS",
+      "default_value": "8",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|between:1,255"
+    },
+    {
+      "name": "World Name",
+      "description": "World file name",
+      "env_variable": "WORLD_NAME",
+      "default_value": "world",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:30"
+    },
+    {
+      "name": "World Size",
+      "description": "1=Small, 2=Medium, 3=Large",
+      "env_variable": "WORLD_SIZE",
+      "default_value": "2",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|in:1,2,3"
+    }
+  ]
+}

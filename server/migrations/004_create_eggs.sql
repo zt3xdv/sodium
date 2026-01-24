@@ -1,0 +1,27 @@
+CREATE TABLE IF NOT EXISTS nests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  uuid TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS eggs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  uuid TEXT UNIQUE NOT NULL,
+  nest_id INTEGER NOT NULL REFERENCES nests(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  docker_images TEXT,
+  startup TEXT,
+  config TEXT,
+  scripts TEXT,
+  variables TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_eggs_nest ON eggs(nest_id);
+CREATE INDEX IF NOT EXISTS idx_eggs_uuid ON eggs(uuid);
+CREATE INDEX IF NOT EXISTS idx_nests_uuid ON nests(uuid);

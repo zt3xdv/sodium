@@ -1,0 +1,25 @@
+// ============================================
+// SODIUM DESIGN SYSTEM
+// Main Entry Point
+// ============================================
+
+// 1. Variables (CSS Custom Properties)
+@import 'variables';
+
+// 2. Base styles (reset, typography, globals)
+@import 'base';
+
+// 3. Layout (grid, flex, app structure)
+@import 'layout';
+
+// 4. Components (buttons, inputs, cards, etc.)
+@import 'components';
+
+// 5. Console styles
+@import 'console';
+
+// 6. File Manager styles
+@import 'file-manager';
+
+// 7. Admin Panel styles
+@import 'admin';

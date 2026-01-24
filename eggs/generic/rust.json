@@ -1,0 +1,45 @@
+{
+  "name": "Rust Application",
+  "description": "Rust application server",
+  "author": "Sodium",
+  "docker_images": {
+    "Rust Latest": "rust:latest",
+    "Rust 1.75": "rust:1.75",
+    "Rust Alpine": "rust:alpine"
+  },
+  "startup": "cargo build --release && ./target/release/{{APP_NAME}}",
+  "config": {
+    "files": {},
+    "startup": {
+      "done": "listening"
+    },
+    "stop": "^C"
+  },
+  "scripts": {
+    "install": {
+      "container": "rust:latest",
+      "entrypoint": "/bin/bash",
+      "script": "#!/bin/bash\ncd /mnt/server\nif [ ! -f Cargo.toml ]; then\n  cargo init --name app\nfi"
+    }
+  },
+  "variables": [
+    {
+      "name": "Application Name",
+      "description": "Name of the compiled binary",
+      "env_variable": "APP_NAME",
+      "default_value": "app",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:50"
+    },
+    {
+      "name": "Rust Features",
+      "description": "Cargo features to enable",
+      "env_variable": "FEATURES",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string|max:100"
+    }
+  ]
+}

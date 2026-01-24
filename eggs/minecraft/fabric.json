@@ -1,0 +1,51 @@
+{
+  "name": "Minecraft Fabric",
+  "description": "Lightweight Minecraft modding platform",
+  "author": "Sodium",
+  "docker_images": {
+    "Java 21": "eclipse-temurin:21-jre",
+    "Java 17": "eclipse-temurin:17-jre"
+  },
+  "startup": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar fabric-server-launch.jar nogui",
+  "config": {
+    "files": {
+      "server.properties": {
+        "parser": "properties",
+        "find": {
+          "server-port": "{{server.build.default.port}}"
+        }
+      }
+    },
+    "startup": {
+      "done": ")! For help, type "
+    },
+    "stop": "stop"
+  },
+  "scripts": {
+    "install": {
+      "container": "eclipse-temurin:17-jre",
+      "entrypoint": "/bin/bash",
+      "script": "#!/bin/bash\ncd /mnt/server\nMC_VERSION=${MINECRAFT_VERSION:-1.20.4}\nLOADER_VERSION=${LOADER_VERSION:-0.15.6}\nINSTALLER_VERSION=${INSTALLER_VERSION:-1.0.0}\ncurl -o fabric-installer.jar https://maven.fabricmc.net/net/fabricmc/fabric-installer/${INSTALLER_VERSION}/fabric-installer-${INSTALLER_VERSION}.jar\njava -jar fabric-installer.jar server -mcversion ${MC_VERSION} -loader ${LOADER_VERSION} -downloadMinecraft\nrm fabric-installer.jar\necho \"eula=true\" > eula.txt"
+    }
+  },
+  "variables": [
+    {
+      "name": "Minecraft Version",
+      "description": "Minecraft version",
+      "env_variable": "MINECRAFT_VERSION",
+      "default_value": "1.20.4",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:10"
+    },
+    {
+      "name": "Loader Version",
+      "description": "Fabric loader version",
+      "env_variable": "LOADER_VERSION",
+      "default_value": "0.15.6",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:15"
+    }
+  ]
+}

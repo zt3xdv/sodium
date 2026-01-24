@@ -1,0 +1,50 @@
+{
+  "name": "Mumble Server",
+  "description": "Mumble/Murmur voice chat server",
+  "author": "Sodium",
+  "docker_images": {
+    "Mumble": "mumblevoip/mumble-server:latest"
+  },
+  "startup": "murmurd -fg -ini /mnt/server/murmur.ini",
+  "config": {
+    "files": {
+      "murmur.ini": {
+        "parser": "ini",
+        "find": {
+          "port": "{{server.build.default.port}}"
+        }
+      }
+    },
+    "startup": {
+      "done": "Server listening"
+    },
+    "stop": "^C"
+  },
+  "scripts": {
+    "install": {
+      "container": "mumblevoip/mumble-server:latest",
+      "entrypoint": "/bin/sh",
+      "script": "#!/bin/sh\ncd /mnt/server\nif [ ! -f murmur.ini ]; then\n  cat > murmur.ini << 'EOF'\nwelcometext=\"Welcome to Sodium Mumble Server\"\nport=64738\nusers=100\nEOF\nfi"
+    }
+  },
+  "variables": [
+    {
+      "name": "Max Users",
+      "description": "Maximum concurrent users",
+      "env_variable": "MAX_USERS",
+      "default_value": "100",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|between:1,500"
+    },
+    {
+      "name": "Welcome Text",
+      "description": "Server welcome message",
+      "env_variable": "WELCOME_TEXT",
+      "default_value": "Welcome to Sodium Mumble Server",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string|max:200"
+    }
+  ]
+}
