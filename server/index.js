@@ -23,9 +23,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const server = createServer(app);
 
-db.migrate();
+async function startServer() {
+  await db.init();
+  db.migrate();
 
-(async () => {
   try {
     await docker.init();
     await backup.init();
@@ -33,71 +34,76 @@ db.migrate();
   } catch (err) {
     console.warn('Some services failed to initialize:', err.message);
   }
-})();
 
-app.use(cors(config.cors));
-app.use(express.json());
-app.use(express.static(join(__dirname, '..', 'dist')));
+  app.use(cors(config.cors));
+  app.use(express.json());
+  app.use(express.static(join(__dirname, '..', 'dist')));
 
-app.use('/api/auth', authRoutes);
-app.use('/api/servers', serverRoutes);
-app.use('/api/nodes', nodeRoutes);
-app.use('/api/servers', filesRoutes);
-app.use('/api/servers', backupRoutes);
-app.use('/api/servers', scheduleRoutes);
-app.use('/api/admin', adminRoutes);
+  app.use('/api/auth', authRoutes);
+  app.use('/api/servers', serverRoutes);
+  app.use('/api/nodes', nodeRoutes);
+  app.use('/api/servers', filesRoutes);
+  app.use('/api/servers', backupRoutes);
+  app.use('/api/servers', scheduleRoutes);
+  app.use('/api/admin', adminRoutes);
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
-const wss = new WebSocketServer({ noServer: true });
-const consoleWss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({ noServer: true });
+  const consoleWss = new WebSocketServer({ noServer: true });
 
-server.on('upgrade', (request, socket, head) => {
-  const pathname = request.url.split('?')[0];
+  server.on('upgrade', (request, socket, head) => {
+    const pathname = request.url.split('?')[0];
 
-  if (pathname.startsWith('/ws/console/')) {
-    consoleWss.handleUpgrade(request, socket, head, (ws) => {
-      consoleWss.emit('connection', ws, request);
-    });
-  } else if (pathname === '/ws') {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit('connection', ws, request);
-    });
-  } else {
-    socket.destroy();
-  }
-});
-
-setupConsoleWebSocket(consoleWss);
-
-wss.on('connection', (ws) => {
-  ws.on('message', (data) => {
-    try {
-      const message = JSON.parse(data);
-      console.log('WS message:', message);
-    } catch (err) {
-      console.error('Invalid WS message:', err);
+    if (pathname.startsWith('/ws/console/')) {
+      consoleWss.handleUpgrade(request, socket, head, (ws) => {
+        consoleWss.emit('connection', ws, request);
+      });
+    } else if (pathname === '/ws') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } else {
+      socket.destroy();
     }
   });
-});
 
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  
-  const status = err.status || err.statusCode || 500;
-  const message = config.debug ? err.message : 'Internal server error';
-  
-  res.status(status).json({ error: message });
-});
+  setupConsoleWebSocket(consoleWss);
 
-app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, '..', 'dist', 'index.html'));
-});
+  wss.on('connection', (ws) => {
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data);
+        console.log('WS message:', message);
+      } catch (err) {
+        console.error('Invalid WS message:', err);
+      }
+    });
+  });
 
-server.listen(config.port, config.host, () => {
-  console.log(`🪶 Sodium server running at http://${config.host}:${config.port}`);
+  app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    
+    const status = err.status || err.statusCode || 500;
+    const message = config.debug ? err.message : 'Internal server error';
+    
+    res.status(status).json({ error: message });
+  });
+
+  app.get('*', (req, res) => {
+    res.sendFile(join(__dirname, '..', 'dist', 'index.html'));
+  });
+
+  server.listen(config.port, config.host, () => {
+    console.log(`🪶 Sodium server running at http://${config.host}:${config.port}`);
+  });
+}
+
+startServer().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
 
 process.on('SIGINT', () => {
