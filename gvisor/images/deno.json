@@ -1,0 +1,43 @@
+{
+  "id": "deno",
+  "name": "Deno",
+  "description": "Secure TypeScript/JavaScript runtime",
+  "runtime": "deno",
+  "version": "latest",
+  "icon": "deno",
+  "color": "#000000",
+  
+  "startup": "deno run --allow-read --allow-write --allow-net {{MAIN_FILE}}",
+  "default_main": "main.ts",
+  
+  "limits": {
+    "memory_mb": 512,
+    "cpu_percent": 100,
+    "disk_mb": 1024,
+    "timeout_seconds": 0,
+    "max_processes": 64
+  },
+  
+  "variables": [
+    {
+      "name": "Main File",
+      "env": "MAIN_FILE",
+      "default": "main.ts",
+      "required": true
+    },
+    {
+      "name": "Permissions",
+      "env": "DENO_PERMISSIONS",
+      "default": "--allow-read --allow-write",
+      "description": "Deno permission flags"
+    }
+  ],
+  
+  "install": {
+    "script": "#!/bin/bash\ncd /home/container\n\nif [ ! -f main.ts ]; then\n  echo 'console.log(\"Hello from Sodium!\");' > main.ts\nfi\n\necho \"Installation complete!\""
+  },
+  
+  "files": {
+    "main.ts": "// Sodium Deno Sandbox\nconsole.log('Hello from Sodium!');\nconsole.log('Deno', Deno.version.deno);\n"
+  }
+}

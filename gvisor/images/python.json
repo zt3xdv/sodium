@@ -1,0 +1,49 @@
+{
+  "id": "python",
+  "name": "Python",
+  "description": "Python 3 runtime for Python applications",
+  "runtime": "python",
+  "version": "3.12",
+  "icon": "python",
+  "color": "#3776ab",
+  
+  "startup": "python3 {{MAIN_FILE}}",
+  "default_main": "main.py",
+  
+  "limits": {
+    "memory_mb": 512,
+    "cpu_percent": 100,
+    "disk_mb": 1024,
+    "timeout_seconds": 0,
+    "max_processes": 64
+  },
+  
+  "variables": [
+    {
+      "name": "Main File",
+      "env": "MAIN_FILE",
+      "default": "main.py",
+      "required": true
+    },
+    {
+      "name": "Python Arguments",
+      "env": "PYTHON_ARGS",
+      "default": "",
+      "required": false
+    },
+    {
+      "name": "Auto Install",
+      "env": "AUTO_INSTALL",
+      "default": "true",
+      "description": "Auto run pip install on start"
+    }
+  ],
+  
+  "install": {
+    "script": "#!/bin/bash\ncd /home/container\n\nif [ ! -f main.py ]; then\n  echo 'print(\"Hello from Sodium!\")' > main.py\nfi\n\nif [ -f requirements.txt ] && [ \"$AUTO_INSTALL\" = \"true\" ]; then\n  pip install -r requirements.txt --user\nfi\n\necho \"Installation complete!\""
+  },
+  
+  "files": {
+    "main.py": "# Sodium Python Sandbox\nimport sys\n\nprint('Hello from Sodium!')\nprint(f'Python {sys.version}')\n"
+  }
+}

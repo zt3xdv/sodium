@@ -1,0 +1,37 @@
+{
+  "id": "bash",
+  "name": "Bash Script",
+  "description": "Bash shell scripting environment",
+  "runtime": "bash",
+  "version": "5.x",
+  "icon": "terminal",
+  "color": "#4eaa25",
+  
+  "startup": "bash {{MAIN_FILE}}",
+  "default_main": "run.sh",
+  
+  "limits": {
+    "memory_mb": 256,
+    "cpu_percent": 50,
+    "disk_mb": 512,
+    "timeout_seconds": 300,
+    "max_processes": 32
+  },
+  
+  "variables": [
+    {
+      "name": "Main File",
+      "env": "MAIN_FILE",
+      "default": "run.sh",
+      "required": true
+    }
+  ],
+  
+  "install": {
+    "script": "#!/bin/bash\ncd /home/container\n\nif [ ! -f run.sh ]; then\n  echo '#!/bin/bash' > run.sh\n  echo 'echo \"Hello from Sodium!\"' >> run.sh\nfi\n\nchmod +x run.sh\necho \"Installation complete!\""
+  },
+  
+  "files": {
+    "run.sh": "#!/bin/bash\n# Sodium Bash Sandbox\necho \"Hello from Sodium!\"\necho \"Bash $BASH_VERSION\"\n"
+  }
+}

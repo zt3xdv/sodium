@@ -1,0 +1,48 @@
+{
+  "id": "typescript",
+  "name": "TypeScript (Bun)",
+  "description": "TypeScript runtime using Bun",
+  "runtime": "bun",
+  "version": "latest",
+  "icon": "typescript",
+  "color": "#3178c6",
+  
+  "startup": "bun run {{MAIN_FILE}}",
+  "default_main": "index.ts",
+  
+  "limits": {
+    "memory_mb": 512,
+    "cpu_percent": 100,
+    "disk_mb": 1024,
+    "timeout_seconds": 0,
+    "max_processes": 64
+  },
+  
+  "variables": [
+    {
+      "name": "Main File",
+      "env": "MAIN_FILE",
+      "default": "index.ts",
+      "required": true
+    },
+    {
+      "name": "Bun Arguments",
+      "env": "BUN_ARGS",
+      "default": "",
+      "required": false
+    },
+    {
+      "name": "Auto Install",
+      "env": "AUTO_INSTALL",
+      "default": "true"
+    }
+  ],
+  
+  "install": {
+    "script": "#!/bin/bash\ncd /home/container\n\nif [ ! -f index.ts ]; then\n  echo 'console.log(\"Hello from Sodium!\");' > index.ts\nfi\n\nif [ -f package.json ] && [ \"$AUTO_INSTALL\" = \"true\" ]; then\n  bun install\nfi\n\necho \"Installation complete!\""
+  },
+  
+  "files": {
+    "index.ts": "// Sodium TypeScript Sandbox\nconsole.log('Hello from Sodium!');\nconsole.log('Bun', Bun.version);\n"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "id": "javascript",
+  "name": "JavaScript / Node.js",
+  "description": "Node.js runtime for JavaScript applications",
+  "runtime": "node",
+  "version": "20.x",
+  "icon": "js",
+  "color": "#f7df1e",
+  
+  "startup": "node {{MAIN_FILE}}",
+  "default_main": "index.js",
+  
+  "limits": {
+    "memory_mb": 512,
+    "cpu_percent": 100,
+    "disk_mb": 1024,
+    "timeout_seconds": 0,
+    "max_processes": 64
+  },
+  
+  "variables": [
+    {
+      "name": "Main File",
+      "env": "MAIN_FILE",
+      "default": "index.js",
+      "required": true
+    },
+    {
+      "name": "Node Arguments",
+      "env": "NODE_ARGS",
+      "default": "",
+      "required": false
+    },
+    {
+      "name": "Auto Install",
+      "env": "AUTO_INSTALL",
+      "default": "true",
+      "description": "Auto run npm install on start"
+    }
+  ],
+  
+  "install": {
+    "script": "#!/bin/bash\ncd /home/container\n\nif [ ! -f package.json ]; then\n  echo '{\"name\":\"app\",\"type\":\"module\",\"main\":\"index.js\"}' > package.json\nfi\n\nif [ ! -f index.js ]; then\n  echo 'console.log(\"Hello from Sodium!\");' > index.js\nfi\n\nif [ -f package.json ] && [ \"$AUTO_INSTALL\" = \"true\" ]; then\n  npm install\nfi\n\necho \"Installation complete!\""
+  },
+  
+  "files": {
+    "index.js": "// Sodium JavaScript Sandbox\nconsole.log('Hello from Sodium!');\nconsole.log('Node.js', process.version);\n",
+    "package.json": "{\n  \"name\": \"app\",\n  \"type\": \"module\",\n  \"main\": \"index.js\"\n}"
+  }
+}
