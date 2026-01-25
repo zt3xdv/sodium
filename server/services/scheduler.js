@@ -1,5 +1,9 @@
 import db from './database.js';
-import docker from './docker.js';
+import backup from './backup.js';
+import daemonManager from './daemon-manager.js';
+import Server from '../models/Server.js';
+import Allocation from '../models/Allocation.js';
+import Node from '../models/Node.js';
 
 class SchedulerService {
   constructor() {
@@ -120,32 +124,65 @@ class SchedulerService {
     const payload = JSON.parse(job.payload || '{}');
     const action = payload.action || 'restart';
 
-    switch (action) {
-      case 'start':
-        await docker.startContainer(job.server_uuid);
-        break;
-      case 'stop':
-        await docker.stopContainer(job.server_uuid);
-        break;
-      case 'restart':
-        await docker.restartContainer(job.server_uuid);
-        break;
-      case 'kill':
-        await docker.killContainer(job.server_uuid);
-        break;
+    // Get node for the server
+    const nodeUuid = this.getNodeForServer(job.server_uuid);
+    if (!nodeUuid) {
+      throw new Error('Server has no node assigned');
+    }
+
+    if (!daemonManager.isDaemonConnected(nodeUuid)) {
+      throw new Error('Daemon not connected');
+    }
+
+    const sent = daemonManager.sendServerPowerAction(nodeUuid, job.server_uuid, action);
+    if (!sent) {
+      throw new Error('Failed to send power action to daemon');
     }
   }
 
   async executeCommand(job) {
     const payload = JSON.parse(job.payload || '{}');
-    if (payload.command) {
-      await docker.sendCommand(job.server_uuid, payload.command);
+    if (!payload.command) return;
+
+    const nodeUuid = this.getNodeForServer(job.server_uuid);
+    if (!nodeUuid) {
+      throw new Error('Server has no node assigned');
+    }
+
+    if (!daemonManager.isDaemonConnected(nodeUuid)) {
+      throw new Error('Daemon not connected');
+    }
+
+    const sent = daemonManager.sendServerCommand(nodeUuid, job.server_uuid, payload.command);
+    if (!sent) {
+      throw new Error('Failed to send command to daemon');
     }
   }
 
+  getNodeForServer(serverUuid) {
+    const server = Server.findByUuid(serverUuid);
+    if (!server) return null;
+    
+    const allocations = Allocation.findByServer(server.id);
+    if (!allocations || allocations.length === 0) return null;
+    
+    const node = Node.findById(allocations[0].node_id);
+    return node?.uuid || null;
+  }
+
   async executeBackup(job) {
-    // TODO: Implement backup service integration
-    console.log(`Backup scheduled for ${job.server_uuid}`);
+    const server = Server.findByUuid(job.server_uuid);
+    if (!server) {
+      throw new Error('Server not found');
+    }
+    
+    const payload = JSON.parse(job.payload || '{}');
+    const result = await backup.createBackup(server, {
+      name: payload.name || `Scheduled backup`,
+      ignore: payload.ignore || []
+    });
+    
+    console.log(`Backup created for ${job.server_uuid}: ${result.uuid}`);
   }
 
   addJob(schedule) {

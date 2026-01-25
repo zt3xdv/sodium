@@ -2,9 +2,22 @@ import { WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
 import config from '../config.js';
 import Server from '../models/Server.js';
-import docker from '../services/docker.js';
+import Allocation from '../models/Allocation.js';
+import Node from '../models/Node.js';
+import daemonManager from '../services/daemon-manager.js';
 
 const clients = new Map();
+
+function getNodeForServer(serverUuid) {
+  const server = Server.findByUuid(serverUuid);
+  if (!server) return null;
+  
+  const allocations = Allocation.findByServer(server.id);
+  if (!allocations || allocations.length === 0) return null;
+  
+  const node = Node.findById(allocations[0].node_id);
+  return node?.uuid || null;
+}
 
 export function setupConsoleWebSocket(wss) {
   wss.on('connection', async (ws, req) => {
@@ -45,35 +58,48 @@ export function setupConsoleWebSocket(wss) {
     ws.serverUuid = serverUuid;
     ws.user = user;
 
+    const nodeUuid = getNodeForServer(serverUuid);
+    const daemonConnected = nodeUuid && daemonManager.isDaemonConnected(nodeUuid);
+
     ws.send(JSON.stringify({
       type: 'connected',
       server: {
         uuid: server.uuid,
         name: server.name,
         status: server.status
-      }
+      },
+      daemonConnected
     }));
-
-    docker.attachToContainer(serverUuid);
 
     ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data);
 
+        const nodeUuid = getNodeForServer(serverUuid);
+        if (!nodeUuid) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Server has no node assigned' }));
+          return;
+        }
+
+        if (!daemonManager.isDaemonConnected(nodeUuid)) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Daemon not connected' }));
+          return;
+        }
+
         switch (message.type) {
           case 'command':
             if (message.command) {
-              await docker.sendCommand(serverUuid, message.command);
+              daemonManager.sendServerCommand(nodeUuid, serverUuid, message.command);
             }
             break;
 
           case 'power':
-            await handlePowerAction(serverUuid, message.action, ws);
+            await handlePowerAction(serverUuid, nodeUuid, message.action, ws);
             break;
 
           case 'stats':
-            const stats = await docker.getContainerStats(serverUuid);
-            ws.send(JSON.stringify({ type: 'stats', ...stats }));
+            // Stats are received from daemon via handleServerStatus
+            // Just acknowledge the request - stats will come via broadcast
             break;
         }
       } catch (err) {
@@ -96,41 +122,11 @@ export function setupConsoleWebSocket(wss) {
     });
   });
 
-  docker.on('output', (serverUuid, output) => {
-    broadcast(serverUuid, {
-      type: 'output',
-      content: output
-    });
-  });
-
-  docker.on('install_output', (serverUuid, output) => {
-    broadcast(serverUuid, {
-      type: 'install',
-      content: output
-    });
-  });
-
-  setInterval(async () => {
-    for (const [serverUuid, wsClients] of clients) {
-      if (wsClients.size === 0) continue;
-
-      try {
-        const stats = await docker.getContainerStats(serverUuid);
-        const status = await docker.getContainerStatus(serverUuid);
-        
-        broadcast(serverUuid, {
-          type: 'stats',
-          ...stats,
-          status: mapDockerStatus(status)
-        });
-      } catch (err) {
-        // Ignore stats errors
-      }
-    }
-  }, 2000);
+  // Output and stats are received from daemon via daemon-manager
+  // which calls broadcastToServer to forward to clients
 }
 
-async function handlePowerAction(serverUuid, action, ws) {
+async function handlePowerAction(serverUuid, nodeUuid, action, ws) {
   const validActions = ['start', 'stop', 'restart', 'kill'];
   if (!validActions.includes(action)) {
     throw new Error('Invalid power action');
@@ -142,29 +138,27 @@ async function handlePowerAction(serverUuid, action, ws) {
   });
 
   try {
-    switch (action) {
-      case 'start':
-        await docker.startContainer(serverUuid);
-        await Server.updateStatus(serverUuid, 'online');
-        break;
-      case 'stop':
-        await docker.stopContainer(serverUuid);
-        await Server.updateStatus(serverUuid, 'offline');
-        break;
-      case 'restart':
-        await docker.restartContainer(serverUuid);
-        break;
-      case 'kill':
-        await docker.killContainer(serverUuid);
-        await Server.updateStatus(serverUuid, 'offline');
-        break;
+    const sent = daemonManager.sendServerPowerAction(nodeUuid, serverUuid, action);
+    if (!sent) {
+      throw new Error('Failed to send power action to daemon');
     }
 
-    const status = await docker.getContainerStatus(serverUuid);
-    broadcast(serverUuid, {
-      type: 'status',
-      status: mapDockerStatus(status)
-    });
+    // Status update will come from daemon via handleServerStatus
+    // Update local status optimistically
+    let newStatus;
+    switch (action) {
+      case 'start':
+        newStatus = 'starting';
+        break;
+      case 'stop':
+      case 'kill':
+        newStatus = 'stopping';
+        break;
+      case 'restart':
+        newStatus = 'restarting';
+        break;
+    }
+    Server.updateStatusByUuid(serverUuid, newStatus);
   } catch (err) {
     broadcast(serverUuid, {
       type: 'error',
@@ -186,20 +180,11 @@ function broadcast(serverUuid, message) {
   }
 }
 
-function mapDockerStatus(dockerStatus) {
-  const statusMap = {
-    running: 'online',
-    exited: 'offline',
-    created: 'offline',
-    paused: 'offline',
-    restarting: 'starting',
-    removing: 'stopping',
-    dead: 'offline',
-    not_found: 'offline'
-  };
-  return statusMap[dockerStatus] || 'offline';
-}
-
 export function getConnectedClients(serverUuid) {
   return clients.get(serverUuid)?.size || 0;
+}
+
+// Export broadcast for daemon manager to forward server output
+export function broadcastToServer(serverUuid, message) {
+  broadcast(serverUuid, message);
 }

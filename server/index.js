@@ -22,6 +22,7 @@ import databaseRoutes from './api/databases.js';
 import apiKeyRoutes, { apiKeyAuth } from './api/api-keys.js';
 import accountRoutes from './api/account.js';
 import { setupConsoleWebSocket } from './websocket/console.js';
+import daemonManager from './services/daemon-manager.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -87,8 +88,6 @@ async function startServer() {
   setupConsoleWebSocket(consoleWss);
 
   // Daemon WebSocket handler
-  const connectedDaemons = new Map();
-
   daemonWss.on('connection', (ws, request) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
     const token = url.searchParams.get('token');
@@ -96,7 +95,20 @@ async function startServer() {
 
     console.log(`Daemon connecting: ${uuid}`);
 
-    let daemonInfo = { uuid, authenticated: false };
+    let daemonInfo = { uuid, authenticated: false, node: null };
+    ws.isAlive = true;
+
+    // Authentication timeout - daemon must authenticate within 30 seconds
+    const authTimeout = setTimeout(() => {
+      if (!daemonInfo.authenticated) {
+        console.log(`Daemon ${uuid} authentication timeout`);
+        ws.close(4008, 'Authentication timeout');
+      }
+    }, 30000);
+
+    ws.on('pong', () => {
+      ws.isAlive = true;
+    });
 
     ws.on('message', (data) => {
       try {
@@ -104,36 +116,45 @@ async function startServer() {
 
         switch (msg.type) {
           case 'auth':
-            // TODO: Validate token against database
+            // Validate token against database
+            const node = daemonManager.validateDaemonToken(uuid, msg.token || token);
+            if (!node) {
+              ws.send(JSON.stringify({ type: 'auth_failed', reason: 'Invalid token or node not found' }));
+              ws.close(4003, 'Authentication failed');
+              return;
+            }
+            
             daemonInfo.authenticated = true;
             daemonInfo.version = msg.version;
-            connectedDaemons.set(uuid, { ws, info: daemonInfo });
-            ws.send(JSON.stringify({ type: 'auth_success' }));
-            console.log(`Daemon authenticated: ${uuid}`);
+            daemonInfo.node = node;
+            clearTimeout(authTimeout);
+            daemonManager.registerDaemon(uuid, ws, daemonInfo);
+            ws.send(JSON.stringify({ type: 'auth_success', node: { name: node.name, uuid: node.uuid } }));
+            console.log(`Daemon authenticated: ${uuid} (${node.name})`);
             break;
 
           case 'heartbeat':
-            ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+            if (daemonInfo.authenticated) {
+              ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+            }
             break;
 
           case 'stats':
             if (daemonInfo.authenticated) {
-              // Store stats in database or memory
-              daemonInfo.lastStats = msg.data;
-              daemonInfo.lastSeen = Date.now();
+              daemonManager.updateDaemonStats(uuid, msg.data);
             }
             break;
 
           case 'server_status':
             if (daemonInfo.authenticated) {
-              // Update server status in database
+              daemonManager.handleServerStatus(msg.uuid, msg.status, msg.stats);
               console.log(`Server ${msg.uuid} status: ${msg.status}`);
             }
             break;
 
           case 'server_output':
             if (daemonInfo.authenticated) {
-              // Forward to console WebSocket clients
+              daemonManager.handleServerOutput(msg.uuid, msg.output);
             }
             break;
 
@@ -150,13 +171,31 @@ async function startServer() {
 
     ws.on('close', () => {
       console.log(`Daemon disconnected: ${uuid}`);
-      connectedDaemons.delete(uuid);
+      clearTimeout(authTimeout);
+      if (daemonInfo.authenticated) {
+        daemonManager.unregisterDaemon(uuid);
+      }
     });
 
     ws.on('error', (err) => {
       console.error(`Daemon ${uuid} error:`, err.message);
     });
   });
+
+  // Heartbeat interval to detect dead daemon connections
+  const daemonHeartbeatInterval = setInterval(() => {
+    daemonWss.clients.forEach((ws) => {
+      if (ws.isAlive === false) {
+        console.log('Terminating inactive daemon connection');
+        return ws.terminate();
+      }
+      ws.isAlive = false;
+      ws.ping();
+    });
+  }, 45000);
+
+  // Store interval for cleanup
+  server.daemonHeartbeatInterval = daemonHeartbeatInterval;
 
   wss.on('connection', (ws) => {
     ws.on('message', (data) => {
@@ -194,6 +233,9 @@ startServer().catch(err => {
 
 process.on('SIGINT', () => {
   console.log('\nShutting down...');
+  if (server.daemonHeartbeatInterval) {
+    clearInterval(server.daemonHeartbeatInterval);
+  }
   scheduler.stop();
   db.close();
   server.close();

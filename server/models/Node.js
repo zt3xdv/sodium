@@ -77,6 +77,23 @@ class Node {
     return result.changes > 0;
   }
 
+  static updateStatus(uuid, status) {
+    const now = new Date().toISOString();
+    const stmt = db.prepare('UPDATE nodes SET status = ?, last_seen_at = ?, updated_at = ? WHERE uuid = ?');
+    stmt.run(status, now, now, uuid);
+    return this.findByUuid(uuid);
+  }
+
+  static findByToken(token) {
+    const stmt = db.prepare('SELECT * FROM nodes WHERE daemon_token = ?');
+    return stmt.get(token) || null;
+  }
+
+  static getOnlineNodes() {
+    const stmt = db.prepare("SELECT * FROM nodes WHERE status = 'online' ORDER BY name");
+    return stmt.all();
+  }
+
   static getWithStats(id) {
     const stmt = db.prepare(`
       SELECT 

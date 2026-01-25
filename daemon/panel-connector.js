@@ -147,6 +147,18 @@ export default class PanelConnector extends EventEmitter {
         this.emit('server_action', msg);
         break;
 
+      case 'server_install':
+        this.emit('server_install', msg);
+        break;
+
+      case 'server_create':
+        this.emit('server_create', msg);
+        break;
+
+      case 'server_delete':
+        this.emit('server_delete', msg);
+        break;
+
       case 'pong':
         break;
 

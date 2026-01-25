@@ -3,6 +3,7 @@ import auth from '../middleware/auth.js';
 import admin from '../middleware/admin.js';
 import Node from '../models/Node.js';
 import Allocation from '../models/Allocation.js';
+import daemonManager from '../services/daemon-manager.js';
 
 const router = Router();
 
@@ -195,6 +196,51 @@ router.get('/:id/config', admin, (req, res) => {
     };
 
     res.json({ data: daemonConfig });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get daemon connection status for a node
+router.get('/:id/status', admin, (req, res) => {
+  try {
+    const node = Node.findById(req.params.id);
+    if (!node) {
+      return res.status(404).json({ error: 'Node not found' });
+    }
+
+    const connected = daemonManager.isDaemonConnected(node.uuid);
+    const stats = daemonManager.getDaemonStats(node.uuid);
+
+    res.json({
+      data: {
+        uuid: node.uuid,
+        name: node.name,
+        connected,
+        status: node.status,
+        last_seen_at: node.last_seen_at,
+        stats
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all connected daemons
+router.get('/daemons/connected', admin, (req, res) => {
+  try {
+    const uuids = daemonManager.getConnectedDaemons();
+    const daemons = uuids.map(uuid => {
+      const node = Node.findByUuid(uuid);
+      const stats = daemonManager.getDaemonStats(uuid);
+      return {
+        uuid,
+        name: node?.name || 'Unknown',
+        stats
+      };
+    });
+    res.json({ data: daemons });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

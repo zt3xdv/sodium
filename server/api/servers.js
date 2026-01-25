@@ -2,7 +2,11 @@ import { Router } from 'express';
 import auth from '../middleware/auth.js';
 import admin from '../middleware/admin.js';
 import Server from '../models/Server.js';
+import Allocation from '../models/Allocation.js';
+import Node from '../models/Node.js';
+import Egg from '../models/Egg.js';
 import limits from '../services/limits.js';
+import daemonManager from '../services/daemon-manager.js';
 
 const router = Router();
 
@@ -175,6 +179,22 @@ router.post('/:id/power', auth, (req, res) => {
       return res.status(400).json({ error: `Invalid action. Must be one of: ${validActions.join(', ')}` });
     }
 
+    // Get server's allocation to find the node
+    const allocation = Allocation.findByServer(server.id)?.[0];
+    if (!allocation) {
+      return res.status(400).json({ error: 'Server has no allocation assigned' });
+    }
+
+    const node = Node.findById(allocation.node_id);
+    if (!node) {
+      return res.status(400).json({ error: 'Node not found for server' });
+    }
+
+    // Check if daemon is connected
+    if (!daemonManager.isDaemonConnected(node.uuid)) {
+      return res.status(503).json({ error: 'Daemon is not connected' });
+    }
+
     let newStatus;
     switch (action) {
       case 'start':
@@ -191,9 +211,128 @@ router.post('/:id/power', auth, (req, res) => {
         break;
     }
 
+    // Send power action to daemon
+    const sent = daemonManager.sendServerPowerAction(node.uuid, server.uuid, action);
+    if (!sent) {
+      return res.status(503).json({ error: 'Failed to send command to daemon' });
+    }
+
     const updated = Server.updateStatus(server.id, newStatus);
 
-    res.json({ data: updated, message: `Power action '${action}' sent` });
+    res.json({ data: updated, message: `Power action '${action}' sent to daemon` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Send command to server console
+router.post('/:id/command', auth, (req, res) => {
+  try {
+    const server = resolveServer(req.params.id);
+
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    if (req.user.role !== 'admin' && server.owner_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const { command } = req.body;
+    if (!command) {
+      return res.status(400).json({ error: 'Command is required' });
+    }
+
+    const allocation = Allocation.findByServer(server.id)?.[0];
+    if (!allocation) {
+      return res.status(400).json({ error: 'Server has no allocation assigned' });
+    }
+
+    const node = Node.findById(allocation.node_id);
+    if (!node) {
+      return res.status(400).json({ error: 'Node not found for server' });
+    }
+
+    if (!daemonManager.isDaemonConnected(node.uuid)) {
+      return res.status(503).json({ error: 'Daemon is not connected' });
+    }
+
+    const sent = daemonManager.sendServerCommand(node.uuid, server.uuid, command);
+    if (!sent) {
+      return res.status(503).json({ error: 'Failed to send command to daemon' });
+    }
+
+    res.json({ success: true, message: 'Command sent' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Install/reinstall server
+router.post('/:id/install', auth, async (req, res) => {
+  try {
+    const server = resolveServer(req.params.id);
+
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    if (req.user.role !== 'admin' && server.owner_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!server.egg_id) {
+      return res.status(400).json({ error: 'Server has no egg assigned' });
+    }
+
+    const egg = Egg.findById(server.egg_id);
+    if (!egg) {
+      return res.status(400).json({ error: 'Egg not found' });
+    }
+
+    const allocation = Allocation.findByServer(server.id)?.[0];
+    if (!allocation) {
+      return res.status(400).json({ error: 'Server has no allocation assigned' });
+    }
+
+    const node = Node.findById(allocation.node_id);
+    if (!node) {
+      return res.status(400).json({ error: 'Node not found for server' });
+    }
+
+    if (!daemonManager.isDaemonConnected(node.uuid)) {
+      return res.status(503).json({ error: 'Daemon is not connected' });
+    }
+
+    // Prepare server data for daemon
+    const serverData = {
+      uuid: server.uuid,
+      name: server.name,
+      memory: server.memory,
+      disk: server.disk,
+      cpu: server.cpu,
+      port: allocation.port,
+      ip: allocation.ip,
+      docker_image: server.docker_image,
+      startup_command: server.startup_command
+    };
+
+    // Egg data is already parsed by the model
+    const eggData = {
+      startup: egg.startup,
+      docker_images: egg.docker_images,
+      variables: egg.variables,
+      scripts: egg.scripts
+    };
+
+    const sent = daemonManager.sendServerInstall(node.uuid, server.uuid, serverData, eggData);
+    if (!sent) {
+      return res.status(503).json({ error: 'Failed to send install request to daemon' });
+    }
+
+    Server.updateStatus(server.id, 'installing');
+
+    res.json({ success: true, message: 'Installation started' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

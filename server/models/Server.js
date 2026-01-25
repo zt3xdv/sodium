@@ -98,6 +98,12 @@ class Server {
     return this.findById(id);
   }
 
+  static updateStatusByUuid(uuid, status) {
+    const stmt = db.prepare('UPDATE servers SET status = ?, updated_at = ? WHERE uuid = ?');
+    stmt.run(status, new Date().toISOString(), uuid);
+    return this.findByUuid(uuid);
+  }
+
   static getWithDetails(id) {
     const stmt = db.prepare(`
       SELECT 

@@ -391,21 +391,84 @@ wss.on('connection', (ws, req) => {
 
 // Panel connector event handlers
 panelConnector.on('command', async (msg) => {
-  const { uuid, action, command } = msg;
+  const { uuid, command } = msg;
   try {
-    if (action === 'command' && command) {
+    if (command) {
       await docker.sendCommand(uuid, command);
-    } else if (['start', 'stop', 'restart', 'kill'].includes(action)) {
-      switch (action) {
-        case 'start': await docker.startContainer(uuid); break;
-        case 'stop': await docker.stopContainer(uuid); break;
-        case 'restart': await docker.restartContainer(uuid); break;
-        case 'kill': await docker.killContainer(uuid); break;
-      }
-      panelConnector.sendServerStatus(uuid, await docker.getContainerStatus(uuid));
+      logger.debug(`Command sent to ${uuid}: ${command}`);
     }
   } catch (err) {
-    logger.error(`Panel command failed: ${action}`, { uuid, error: err.message });
+    logger.error(`Panel command failed`, { uuid, error: err.message });
+  }
+});
+
+panelConnector.on('server_action', async (msg) => {
+  const { uuid, action } = msg;
+  try {
+    logger.info(`Server action: ${action} for ${uuid}`);
+    switch (action) {
+      case 'start':
+        await docker.startContainer(uuid);
+        break;
+      case 'stop':
+        await docker.stopContainer(uuid);
+        break;
+      case 'restart':
+        await docker.restartContainer(uuid);
+        break;
+      case 'kill':
+        await docker.killContainer(uuid);
+        break;
+      default:
+        logger.warn(`Unknown server action: ${action}`);
+        return;
+    }
+    const status = await docker.getContainerStatus(uuid);
+    panelConnector.sendServerStatus(uuid, status);
+  } catch (err) {
+    logger.error(`Server action failed: ${action}`, { uuid, error: err.message });
+    panelConnector.sendServerStatus(uuid, 'error');
+  }
+});
+
+panelConnector.on('server_install', async (msg) => {
+  const { uuid, server, egg } = msg;
+  try {
+    logger.info(`Installing server: ${uuid}`);
+    panelConnector.sendServerStatus(uuid, 'installing');
+    
+    await docker.installServer(server, egg);
+    
+    logger.info(`Server installed: ${uuid}`);
+    panelConnector.sendServerStatus(uuid, 'offline');
+  } catch (err) {
+    logger.error(`Server install failed: ${uuid}`, { error: err.message });
+    panelConnector.sendServerStatus(uuid, 'install_failed');
+  }
+});
+
+panelConnector.on('server_create', async (msg) => {
+  const { uuid, server, egg } = msg;
+  try {
+    logger.info(`Creating container for server: ${uuid}`);
+    await docker.createContainer(server, egg);
+    logger.info(`Container created: ${uuid}`);
+    panelConnector.sendServerStatus(uuid, 'offline');
+  } catch (err) {
+    logger.error(`Container creation failed: ${uuid}`, { error: err.message });
+    panelConnector.sendServerStatus(uuid, 'error');
+  }
+});
+
+panelConnector.on('server_delete', async (msg) => {
+  const { uuid } = msg;
+  try {
+    logger.info(`Deleting server: ${uuid}`);
+    await docker.removeContainer(uuid);
+    await filesystem.deleteServerFiles(uuid);
+    logger.info(`Server deleted: ${uuid}`);
+  } catch (err) {
+    logger.error(`Server delete failed: ${uuid}`, { error: err.message });
   }
 });
 
