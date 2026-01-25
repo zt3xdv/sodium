@@ -122,7 +122,7 @@ class Router {
     this.outlet.classList.add('route-enter');
 
     if (typeof mountFn === 'function') {
-      setTimeout(() => mountFn(context), 0);
+      setTimeout(() => mountFn(context.params), 0);
     }
 
     await this.wait(150);
