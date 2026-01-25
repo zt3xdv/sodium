@@ -201,6 +201,25 @@ router.get('/:id/config', admin, (req, res) => {
   }
 });
 
+// Regenerate daemon token
+router.post('/:id/regenerate-token', admin, (req, res) => {
+  try {
+    const node = Node.findById(req.params.id);
+    if (!node) {
+      return res.status(404).json({ error: 'Node not found' });
+    }
+
+    const { v4: uuidv4 } = require('uuid');
+    const newToken = uuidv4() + uuidv4().replace(/-/g, '');
+    
+    Node.update(req.params.id, { daemon_token: newToken });
+    
+    res.json({ success: true, message: 'Token regenerated' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get daemon connection status for a node
 router.get('/:id/status', admin, (req, res) => {
   try {

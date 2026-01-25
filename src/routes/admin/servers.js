@@ -112,17 +112,17 @@ export async function mount() {
     }
 
     serversList.innerHTML = filtered.map(server => `
-      <tr data-id="${server.uuid}">
+      <tr data-id="${server.uuid}" data-internal-id="${server.id}">
         <td>
           <span class="status-indicator status-${server.status}"></span>
           <span class="badge badge-${server.status === 'online' ? 'success' : 'secondary'}">${server.status}</span>
         </td>
         <td>
-          <a href="/server/${server.uuid}/console" class="server-link">${server.name}</a>
+          <a href="/admin/servers/${server.id}" class="server-link">${server.name}</a>
           <div class="text-secondary text-sm">${server.egg_name || 'Unknown Egg'}</div>
         </td>
         <td>${server.owner_name || 'Unknown'}</td>
-        <td>${server.node_name || 'Unknown'}</td>
+        <td><a href="/admin/nodes/${server.node_id}">${server.node_name || 'Unknown'}</a></td>
         <td>
           <span class="text-sm">${server.memory}MB RAM</span><br>
           <span class="text-secondary text-sm">${formatBytes(server.disk * 1024 * 1024)} Disk</span>
@@ -132,8 +132,8 @@ export async function mount() {
           <button class="btn btn-ghost btn-sm console-btn" title="Console">
             ${icon('terminal', 14)}
           </button>
-          <button class="btn btn-ghost btn-sm edit-btn" title="Edit">
-            ${icon('edit', 14)}
+          <button class="btn btn-ghost btn-sm manage-btn" title="Manage">
+            ${icon('settings', 14)}
           </button>
           <button class="btn btn-ghost btn-sm delete-btn" title="Delete">
             ${icon('trash', 14)}
@@ -153,10 +153,10 @@ export async function mount() {
       });
     });
 
-    document.querySelectorAll('.edit-btn').forEach(btn => {
+    document.querySelectorAll('.manage-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const uuid = btn.closest('tr').dataset.id;
-        navigate(`/server/${uuid}/settings`);
+        const id = btn.closest('tr').dataset.internalId;
+        navigate(`/admin/servers/${id}`);
       });
     });
 

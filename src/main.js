@@ -38,10 +38,12 @@ function registerRoutes() {
     .route('/admin', () => import('./routes/admin/index.js'), { lazy: true })
     .route('/admin/servers', () => import('./routes/admin/servers.js'), { lazy: true })
     .route('/admin/servers/new', () => import('./routes/admin/servers-new.js'), { lazy: true })
+    .route('/admin/servers/:id', () => import('./routes/admin/server-view.js'), { lazy: true })
     .route('/admin/users', () => import('./routes/admin/users.js'), { lazy: true })
     .route('/admin/users/new', () => import('./routes/admin/users-new.js'), { lazy: true })
 
     .route('/admin/nodes', () => import('./routes/admin/nodes.js'), { lazy: true })
+    .route('/admin/nodes/:id', () => import('./routes/admin/node-view.js'), { lazy: true })
     .route('/admin/allocations', () => import('./routes/admin/allocations.js'), { lazy: true })
     .route('/admin/eggs', () => import('./routes/admin/eggs.js'), { lazy: true })
     .route('/admin/nests', () => import('./routes/admin/nests.js'), { lazy: true })

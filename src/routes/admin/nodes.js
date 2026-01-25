@@ -138,7 +138,7 @@ export async function mount() {
       
       return `
         <tr data-id="${node.id}">
-          <td><div class="cell-title">${node.name}</div></td>
+          <td><a href="/admin/nodes/${node.id}" class="cell-title cell-link">${node.name}</a></td>
           <td>${node.scheme}://${node.fqdn}:${node.daemon_port}</td>
           <td>${formatBytes(node.memory * 1024 * 1024)}</td>
           <td>${formatBytes(node.disk * 1024 * 1024)}</td>
@@ -146,10 +146,9 @@ export async function mount() {
           <td>${statusBadge}</td>
           <td>
             <div class="table-actions">
-              <button class="btn btn-ghost btn-sm" data-action="status" data-id="${node.id}" title="View Status">${icon('activity', 16)}</button>
-              <button class="btn btn-ghost btn-sm" data-action="allocations" data-id="${node.id}">${icon('globe', 16)}</button>
-              <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${node.id}">${icon('edit', 16)}</button>
-              <button class="btn btn-ghost btn-sm btn-danger" data-action="delete" data-id="${node.id}">${icon('trash', 16)}</button>
+              <button class="btn btn-ghost btn-sm" data-action="view" data-id="${node.id}" title="Manage">${icon('settings', 16)}</button>
+              <button class="btn btn-ghost btn-sm" data-action="allocations" data-id="${node.id}" title="Allocations">${icon('globe', 16)}</button>
+              <button class="btn btn-ghost btn-sm btn-danger" data-action="delete" data-id="${node.id}" title="Delete">${icon('trash', 16)}</button>
             </div>
           </td>
         </tr>
@@ -206,17 +205,8 @@ export async function mount() {
     const id = btn.dataset.id;
     const node = nodes.find(n => n.id == id);
 
-    if (action === 'edit') openModal(node);
+    if (action === 'view') navigate(`/admin/nodes/${id}`);
     else if (action === 'allocations') navigate(`/admin/allocations?node=${id}`);
-    else if (action === 'status') {
-      try {
-        const res = await api.get(`/nodes/${id}/status`);
-        const status = res.data;
-        toast.info(`${node.name}: ${status.connected ? 'Connected' : 'Disconnected'}${status.stats ? ` | CPU: ${status.stats.cpu}%, RAM: ${formatBytes(status.stats.memory)}` : ''}`);
-      } catch (err) {
-        toast.error('Failed to get node status');
-      }
-    }
     else if (action === 'delete') {
       if (node.server_count > 0) {
         toast.error('Cannot delete node with active servers');

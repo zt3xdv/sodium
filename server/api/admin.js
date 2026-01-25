@@ -178,18 +178,192 @@ router.delete('/users/:id', async (req, res) => {
 // List all servers (admin view with extra info)
 router.get('/servers', async (req, res) => {
   try {
-    const servers = db.prepare(`
+    let query = `
       SELECT 
         s.*,
         u.username as owner_name,
-        e.name as egg_name
+        n.name as node_name,
+        e.name as egg_name,
+        a.ip, a.port
       FROM servers s
       LEFT JOIN users u ON s.owner_id = u.id
+      LEFT JOIN nodes n ON s.node_id = n.id
       LEFT JOIN eggs e ON s.egg_id = e.id
-      ORDER BY s.created_at DESC
-    `).all();
+      LEFT JOIN allocations a ON s.allocation_id = a.id
+    `;
+    
+    const params = [];
+    if (req.query.node_id) {
+      query += ' WHERE s.node_id = ?';
+      params.push(req.query.node_id);
+    }
+    query += ' ORDER BY s.created_at DESC';
 
+    const servers = db.prepare(query).all(...params);
     res.json({ data: servers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get single server (admin view)
+router.get('/servers/:id', async (req, res) => {
+  try {
+    const server = db.prepare(`
+      SELECT 
+        s.*,
+        u.username as owner_name, u.email as owner_email,
+        n.name as node_name,
+        e.name as egg_name,
+        a.ip, a.port
+      FROM servers s
+      LEFT JOIN users u ON s.owner_id = u.id
+      LEFT JOIN nodes n ON s.node_id = n.id
+      LEFT JOIN eggs e ON s.egg_id = e.id
+      LEFT JOIN allocations a ON s.allocation_id = a.id
+      WHERE s.id = ?
+    `).get(req.params.id);
+
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    res.json({ data: server });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update server details
+router.put('/servers/:id', async (req, res) => {
+  try {
+    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(req.params.id);
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    const { name, description, external_id, owner_id } = req.body;
+    
+    db.prepare(`
+      UPDATE servers SET
+        name = COALESCE(?, name),
+        description = COALESCE(?, description),
+        external_id = ?,
+        owner_id = COALESCE(?, owner_id)
+      WHERE id = ?
+    `).run(name, description, external_id || null, owner_id, req.params.id);
+
+    const updated = db.prepare('SELECT * FROM servers WHERE id = ?').get(req.params.id);
+    res.json({ data: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update server build configuration
+router.put('/servers/:id/build', async (req, res) => {
+  try {
+    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(req.params.id);
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    const { cpu, memory, disk, swap, io, limit_databases, limit_backups, limit_allocations, allocation_id } = req.body;
+    
+    db.prepare(`
+      UPDATE servers SET
+        cpu = COALESCE(?, cpu),
+        memory = COALESCE(?, memory),
+        disk = COALESCE(?, disk),
+        swap = COALESCE(?, swap),
+        io = COALESCE(?, io),
+        limit_databases = COALESCE(?, limit_databases),
+        limit_backups = COALESCE(?, limit_backups),
+        limit_allocations = COALESCE(?, limit_allocations),
+        allocation_id = COALESCE(?, allocation_id)
+      WHERE id = ?
+    `).run(cpu, memory, disk, swap, io, limit_databases, limit_backups, limit_allocations, allocation_id, req.params.id);
+
+    const updated = db.prepare('SELECT * FROM servers WHERE id = ?').get(req.params.id);
+    res.json({ data: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update server startup configuration
+router.put('/servers/:id/startup', async (req, res) => {
+  try {
+    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(req.params.id);
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    const { startup_command, docker_image, variables } = req.body;
+    
+    db.prepare(`
+      UPDATE servers SET
+        startup_command = COALESCE(?, startup_command),
+        docker_image = COALESCE(?, docker_image),
+        variables = COALESCE(?, variables)
+      WHERE id = ?
+    `).run(
+      startup_command, 
+      docker_image, 
+      variables ? JSON.stringify(variables) : null, 
+      req.params.id
+    );
+
+    const updated = db.prepare('SELECT * FROM servers WHERE id = ?').get(req.params.id);
+    res.json({ data: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Suspend server
+router.post('/servers/:id/suspend', async (req, res) => {
+  try {
+    db.prepare('UPDATE servers SET suspended = 1, status = ? WHERE id = ?')
+      .run('suspended', req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Unsuspend server
+router.post('/servers/:id/unsuspend', async (req, res) => {
+  try {
+    db.prepare('UPDATE servers SET suspended = 0, status = ? WHERE id = ?')
+      .run('offline', req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete server (admin)
+router.delete('/servers/:id', async (req, res) => {
+  try {
+    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(req.params.id);
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    // Free allocation
+    db.prepare('UPDATE allocations SET server_id = NULL WHERE server_id = ?').run(server.id);
+    
+    // Delete associated data
+    db.prepare('DELETE FROM server_databases WHERE server_id = ?').run(server.id);
+    db.prepare('DELETE FROM backups WHERE server_id = ?').run(server.id);
+    db.prepare('DELETE FROM schedules WHERE server_id = ?').run(server.id);
+    db.prepare('DELETE FROM subusers WHERE server_id = ?').run(server.id);
+    
+    // Delete server
+    db.prepare('DELETE FROM servers WHERE id = ?').run(server.id);
+
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
