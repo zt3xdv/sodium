@@ -7,16 +7,20 @@ import { fileURLToPath } from 'url';
 
 import config from './config.js';
 import db from './services/database.js';
-import docker from './services/docker.js';
 import scheduler from './services/scheduler.js';
 import backup from './services/backup.js';
 import authRoutes from './api/auth.js';
 import serverRoutes from './api/servers.js';
-
+import nodeRoutes from './api/nodes.js';
+import allocationRoutes from './api/allocations.js';
 import filesRoutes from './api/files.js';
 import adminRoutes from './api/admin.js';
 import backupRoutes from './api/backups.js';
 import scheduleRoutes from './api/schedules.js';
+import subuserRoutes from './api/subusers.js';
+import databaseRoutes from './api/databases.js';
+import apiKeyRoutes, { apiKeyAuth } from './api/api-keys.js';
+import accountRoutes from './api/account.js';
 import { setupConsoleWebSocket } from './websocket/console.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -28,7 +32,6 @@ async function startServer() {
   db.migrate();
 
   try {
-    await docker.init();
     await backup.init();
     scheduler.start();
   } catch (err) {
@@ -37,14 +40,20 @@ async function startServer() {
 
   app.use(cors(config.cors));
   app.use(express.json());
+  app.use(apiKeyAuth);
   app.use(express.static(join(__dirname, '..', 'dist')));
 
   app.use('/api/auth', authRoutes);
   app.use('/api/servers', serverRoutes);
-
+  app.use('/api/nodes', nodeRoutes);
+  app.use('/api/allocations', allocationRoutes);
   app.use('/api/servers', filesRoutes);
   app.use('/api/servers', backupRoutes);
   app.use('/api/servers', scheduleRoutes);
+  app.use('/api/servers', subuserRoutes);
+  app.use('/api/databases', databaseRoutes);
+  app.use('/api/account/api-keys', apiKeyRoutes);
+  app.use('/api/account', accountRoutes);
   app.use('/api/admin', adminRoutes);
 
   app.get('/api/health', (req, res) => {
@@ -109,7 +118,6 @@ startServer().catch(err => {
 process.on('SIGINT', () => {
   console.log('\nShutting down...');
   scheduler.stop();
-  docker.cleanup();
   db.close();
   server.close();
   process.exit(0);

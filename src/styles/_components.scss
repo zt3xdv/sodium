@@ -161,6 +161,26 @@
   }
 }
 
+// Form layout
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+}
+
+.form-section {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+
+  h4 {
+    margin: 0 0 var(--space-4);
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+  }
+}
+
 // Cards
 .card {
   background: var(--bg-secondary);

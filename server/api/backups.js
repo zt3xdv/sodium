@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { auth as authMiddleware } from '../middleware/auth.js';
+import auth from '../middleware/auth.js';
 import Server from '../models/Server.js';
 import backup from '../services/backup.js';
+import limits from '../services/limits.js';
 import db from '../services/database.js';
 import path from 'path';
 
@@ -19,7 +20,7 @@ async function checkOwnership(req, serverUuid) {
 }
 
 // List backups for a server
-router.get('/:serverId/backups', authMiddleware, async (req, res) => {
+router.get('/:serverId/backups', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
     const backups = await backup.getBackups(server.id);
@@ -35,9 +36,14 @@ router.get('/:serverId/backups', authMiddleware, async (req, res) => {
 });
 
 // Create backup
-router.post('/:serverId/backups', authMiddleware, async (req, res) => {
+router.post('/:serverId/backups', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
+    
+    const canCreate = limits.canCreateBackup(server.id, req.user.id);
+    if (!canCreate.allowed) {
+      return res.status(403).json({ error: canCreate.reason });
+    }
     
     const result = await backup.createBackup(server, {
       name: req.body.name,
@@ -51,7 +57,7 @@ router.post('/:serverId/backups', authMiddleware, async (req, res) => {
 });
 
 // Download backup
-router.get('/:serverId/backups/:backupId/download', authMiddleware, async (req, res) => {
+router.get('/:serverId/backups/:backupId/download', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
     
@@ -70,7 +76,7 @@ router.get('/:serverId/backups/:backupId/download', authMiddleware, async (req, 
 });
 
 // Restore backup
-router.post('/:serverId/backups/:backupId/restore', authMiddleware, async (req, res) => {
+router.post('/:serverId/backups/:backupId/restore', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
     
@@ -86,7 +92,7 @@ router.post('/:serverId/backups/:backupId/restore', authMiddleware, async (req, 
 });
 
 // Delete backup
-router.delete('/:serverId/backups/:backupId', authMiddleware, async (req, res) => {
+router.delete('/:serverId/backups/:backupId', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
     

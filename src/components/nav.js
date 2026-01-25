@@ -12,7 +12,7 @@ export function nav({ user = null, isAdmin = false, currentPath = '/' }) {
         ${icon('chevron-down', 16)}
       </button>
       <div class="dropdown-menu" id="user-menu">
-        <a href="/profile" class="dropdown-item" data-link>
+        <a href="/account/profile" class="dropdown-item" data-link>
           ${icon('user', 16)}
           <span>Profile</span>
         </a>

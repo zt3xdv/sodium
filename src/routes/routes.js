@@ -108,6 +108,11 @@ export const routes = [
     middleware: [middlewares.auth]
   },
   {
+    path: '/account/profile',
+    component: () => import('./account/profile.js'),
+    middleware: [middlewares.auth]
+  },
+  {
     path: '/admin',
     component: () => import('./admin/index.js'),
     middleware: [middlewares.admin]

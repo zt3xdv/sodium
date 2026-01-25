@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { auth } from '../middleware/auth.js';
-import { admin } from '../middleware/admin.js';
+import auth from '../middleware/auth.js';
+import admin from '../middleware/admin.js';
 import User from '../models/User.js';
 import Server from '../models/Server.js';
-
 import Egg from '../models/Egg.js';
 import db from '../services/database.js';
+import limits from '../services/limits.js';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 
@@ -112,15 +112,40 @@ router.put('/users/:id', async (req, res) => {
     if (req.body.username) updates.username = req.body.username;
     if (req.body.email) updates.email = req.body.email;
     if (req.body.role) updates.role = req.body.role;
+    if (req.body.display_name !== undefined) updates.display_name = req.body.display_name;
+    if (req.body.bio !== undefined) updates.bio = req.body.bio;
+    if (req.body.avatar !== undefined) updates.avatar = req.body.avatar;
     if (req.body.password) {
       updates.password_hash = await bcrypt.hash(req.body.password, 10);
     }
 
+    if (req.body.limit_servers !== undefined) updates.limit_servers = req.body.limit_servers;
+    if (req.body.limit_memory !== undefined) updates.limit_memory = req.body.limit_memory;
+    if (req.body.limit_disk !== undefined) updates.limit_disk = req.body.limit_disk;
+    if (req.body.limit_cpu !== undefined) updates.limit_cpu = req.body.limit_cpu;
+    if (req.body.limit_databases !== undefined) updates.limit_databases = req.body.limit_databases;
+    if (req.body.limit_backups !== undefined) updates.limit_backups = req.body.limit_backups;
+    if (req.body.limit_allocations !== undefined) updates.limit_allocations = req.body.limit_allocations;
+
     User.update(req.params.id, updates);
     const updated = User.findById(req.params.id);
-    const { password_hash, ...safeUser } = updated;
 
-    res.json({ data: safeUser });
+    res.json({ data: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get user limits and usage
+router.get('/users/:id/limits', async (req, res) => {
+  try {
+    const user = User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const limitsData = limits.getUserLimitsWithUsage(req.params.id);
+    res.json({ data: limitsData });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

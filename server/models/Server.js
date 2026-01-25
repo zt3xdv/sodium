@@ -7,8 +7,13 @@ class Server {
     const now = new Date().toISOString();
 
     const stmt = db.prepare(`
-      INSERT INTO servers (uuid, name, owner_id, egg_id, memory, disk, cpu, status, startup_command, docker_image, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO servers (
+        uuid, name, owner_id, egg_id, memory, disk, cpu, status, 
+        startup_command, docker_image, 
+        limit_databases, limit_backups, limit_allocations,
+        created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -22,6 +27,9 @@ class Server {
       data.status || 'offline',
       data.startup_command || '',
       data.docker_image || '',
+      data.limit_databases ?? 0,
+      data.limit_backups ?? 0,
+      data.limit_allocations ?? 1,
       now,
       now
     );
@@ -53,7 +61,11 @@ class Server {
     const fields = [];
     const values = [];
 
-    const allowedFields = ['name', 'egg_id', 'memory', 'disk', 'cpu', 'status', 'startup_command', 'docker_image'];
+    const allowedFields = [
+      'name', 'egg_id', 'memory', 'disk', 'cpu', 'status', 
+      'startup_command', 'docker_image',
+      'limit_databases', 'limit_backups', 'limit_allocations'
+    ];
 
     for (const field of allowedFields) {
       if (data[field] !== undefined) {

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { auth as authMiddleware } from '../middleware/auth.js';
+import auth from '../middleware/auth.js';
 import Server from '../models/Server.js';
 import path from 'path';
 import fs from 'fs/promises';
@@ -103,7 +103,7 @@ const upload = multer({
 });
 
 // List directory
-router.get('/:serverId/files/list', authMiddleware, async (req, res) => {
+router.get('/:serverId/files/list', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -129,7 +129,7 @@ router.get('/:serverId/files/list', authMiddleware, async (req, res) => {
 });
 
 // Read file
-router.get('/:serverId/files/read', authMiddleware, async (req, res) => {
+router.get('/:serverId/files/read', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -149,7 +149,7 @@ router.get('/:serverId/files/read', authMiddleware, async (req, res) => {
 });
 
 // Write file
-router.post('/:serverId/files/write', authMiddleware, async (req, res) => {
+router.post('/:serverId/files/write', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -166,7 +166,7 @@ router.post('/:serverId/files/write', authMiddleware, async (req, res) => {
 });
 
 // Create directory
-router.post('/:serverId/files/mkdir', authMiddleware, async (req, res) => {
+router.post('/:serverId/files/mkdir', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -181,7 +181,7 @@ router.post('/:serverId/files/mkdir', authMiddleware, async (req, res) => {
 });
 
 // Rename/move
-router.post('/:serverId/files/rename', authMiddleware, async (req, res) => {
+router.post('/:serverId/files/rename', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -197,7 +197,7 @@ router.post('/:serverId/files/rename', authMiddleware, async (req, res) => {
 });
 
 // Delete
-router.delete('/:serverId/files/delete', authMiddleware, async (req, res) => {
+router.delete('/:serverId/files/delete', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -218,7 +218,7 @@ router.delete('/:serverId/files/delete', authMiddleware, async (req, res) => {
 });
 
 // Download
-router.get('/:serverId/files/download', authMiddleware, async (req, res) => {
+router.get('/:serverId/files/download', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -240,7 +240,7 @@ router.get('/:serverId/files/download', authMiddleware, async (req, res) => {
 });
 
 // Upload with multer
-router.post('/:serverId/files/upload', authMiddleware, async (req, res, next) => {
+router.post('/:serverId/files/upload', auth, async (req, res, next) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -265,7 +265,7 @@ router.post('/:serverId/files/upload', authMiddleware, async (req, res, next) =>
 });
 
 // Copy file/folder
-router.post('/:serverId/files/copy', authMiddleware, async (req, res) => {
+router.post('/:serverId/files/copy', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -285,7 +285,7 @@ router.post('/:serverId/files/copy', authMiddleware, async (req, res) => {
 });
 
 // Bulk delete
-router.post('/:serverId/files/bulk-delete', authMiddleware, async (req, res) => {
+router.post('/:serverId/files/bulk-delete', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -319,7 +319,7 @@ router.post('/:serverId/files/bulk-delete', authMiddleware, async (req, res) => 
 });
 
 // Bulk move
-router.post('/:serverId/files/bulk-move', authMiddleware, async (req, res) => {
+router.post('/:serverId/files/bulk-move', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -353,7 +353,7 @@ router.post('/:serverId/files/bulk-move', authMiddleware, async (req, res) => {
 });
 
 // Compress to ZIP
-router.post('/:serverId/files/compress', authMiddleware, async (req, res) => {
+router.post('/:serverId/files/compress', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -402,7 +402,7 @@ router.post('/:serverId/files/compress', authMiddleware, async (req, res) => {
 });
 
 // Decompress ZIP/TAR
-router.post('/:serverId/files/decompress', authMiddleware, async (req, res) => {
+router.post('/:serverId/files/decompress', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -443,7 +443,7 @@ router.post('/:serverId/files/decompress', authMiddleware, async (req, res) => {
 });
 
 // Search files
-router.get('/:serverId/files/search', authMiddleware, async (req, res) => {
+router.get('/:serverId/files/search', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     
@@ -463,7 +463,7 @@ router.get('/:serverId/files/search', authMiddleware, async (req, res) => {
 });
 
 // Get disk usage
-router.get('/:serverId/files/usage', authMiddleware, async (req, res) => {
+router.get('/:serverId/files/usage', auth, async (req, res) => {
   try {
     await checkOwnership(req, req.params.serverId);
     

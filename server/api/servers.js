@@ -2,6 +2,7 @@ import { Router } from 'express';
 import auth from '../middleware/auth.js';
 import admin from '../middleware/admin.js';
 import Server from '../models/Server.js';
+import limits from '../services/limits.js';
 
 const router = Router();
 
@@ -48,25 +49,43 @@ router.get('/:id', auth, (req, res) => {
   }
 });
 
-router.post('/', admin, (req, res) => {
+router.post('/', auth, (req, res) => {
   try {
-    const { name, owner_id, egg_id, memory, disk, cpu, startup_command, docker_image } = req.body;
+    const { 
+      name, owner_id, egg_id, memory, disk, cpu, 
+      startup_command, docker_image,
+      limit_databases, limit_backups, limit_allocations
+    } = req.body;
 
-    if (!name || !owner_id) {
-      return res.status(400).json({ error: 'Missing required fields: name, owner_id' });
+    const targetOwnerId = req.user.role === 'admin' && owner_id ? owner_id : req.user.id;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Missing required field: name' });
     }
 
-    const server = Server.create({
+    const canCreate = limits.canUserCreateServer(targetOwnerId, { memory, disk, cpu });
+    if (!canCreate.allowed) {
+      return res.status(403).json({ error: canCreate.reason });
+    }
+
+    const serverData = {
       name,
-      owner_id,
+      owner_id: targetOwnerId,
       egg_id,
       memory,
       disk,
       cpu,
       startup_command,
       docker_image
-    });
+    };
 
+    if (req.user.role === 'admin') {
+      serverData.limit_databases = limit_databases;
+      serverData.limit_backups = limit_backups;
+      serverData.limit_allocations = limit_allocations;
+    }
+
+    const server = Server.create(serverData);
     res.status(201).json({ data: server });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -86,7 +105,7 @@ router.put('/:id', auth, (req, res) => {
     }
 
     const allowedFields = req.user.role === 'admin'
-      ? ['name', 'owner_id', 'egg_id', 'memory', 'disk', 'cpu', 'startup_command', 'docker_image']
+      ? ['name', 'owner_id', 'egg_id', 'memory', 'disk', 'cpu', 'startup_command', 'docker_image', 'limit_databases', 'limit_backups', 'limit_allocations']
       : ['name', 'startup_command'];
 
     const updateData = {};
@@ -113,6 +132,25 @@ router.delete('/:id', admin, (req, res) => {
 
     Server.delete(server.id);
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:id/limits', auth, (req, res) => {
+  try {
+    const server = resolveServer(req.params.id);
+
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    if (req.user.role !== 'admin' && server.owner_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const serverLimits = limits.getServerLimitsUsage(server.id);
+    res.json({ data: serverLimits });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

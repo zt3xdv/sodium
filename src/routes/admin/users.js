@@ -116,26 +116,82 @@ export async function mount() {
     
     openModal({
       title: isEdit ? 'Edit User' : 'New User',
+      size: 'lg',
       content: `
         <form id="user-form">
-          <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" class="input" value="${user?.username || ''}" required>
+          <div class="form-section">
+            <h4>Account Information</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" class="input" value="${user?.username || ''}" required>
+              </div>
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" class="input" value="${user?.email || ''}" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="password">Password ${isEdit ? '(leave blank to keep)' : ''}</label>
+                <input type="password" id="password" class="input" ${isEdit ? '' : 'required'}>
+              </div>
+              <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role" class="input">
+                  <option value="user" ${user?.role === 'user' ? 'selected' : ''}>User</option>
+                  <option value="admin" ${user?.role === 'admin' ? 'selected' : ''}>Admin</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="display_name">Display Name</label>
+                <input type="text" id="display_name" class="input" value="${user?.display_name || ''}" placeholder="Optional">
+              </div>
+              <div class="form-group">
+                <label for="bio">Bio</label>
+                <input type="text" id="bio" class="input" value="${user?.bio || ''}" placeholder="Optional">
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" class="input" value="${user?.email || ''}" required>
-          </div>
-          <div class="form-group">
-            <label for="password">Password ${isEdit ? '(leave blank to keep)' : ''}</label>
-            <input type="password" id="password" class="input" ${isEdit ? '' : 'required'}>
-          </div>
-          <div class="form-group">
-            <label for="role">Role</label>
-            <select id="role" class="input">
-              <option value="user" ${user?.role === 'user' ? 'selected' : ''}>User</option>
-              <option value="admin" ${user?.role === 'admin' ? 'selected' : ''}>Admin</option>
-            </select>
+          
+          <div class="form-section">
+            <h4>Resource Limits <span class="text-muted text-sm">(0 = unlimited)</span></h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="limit_servers">Servers</label>
+                <input type="number" id="limit_servers" class="input" value="${user?.limit_servers ?? 0}" min="0">
+              </div>
+              <div class="form-group">
+                <label for="limit_cpu">CPU (%)</label>
+                <input type="number" id="limit_cpu" class="input" value="${user?.limit_cpu ?? 0}" min="0">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="limit_memory">Memory (MB)</label>
+                <input type="number" id="limit_memory" class="input" value="${user?.limit_memory ?? 0}" min="0">
+              </div>
+              <div class="form-group">
+                <label for="limit_disk">Disk (MB)</label>
+                <input type="number" id="limit_disk" class="input" value="${user?.limit_disk ?? 0}" min="0">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="limit_databases">Databases</label>
+                <input type="number" id="limit_databases" class="input" value="${user?.limit_databases ?? 0}" min="0">
+              </div>
+              <div class="form-group">
+                <label for="limit_backups">Backups</label>
+                <input type="number" id="limit_backups" class="input" value="${user?.limit_backups ?? 0}" min="0">
+              </div>
+              <div class="form-group">
+                <label for="limit_allocations">Allocations</label>
+                <input type="number" id="limit_allocations" class="input" value="${user?.limit_allocations ?? 0}" min="0">
+              </div>
+            </div>
           </div>
         </form>
       `,
@@ -145,7 +201,16 @@ export async function mount() {
           const data = {
             username: document.getElementById('username').value,
             email: document.getElementById('email').value,
-            role: document.getElementById('role').value
+            role: document.getElementById('role').value,
+            display_name: document.getElementById('display_name').value || null,
+            bio: document.getElementById('bio').value || null,
+            limit_servers: parseInt(document.getElementById('limit_servers').value) || 0,
+            limit_cpu: parseInt(document.getElementById('limit_cpu').value) || 0,
+            limit_memory: parseInt(document.getElementById('limit_memory').value) || 0,
+            limit_disk: parseInt(document.getElementById('limit_disk').value) || 0,
+            limit_databases: parseInt(document.getElementById('limit_databases').value) || 0,
+            limit_backups: parseInt(document.getElementById('limit_backups').value) || 0,
+            limit_allocations: parseInt(document.getElementById('limit_allocations').value) || 0
           };
           
           const password = document.getElementById('password').value;

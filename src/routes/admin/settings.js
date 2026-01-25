@@ -83,6 +83,24 @@ export default function() {
             </section>
 
             <section class="settings-section">
+              <h2>${icon('server', 18)} Server Creation</h2>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="admin_only_server_creation">
+                  <span>Admin Only Server Creation</span>
+                </label>
+                <p class="form-hint">When enabled, only administrators can create new servers. Users can only manage servers assigned to them.</p>
+              </div>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="allow_user_reinstall">
+                  <span>Allow Users to Reinstall Servers</span>
+                </label>
+                <p class="form-hint">Allow users to reinstall/reset their own servers.</p>
+              </div>
+            </section>
+
+            <section class="settings-section">
               <h2>${icon('shield', 18)} Security</h2>
               <div class="form-group">
                 <label class="checkbox-label">
@@ -160,6 +178,8 @@ export async function mount() {
       if (settings.mail_from) document.getElementById('mail_from').value = settings.mail_from;
       if (settings.docker_socket) document.getElementById('docker_socket').value = settings.docker_socket;
       if (settings.docker_network) document.getElementById('docker_network').value = settings.docker_network;
+      if (settings.admin_only_server_creation) document.getElementById('admin_only_server_creation').checked = settings.admin_only_server_creation;
+      if (settings.allow_user_reinstall) document.getElementById('allow_user_reinstall').checked = settings.allow_user_reinstall;
       if (settings.require_2fa) document.getElementById('require_2fa').checked = settings.require_2fa;
       if (settings.session_timeout) document.getElementById('session_timeout').value = settings.session_timeout;
       if (settings.max_login_attempts) document.getElementById('max_login_attempts').value = settings.max_login_attempts;
@@ -183,6 +203,8 @@ export async function mount() {
       mail_from: document.getElementById('mail_from').value,
       docker_socket: document.getElementById('docker_socket').value,
       docker_network: document.getElementById('docker_network').value,
+      admin_only_server_creation: document.getElementById('admin_only_server_creation').checked,
+      allow_user_reinstall: document.getElementById('allow_user_reinstall').checked,
       require_2fa: document.getElementById('require_2fa').checked,
       session_timeout: parseInt(document.getElementById('session_timeout').value) || 60,
       max_login_attempts: parseInt(document.getElementById('max_login_attempts').value) || 5,

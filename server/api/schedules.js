@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { auth as authMiddleware } from '../middleware/auth.js';
+import auth from '../middleware/auth.js';
 import Server from '../models/Server.js';
 import scheduler from '../services/scheduler.js';
 import db from '../services/database.js';
@@ -19,7 +19,7 @@ async function checkOwnership(req, serverUuid) {
 }
 
 // List schedules
-router.get('/:serverId/schedules', authMiddleware, async (req, res) => {
+router.get('/:serverId/schedules', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
     
@@ -34,7 +34,7 @@ router.get('/:serverId/schedules', authMiddleware, async (req, res) => {
 });
 
 // Get schedule
-router.get('/:serverId/schedules/:scheduleId', authMiddleware, async (req, res) => {
+router.get('/:serverId/schedules/:scheduleId', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
     
@@ -57,7 +57,7 @@ router.get('/:serverId/schedules/:scheduleId', authMiddleware, async (req, res) 
 });
 
 // Create schedule
-router.post('/:serverId/schedules', authMiddleware, async (req, res) => {
+router.post('/:serverId/schedules', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
     
@@ -92,7 +92,7 @@ router.post('/:serverId/schedules', authMiddleware, async (req, res) => {
 });
 
 // Update schedule
-router.put('/:serverId/schedules/:scheduleId', authMiddleware, async (req, res) => {
+router.put('/:serverId/schedules/:scheduleId', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
     
@@ -137,7 +137,7 @@ router.put('/:serverId/schedules/:scheduleId', authMiddleware, async (req, res) 
 });
 
 // Delete schedule
-router.delete('/:serverId/schedules/:scheduleId', authMiddleware, async (req, res) => {
+router.delete('/:serverId/schedules/:scheduleId', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
     
@@ -159,7 +159,7 @@ router.delete('/:serverId/schedules/:scheduleId', authMiddleware, async (req, re
 });
 
 // Execute schedule now
-router.post('/:serverId/schedules/:scheduleId/execute', authMiddleware, async (req, res) => {
+router.post('/:serverId/schedules/:scheduleId/execute', auth, async (req, res) => {
   try {
     const server = await checkOwnership(req, req.params.serverId);
     

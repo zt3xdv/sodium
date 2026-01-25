@@ -234,6 +234,24 @@ export async function mount() {
               <option value="">Select a node first</option>
             </select>
           </div>
+          
+          <div class="form-section">
+            <h4>Server Limits <span class="text-muted text-sm">(0 = unlimited)</span></h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="limit_databases">Databases</label>
+                <input type="number" id="limit_databases" class="input" value="2" min="0">
+              </div>
+              <div class="form-group">
+                <label for="limit_backups">Backups</label>
+                <input type="number" id="limit_backups" class="input" value="3" min="0">
+              </div>
+              <div class="form-group">
+                <label for="limit_allocations">Allocations</label>
+                <input type="number" id="limit_allocations" class="input" value="1" min="1">
+              </div>
+            </div>
+          </div>
         </form>
       `,
       actions: [
@@ -247,7 +265,10 @@ export async function mount() {
             memory: parseInt(document.getElementById('memory').value),
             disk: parseInt(document.getElementById('disk').value),
             cpu: parseInt(document.getElementById('cpu').value),
-            allocation_id: parseInt(document.getElementById('allocation').value)
+            allocation_id: parseInt(document.getElementById('allocation').value),
+            limit_databases: parseInt(document.getElementById('limit_databases').value) || 0,
+            limit_backups: parseInt(document.getElementById('limit_backups').value) || 0,
+            limit_allocations: parseInt(document.getElementById('limit_allocations').value) || 1
           };
 
           try {
