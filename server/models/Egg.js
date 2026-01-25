@@ -49,6 +49,23 @@ class Egg {
     return stmt.all().map(e => this.parse(e));
   }
 
+  static findAllWithDetails() {
+    const stmt = db.prepare(`
+      SELECT 
+        e.*,
+        n.name as nest_name,
+        (SELECT COUNT(*) FROM servers WHERE egg_id = e.id) as server_count
+      FROM eggs e
+      LEFT JOIN nests n ON e.nest_id = n.id
+      ORDER BY n.name, e.name
+    `);
+    return stmt.all().map(egg => ({
+      ...this.parse(egg),
+      nest_name: egg.nest_name || 'Uncategorized',
+      server_count: egg.server_count || 0
+    }));
+  }
+
   static update(id, data) {
     const fields = [];
     const values = [];

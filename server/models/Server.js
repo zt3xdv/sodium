@@ -110,13 +110,58 @@ class Server {
         s.*,
         e.name as egg_name,
         e.docker_images as egg_docker_images,
-        u.username as owner_username
+        u.username as owner_username,
+        a.ip,
+        a.port,
+        n.id as node_id,
+        n.name as node_name
       FROM servers s
       LEFT JOIN eggs e ON s.egg_id = e.id
       LEFT JOIN users u ON s.owner_id = u.id
+      LEFT JOIN allocations a ON a.server_id = s.id
+      LEFT JOIN nodes n ON a.node_id = n.id
       WHERE s.id = ?
     `);
     return stmt.get(id) || null;
+  }
+
+  static findAllWithDetails() {
+    const stmt = db.prepare(`
+      SELECT 
+        s.*,
+        e.name as egg_name,
+        u.username as owner_username,
+        a.ip,
+        a.port,
+        n.id as node_id,
+        n.name as node_name
+      FROM servers s
+      LEFT JOIN eggs e ON s.egg_id = e.id
+      LEFT JOIN users u ON s.owner_id = u.id
+      LEFT JOIN allocations a ON a.server_id = s.id
+      LEFT JOIN nodes n ON a.node_id = n.id
+      ORDER BY s.created_at DESC
+    `);
+    return stmt.all();
+  }
+
+  static findByOwnerWithDetails(userId) {
+    const stmt = db.prepare(`
+      SELECT 
+        s.*,
+        e.name as egg_name,
+        a.ip,
+        a.port,
+        n.id as node_id,
+        n.name as node_name
+      FROM servers s
+      LEFT JOIN eggs e ON s.egg_id = e.id
+      LEFT JOIN allocations a ON a.server_id = s.id
+      LEFT JOIN nodes n ON a.node_id = n.id
+      WHERE s.owner_id = ?
+      ORDER BY s.created_at DESC
+    `);
+    return stmt.all(userId);
   }
 }
 

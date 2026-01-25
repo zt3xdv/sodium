@@ -21,9 +21,9 @@ router.get('/', auth, (req, res) => {
   try {
     let servers;
     if (req.user.role === 'admin') {
-      servers = Server.findAll();
+      servers = Server.findAllWithDetails();
     } else {
-      servers = Server.findByOwner(req.user.id);
+      servers = Server.findByOwnerWithDetails(req.user.id);
     }
     res.json({ data: servers });
   } catch (err) {

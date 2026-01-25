@@ -23,12 +23,46 @@ router.get('/stats', async (req, res) => {
     
     const onlineServers = db.prepare("SELECT COUNT(*) as count FROM servers WHERE status = 'online'").get();
 
+    // Node stats
+    const nodeCount = db.prepare('SELECT COUNT(*) as count FROM nodes').get();
+    const onlineNodes = db.prepare("SELECT COUNT(*) as count FROM nodes WHERE status = 'online'").get();
+
+    // Allocation stats
+    const totalAllocations = db.prepare('SELECT COUNT(*) as count FROM allocations').get();
+    const usedAllocations = db.prepare('SELECT COUNT(*) as count FROM allocations WHERE server_id IS NOT NULL').get();
+
+    // Recent servers (last 5)
+    const recentServers = db.prepare(`
+      SELECT s.id, s.name, s.status, s.created_at, u.username as owner_name
+      FROM servers s
+      LEFT JOIN users u ON s.owner_id = u.id
+      ORDER BY s.created_at DESC
+      LIMIT 5
+    `).all();
+
+    // Recent users (last 5)
+    const recentUsers = db.prepare(`
+      SELECT id, username, email, role, created_at
+      FROM users
+      ORDER BY created_at DESC
+      LIMIT 5
+    `).all();
+
     res.json({
       data: {
         servers: serverCount?.count || 0,
         serversOnline: onlineServers?.count || 0,
         users: userCount?.count || 0,
-        eggs: eggCount?.count || 0
+        eggs: eggCount?.count || 0,
+        nodes: nodeCount?.count || 0,
+        nodesOnline: onlineNodes?.count || 0,
+        allocations: {
+          total: totalAllocations?.count || 0,
+          used: usedAllocations?.count || 0,
+          available: (totalAllocations?.count || 0) - (usedAllocations?.count || 0)
+        },
+        recentServers,
+        recentUsers
       }
     });
   } catch (err) {
@@ -371,10 +405,10 @@ router.delete('/servers/:id', async (req, res) => {
 
 // ========== EGG MANAGEMENT ==========
 
-// List all eggs
+// List all eggs with nest name and server count
 router.get('/eggs', async (req, res) => {
   try {
-    const eggs = Egg.findAll();
+    const eggs = Egg.findAllWithDetails();
     res.json({ data: eggs });
   } catch (err) {
     res.status(500).json({ error: err.message });

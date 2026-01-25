@@ -99,26 +99,55 @@ export async function mount() {
       return;
     }
 
-    grid.innerHTML = filtered.map(server => `
-      <div class="server-card card" data-id="${server.uuid}">
-        <div class="server-card-header">
-          <span class="status-indicator status-${server.status}"></span>
-          <h3 class="server-name">${server.name}</h3>
+    grid.innerHTML = filtered.map(server => {
+      const statusLabels = {
+        online: 'Online',
+        offline: 'Offline',
+        starting: 'Starting',
+        stopping: 'Stopping',
+        restarting: 'Restarting',
+        installing: 'Installing'
+      };
+      const statusLabel = statusLabels[server.status] || server.status;
+      
+      return `
+        <div class="server-card card" data-id="${server.uuid}">
+          <div class="server-card-header">
+            <span class="status-indicator status-${server.status}"></span>
+            <h3 class="server-name">${server.name}</h3>
+            <span class="badge badge-${server.status === 'online' ? 'success' : 'default'}">${statusLabel}</span>
+          </div>
+          <div class="server-card-info">
+            <p class="server-address">${server.ip || '0.0.0.0'}:${server.port || '—'}</p>
+            <div class="server-meta">
+              <span class="text-secondary">${icon('cpu', 14)} ${server.cpu}%</span>
+              <span class="text-secondary">${icon('memory', 14)} ${server.memory}MB</span>
+              ${server.node_name ? `<span class="text-secondary">${icon('server', 14)} ${server.node_name}</span>` : ''}
+            </div>
+            <p class="text-secondary server-egg">${server.egg_name || 'Unknown'}</p>
+          </div>
+          <div class="server-card-actions">
+            <a href="/server/${server.uuid}/console" class="btn btn-ghost btn-sm">${icon('terminal', 16)} Console</a>
+            <a href="/server/${server.uuid}/files" class="btn btn-ghost btn-sm">${icon('folder', 16)} Files</a>
+            <div class="power-actions">
+              ${server.status === 'online' ? `
+                <button class="btn btn-secondary btn-sm power-btn" data-uuid="${server.uuid}" data-action="restart" title="Restart">
+                  ${icon('refresh-cw', 16)}
+                </button>
+                <button class="btn btn-danger btn-sm power-btn" data-uuid="${server.uuid}" data-action="stop" title="Stop">
+                  ${icon('stop', 16)}
+                </button>
+              ` : `
+                <button class="btn btn-primary btn-sm power-btn" data-uuid="${server.uuid}" data-action="start" title="Start" 
+                        ${server.status === 'starting' || server.status === 'installing' ? 'disabled' : ''}>
+                  ${icon('play', 16)}
+                </button>
+              `}
+            </div>
+          </div>
         </div>
-        <div class="server-card-info">
-          <p class="server-address">${server.ip || '0.0.0.0'}:${server.port || '—'}</p>
-          <p class="text-secondary">${server.egg_name || 'Unknown'} • ${server.memory}MB RAM</p>
-        </div>
-        <div class="server-card-actions">
-          <a href="/server/${server.uuid}/console" class="btn btn-ghost btn-sm">${icon('terminal', 16)} Console</a>
-          <a href="/server/${server.uuid}/files" class="btn btn-ghost btn-sm">${icon('folder', 16)} Files</a>
-          <button class="btn btn-${server.status === 'online' ? 'danger' : 'primary'} btn-sm power-btn" 
-                  data-uuid="${server.uuid}" data-action="${server.status === 'online' ? 'stop' : 'start'}">
-            ${icon(server.status === 'online' ? 'stop' : 'play', 16)}
-          </button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     document.querySelectorAll('.power-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {

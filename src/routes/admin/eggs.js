@@ -81,10 +81,15 @@ export async function mount() {
           <div class="egg-icon">${icon('package', 24)}</div>
           <div class="egg-info">
             <h3>${escapeHtml(egg.name)}</h3>
-            <p class="text-secondary text-sm">${escapeHtml(egg.description || 'No description')}</p>
+            <span class="badge badge-secondary">${escapeHtml(egg.nest_name || 'Uncategorized')}</span>
           </div>
         </div>
+        <p class="text-secondary text-sm egg-description">${escapeHtml(egg.description || 'No description')}</p>
         <div class="egg-details">
+          <div class="egg-detail">
+            <span class="label">Servers</span>
+            <span class="value">${egg.server_count || 0}</span>
+          </div>
           <div class="egg-detail">
             <span class="label">Docker Images</span>
             <span class="value">${(egg.docker_images || []).length}</span>

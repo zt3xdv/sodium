@@ -17,6 +17,28 @@ export default function({ params }) {
         <div class="settings-container">
           <h1>Server Settings</h1>
 
+          <section class="settings-section" id="server-details-section">
+            <h2>Server Details</h2>
+            <div class="details-grid">
+              <div class="detail-item">
+                <span class="detail-label">UUID</span>
+                <code class="detail-value" id="server-uuid">—</code>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Created</span>
+                <span class="detail-value" id="server-created">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Node</span>
+                <span class="detail-value" id="server-node">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Status</span>
+                <span class="detail-value" id="server-status">—</span>
+              </div>
+            </div>
+          </section>
+
           <form id="settings-form">
             <section class="settings-section">
               <h2>General</h2>
@@ -111,6 +133,24 @@ export async function mount(params) {
     try {
       const res = await api.get(`/servers/${serverId}`);
       server = res.data;
+      
+      document.getElementById('server-uuid').textContent = server.uuid || '—';
+      document.getElementById('server-created').textContent = server.created_at 
+        ? new Date(server.created_at).toLocaleDateString('en-US', { 
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+          }) 
+        : '—';
+      document.getElementById('server-node').textContent = server.node_name || 'Unassigned';
+      
+      const statusLabels = {
+        online: 'Online',
+        offline: 'Offline',
+        starting: 'Starting',
+        stopping: 'Stopping',
+        restarting: 'Restarting',
+        installing: 'Installing'
+      };
+      document.getElementById('server-status').textContent = statusLabels[server.status] || server.status || '—';
       
       document.getElementById('server-name').value = server.name || '';
       document.getElementById('server-description').value = server.description || '';

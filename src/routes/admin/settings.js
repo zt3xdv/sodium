@@ -101,6 +101,45 @@ export default function() {
             </section>
 
             <section class="settings-section">
+              <h2>${icon('users', 18)} User Resource Defaults</h2>
+              <p class="form-hint" style="margin-bottom: 16px;">Default resource limits applied to new users. Set to 0 for unlimited.</p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="default_limit_servers">Default Servers Limit</label>
+                  <input type="number" id="default_limit_servers" class="input" value="0" min="0">
+                </div>
+                <div class="form-group">
+                  <label for="default_limit_memory">Default Memory Limit (MB)</label>
+                  <input type="number" id="default_limit_memory" class="input" value="0" min="0">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="default_limit_disk">Default Disk Limit (MB)</label>
+                  <input type="number" id="default_limit_disk" class="input" value="0" min="0">
+                </div>
+                <div class="form-group">
+                  <label for="default_limit_cpu">Default CPU Limit (%)</label>
+                  <input type="number" id="default_limit_cpu" class="input" value="0" min="0">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="default_limit_databases">Default Databases Limit</label>
+                  <input type="number" id="default_limit_databases" class="input" value="0" min="0">
+                </div>
+                <div class="form-group">
+                  <label for="default_limit_backups">Default Backups Limit</label>
+                  <input type="number" id="default_limit_backups" class="input" value="0" min="0">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="default_limit_allocations">Default Allocations Limit</label>
+                <input type="number" id="default_limit_allocations" class="input" value="0" min="0">
+              </div>
+            </section>
+
+            <section class="settings-section">
               <h2>${icon('shield', 18)} Security</h2>
               <div class="form-group">
                 <label class="checkbox-label">
@@ -184,6 +223,13 @@ export async function mount() {
       if (settings.session_timeout) document.getElementById('session_timeout').value = settings.session_timeout;
       if (settings.max_login_attempts) document.getElementById('max_login_attempts').value = settings.max_login_attempts;
       if (settings.lockout_duration) document.getElementById('lockout_duration').value = settings.lockout_duration;
+      if (settings.default_limit_servers !== undefined) document.getElementById('default_limit_servers').value = settings.default_limit_servers;
+      if (settings.default_limit_memory !== undefined) document.getElementById('default_limit_memory').value = settings.default_limit_memory;
+      if (settings.default_limit_disk !== undefined) document.getElementById('default_limit_disk').value = settings.default_limit_disk;
+      if (settings.default_limit_cpu !== undefined) document.getElementById('default_limit_cpu').value = settings.default_limit_cpu;
+      if (settings.default_limit_databases !== undefined) document.getElementById('default_limit_databases').value = settings.default_limit_databases;
+      if (settings.default_limit_backups !== undefined) document.getElementById('default_limit_backups').value = settings.default_limit_backups;
+      if (settings.default_limit_allocations !== undefined) document.getElementById('default_limit_allocations').value = settings.default_limit_allocations;
     } catch (err) {
       // Settings may not exist yet
     }
@@ -208,7 +254,14 @@ export async function mount() {
       require_2fa: document.getElementById('require_2fa').checked,
       session_timeout: parseInt(document.getElementById('session_timeout').value) || 60,
       max_login_attempts: parseInt(document.getElementById('max_login_attempts').value) || 5,
-      lockout_duration: parseInt(document.getElementById('lockout_duration').value) || 15
+      lockout_duration: parseInt(document.getElementById('lockout_duration').value) || 15,
+      default_limit_servers: parseInt(document.getElementById('default_limit_servers').value) || 0,
+      default_limit_memory: parseInt(document.getElementById('default_limit_memory').value) || 0,
+      default_limit_disk: parseInt(document.getElementById('default_limit_disk').value) || 0,
+      default_limit_cpu: parseInt(document.getElementById('default_limit_cpu').value) || 0,
+      default_limit_databases: parseInt(document.getElementById('default_limit_databases').value) || 0,
+      default_limit_backups: parseInt(document.getElementById('default_limit_backups').value) || 0,
+      default_limit_allocations: parseInt(document.getElementById('default_limit_allocations').value) || 0
     };
 
     try {

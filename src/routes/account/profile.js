@@ -276,13 +276,19 @@ function showPasswordModal() {
         </div>
       </form>
     `,
-    footer: `
-      <button type="button" class="btn btn--secondary" onclick="closeModal()">Cancel</button>
-      <button type="button" class="btn btn--primary" id="btn-submit-password">Update Password</button>
-    `
+    actions: [
+      {
+        label: 'Cancel',
+        class: 'btn--secondary',
+        action: () => closeModal()
+      },
+      {
+        label: 'Update Password',
+        class: 'btn--primary',
+        action: handlePasswordSubmit
+      }
+    ]
   });
-  
-  document.getElementById('btn-submit-password')?.addEventListener('click', handlePasswordSubmit);
 }
 
 async function handlePasswordSubmit() {
@@ -301,9 +307,11 @@ async function handlePasswordSubmit() {
     return;
   }
   
-  const btn = document.getElementById('btn-submit-password');
-  btn.disabled = true;
-  btn.textContent = 'Updating...';
+  const btn = document.querySelector('[data-action-index="1"]');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Updating...';
+  }
   
   try {
     await api.put('/account/password', { current_password, new_password });
@@ -311,9 +319,10 @@ async function handlePasswordSubmit() {
     closeModal();
   } catch (err) {
     toast.error(err.message || 'Failed to update password');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Update Password';
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Update Password';
+    }
   }
 }
 
