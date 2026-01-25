@@ -209,24 +209,31 @@ export default class Sandbox extends EventEmitter {
     const limits = meta.limits;
 
     const env = {
+      ...process.env,
       HOME: homePath,
-      PATH: '/usr/local/bin:/usr/bin:/bin',
+      PATH: '/usr/local/bin:/usr/bin:/bin:/home/wah/.nvm/versions/node/v25.3.0/bin',
       TERM: 'xterm-256color',
       NODE_ENV: 'production'
     };
 
-    const proc = spawn(command, args, {
+    const spawnOptions = {
       cwd: homePath,
       stdio: ['pipe', 'pipe', 'pipe'],
-      env,
-      uid: 1000,
-      gid: 1000
-    });
+      env
+    };
+
+    // Only set uid/gid if running as root
+    if (process.getuid?.() === 0) {
+      spawnOptions.uid = 1000;
+      spawnOptions.gid = 1000;
+    }
+
+    const proc = spawn(command, args, spawnOptions);
 
     this.setupProcessHandlers(uuid, proc);
     
-    // Set resource limits via prlimit if available
-    this.applyPrlimit(proc.pid, limits).catch(() => {});
+    // Set resource limits via prlimit (skip max_processes for Node.js)
+    this.applyPrlimit(proc.pid, limits, command).catch(() => {});
 
     return proc;
   }
@@ -275,7 +282,7 @@ export default class Sandbox extends EventEmitter {
     }
   }
 
-  async applyPrlimit(pid, limits) {
+  async applyPrlimit(pid, limits, command = '') {
     const commands = [];
 
     if (limits.memory_mb) {
@@ -283,7 +290,9 @@ export default class Sandbox extends EventEmitter {
       commands.push(`prlimit --pid ${pid} --as=${bytes}`);
     }
 
-    if (limits.max_processes) {
+    // Skip nproc limit for node/bun/deno as they need threads
+    const needsThreads = ['node', 'bun', 'deno', 'python3', 'python'].some(r => command.includes(r));
+    if (limits.max_processes && !needsThreads) {
       commands.push(`prlimit --pid ${pid} --nproc=${limits.max_processes}`);
     }
 
