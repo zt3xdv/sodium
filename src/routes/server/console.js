@@ -159,8 +159,7 @@ function handleSocketMessage(message) {
       
     case 'console output':
       if (args && args[0] && terminal) {
-        alert('Raw: ' + JSON.stringify(args[0]).substring(0, 500));
-        terminal.write(args[0]);
+        terminal.writeln(args[0]);
       }
       break;
       
@@ -178,7 +177,7 @@ function handleSocketMessage(message) {
       
     case 'install output':
       if (args && args[0] && terminal) {
-        terminal.write(`\x1b[33m${args[0]}\x1b[0m`);
+        terminal.writeln(`\x1b[33m${args[0]}\x1b[0m`);
       }
       break;
       
