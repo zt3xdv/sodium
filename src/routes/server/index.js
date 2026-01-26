@@ -132,6 +132,11 @@ function switchTab(tabId) {
   });
   
   const content = document.getElementById('tab-content');
+  const sidebar = document.querySelector('.server-sidebar');
+  
+  if (sidebar) {
+    sidebar.style.display = tabId === 'console' ? 'flex' : 'none';
+  }
   
   switch (tabId) {
     case 'console':

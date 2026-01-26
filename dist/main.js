@@ -1739,27 +1739,31 @@ function renderFilesList(files, serverId) {
   }
   
   const sorted = [...files].sort((a, b) => {
-    if (a.is_directory && !b.is_directory) return -1;
-    if (!a.is_directory && b.is_directory) return 1;
+    const aIsDir = a.is_directory || a.directory || !a.is_file;
+    const bIsDir = b.is_directory || b.directory || !b.is_file;
+    if (aIsDir && !bIsDir) return -1;
+    if (!aIsDir && bIsDir) return 1;
     return a.name.localeCompare(b.name);
   });
   
-  filesList.innerHTML = sorted.map(file => `
-    <div class="file-item ${file.is_directory ? 'directory' : 'file'}" data-name="${file.name}">
+  filesList.innerHTML = sorted.map(file => {
+    const isDir = file.is_directory || file.directory || !file.is_file;
+    return `
+    <div class="file-item ${isDir ? 'directory' : 'file'}" data-name="${file.name}" data-is-dir="${isDir}">
       <div class="file-icon">
-        <span class="material-icons-outlined">${file.is_directory ? 'folder' : getFileIcon(file.name)}</span>
+        <span class="material-icons-outlined">${isDir ? 'folder' : getFileIcon(file.name)}</span>
       </div>
       <div class="file-info">
         <span class="file-name">${file.name}</span>
-        <span class="file-meta">${file.is_directory ? '--' : formatBytes$1(file.size)} • ${formatDate(file.modified_at)}</span>
+        <span class="file-meta">${isDir ? '--' : formatBytes$1(file.size)} • ${formatDate(file.modified_at)}</span>
       </div>
       <div class="file-actions">
-        ${!file.is_directory && isEditable(file.name) ? `
+        ${!isDir && isEditable(file.name) ? `
           <button class="btn btn-sm btn-ghost btn-edit" title="Edit">
             <span class="material-icons-outlined">edit</span>
           </button>
         ` : ''}
-        ${!file.is_directory ? `
+        ${!isDir ? `
           <button class="btn btn-sm btn-ghost btn-download" title="Download">
             <span class="material-icons-outlined">download</span>
           </button>
@@ -1772,10 +1776,10 @@ function renderFilesList(files, serverId) {
         </button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
   
   filesList.querySelectorAll('.file-item.directory').forEach(item => {
-    item.querySelector('.file-info').onclick = () => {
+    item.onclick = () => {
       const name = item.dataset.name;
       const newPath = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
       loadFiles(serverId, newPath);
@@ -2229,6 +2233,11 @@ function switchTab(tabId) {
   });
   
   const content = document.getElementById('tab-content');
+  const sidebar = document.querySelector('.server-sidebar');
+  
+  if (sidebar) {
+    sidebar.style.display = tabId === 'console' ? 'flex' : 'none';
+  }
   
   switch (tabId) {
     case 'console':
