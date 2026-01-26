@@ -1,1 +1,2975 @@
-function n(n){return"string"!=typeof n?"":n.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#x27;").replace(/`/g,"&#96;")}function e(n){if("string"!=typeof n||!n.trim())return"";try{const e=new URL(n.trim());return["http:","https:"].includes(e.protocol)?e.href:""}catch{return""}}function t(n){for(const e of n)if(e)try{if("https:"!==new URL(e).protocol)return!1}catch{return!1}return!0}function s(n,e){if(!n||!t([n]))return void(e.innerHTML='<span class="material-icons-outlined">person</span>');const s=new Image;s.onload=()=>{e.innerHTML="",e.appendChild(s)},s.onerror=()=>{e.innerHTML='<span class="material-icons-outlined">person</span>'},s.src=n,s.alt="Avatar"}async function a(n){try{await fetch("/api/user/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:localStorage.getItem("username"),password:localStorage.getItem("password"),settings:n})})}catch(n){console.error("Failed to save settings:",n)}}let i=null;async function o(){const e=localStorage.getItem("username"),t=document.getElementById("servers-list");if(t)try{const s=await fetch(`/api/servers?username=${encodeURIComponent(e)}`),a=await s.json();if(0===a.servers.length)return void(t.innerHTML='\n        <div class="empty-state">\n          <span class="material-icons-outlined icon">dns</span>\n          <h3>No Servers</h3>\n          <p>You don\'t have any servers yet. Contact an administrator to get started.</p>\n        </div>\n      ');t.innerHTML=a.servers.map(e=>`\n      <div class="server-card card" data-id="${e.id}">\n        <div class="server-header">\n          <h3>${n(e.name)}</h3>\n          <span class="status status-${e.status||"offline"}">${e.status||"offline"}</span>\n        </div>\n        <div class="server-info">\n          <div class="info-row">\n            <span class="label">Memory</span>\n            <span class="value">${e.limits?.memory||0} MB</span>\n          </div>\n          <div class="info-row">\n            <span class="label">Disk</span>\n            <span class="value">${e.limits?.disk||0} MB</span>\n          </div>\n          <div class="info-row">\n            <span class="label">CPU</span>\n            <span class="value">${e.limits?.cpu||0}%</span>\n          </div>\n          <div class="info-row">\n            <span class="label">Address</span>\n            <span class="value">${e.allocation?.ip}:${e.allocation?.port}</span>\n          </div>\n        </div>\n        <div class="server-actions">\n          <button class="btn btn-success btn-sm" onclick="serverPower('${e.id}', 'start')">Start</button>\n          <button class="btn btn-warning btn-sm" onclick="serverPower('${e.id}', 'restart')">Restart</button>\n          <button class="btn btn-danger btn-sm" onclick="serverPower('${e.id}', 'stop')">Stop</button>\n          <a href="/server/${e.id}" class="btn btn-primary btn-sm">Console</a>\n        </div>\n      </div>\n    `).join("")}catch(n){t.innerHTML='<div class="error">Failed to load servers</div>'}}window.serverPower=async function(n,e){const t=localStorage.getItem("username");try{await fetch(`/api/servers/${n}/power`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:t,action:e})}),o()}catch(n){alert("Failed to execute power action")}};let r=null;async function l(n){const e=localStorage.getItem("username");try{const t=await fetch(`/api/servers/${n}?username=${encodeURIComponent(e)}`),s=await t.json();if(s.error)return void(document.getElementById("server-name").textContent="Error");const a=s.server,i=s.resources;document.getElementById("server-name").textContent=a.name,document.getElementById("info-address").textContent=`${a.allocation?.ip}:${a.allocation?.port}`,document.getElementById("info-node").textContent=a.node_id?.substring(0,8)||"--",i&&(document.getElementById("res-status").textContent=i.state||"offline",document.getElementById("res-status").className=`value status-${i.state||"offline"}`,document.getElementById("res-cpu").textContent=`${(i.resources?.cpu_absolute||0).toFixed(1)}%`,document.getElementById("res-memory").textContent=m(i.resources?.memory_bytes||0),document.getElementById("res-disk").textContent=m(i.resources?.disk_bytes||0),document.getElementById("res-net-tx").textContent=m(i.resources?.network_tx_bytes||0),document.getElementById("res-net-rx").textContent=m(i.resources?.network_rx_bytes||0))}catch(n){console.error("Failed to load server:",n)}}async function d(n,e){const t=localStorage.getItem("username");try{const s=await fetch(`/api/servers/${n}/power`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:t,action:e})});s.ok?(p(`[SYSTEM] Power action: ${e}`),l(n)):p(`[ERROR] ${(await s.json()).error}`)}catch(n){p("[ERROR] Failed to execute power action")}}async function c(n){const e=document.getElementById("command-input"),t=e.value.trim();if(!t)return;const s=localStorage.getItem("username");try{const a=await fetch(`/api/servers/${n}/command`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:s,command:t})});p(`> ${t}`),e.value="",a.ok||p(`[ERROR] ${(await a.json()).error}`)}catch(n){p("[ERROR] Failed to send command")}}function p(n){const e=document.getElementById("console-output"),t=e.querySelector(".console-placeholder");t&&t.remove();const s=document.createElement("div");s.className="console-line",s.textContent=n,e.appendChild(s),e.scrollTop=e.scrollHeight}function m(n){if(0===n)return"0 B";const e=Math.floor(Math.log(n)/Math.log(1024));return parseFloat((n/Math.pow(1024,e)).toFixed(2))+" "+["B","KB","MB","GB"][e]}function u(){r&&(clearInterval(r),r=null)}let v=null;async function g(){const e=document.getElementById("nodes-list");try{const t=await fetch("/api/status/nodes"),s=await t.json(),a=s.nodes.filter(n=>"online"===n.status).length,i=s.nodes.length,o=s.nodes.reduce((n,e)=>n+e.servers,0);if(document.getElementById("nodes-online").textContent=a,document.getElementById("nodes-total").textContent=i,document.getElementById("servers-total").textContent=o,document.getElementById("last-update").textContent=(new Date).toLocaleTimeString(),0===s.nodes.length)return void(e.innerHTML='\n        <div class="empty-state">\n          <span class="material-icons-outlined icon">power_off</span>\n          <h3>No Nodes</h3>\n          <p>No nodes have been configured yet.</p>\n        </div>\n      ');e.innerHTML=s.nodes.map(e=>{const t=e.memory.total>0?e.memory.used/(1024*e.memory.total*1024)*100:0,s=e.disk.total>0?e.disk.used/(1024*e.disk.total*1024)*100:0;return`\n        <div class="node-status-card card ${e.status}">\n          <div class="node-header">\n            <h3>${n(e.name)}</h3>\n            <span class="status-badge status-${e.status}">${e.status}</span>\n          </div>\n          <div class="node-stats">\n            <div class="stat">\n              <span class="label">Servers</span>\n              <span class="value">${e.servers}</span>\n            </div>\n            <div class="stat">\n              <span class="label">Memory</span>\n              <div class="progress-bar">\n                <div class="progress" style="width: ${Math.min(t,100)}%"></div>\n              </div>\n              <span class="value">${t.toFixed(1)}%</span>\n            </div>\n            <div class="stat">\n              <span class="label">Disk</span>\n              <div class="progress-bar">\n                <div class="progress" style="width: ${Math.min(s,100)}%"></div>\n              </div>\n              <span class="value">${s.toFixed(1)}%</span>\n            </div>\n          </div>\n        </div>\n      `}).join("")}catch(n){e.innerHTML='<div class="error">Failed to load status</div>'}}let b="nodes";async function h(e){const t=document.getElementById("admin-content"),s=localStorage.getItem("username");switch(t.innerHTML='<div class="loading-spinner"></div>',e){case"nodes":await async function(e,t){try{const s=await fetch(`/api/admin/nodes?username=${encodeURIComponent(t)}`),a=await s.json();e.innerHTML=`\n      <div class="admin-section">\n        <div class="section-header">\n          <h2>Nodes</h2>\n          <button class="btn btn-primary" id="add-node-btn"><span class="material-icons-outlined">add</span> Add Node</button>\n        </div>\n        \n        <div id="node-form" class="card form-card" style="display:none;">\n          <h3>Create Node</h3>\n          <form id="create-node-form">\n            <div class="form-group">\n              <label>Name</label>\n              <input type="text" name="name" required />\n            </div>\n            <div class="form-row">\n              <div class="form-group">\n                <label>FQDN</label>\n                <input type="text" name="fqdn" placeholder="node.example.com" required />\n              </div>\n              <div class="form-group">\n                <label>Scheme</label>\n                <select name="scheme">\n                  <option value="https">HTTPS</option>\n                  <option value="http">HTTP</option>\n                </select>\n              </div>\n            </div>\n            <div class="form-row">\n              <div class="form-group">\n                <label>Memory (MB)</label>\n                <input type="number" name="memory" value="8192" required />\n              </div>\n              <div class="form-group">\n                <label>Disk (MB)</label>\n                <input type="number" name="disk" value="51200" required />\n              </div>\n            </div>\n            <div class="form-row">\n              <div class="form-group">\n                <label>Daemon Port</label>\n                <input type="number" name="daemon_port" value="8080" required />\n              </div>\n              <div class="form-group">\n                <label>SFTP Port</label>\n                <input type="number" name="daemon_sftp_port" value="2022" required />\n              </div>\n            </div>\n            <div class="form-group">\n              <label>Location</label>\n              <select name="location_id" id="node-location"></select>\n            </div>\n            <div class="form-actions">\n              <button type="submit" class="btn btn-primary">Create</button>\n              <button type="button" class="btn btn-ghost" id="cancel-node">Cancel</button>\n            </div>\n          </form>\n        </div>\n        \n        <div class="admin-table">\n          <table>\n            <thead>\n              <tr>\n                <th>Name</th>\n                <th>FQDN</th>\n                <th>Memory</th>\n                <th>Disk</th>\n                <th>Actions</th>\n              </tr>\n            </thead>\n            <tbody>\n              ${0===a.nodes.length?'<tr><td colspan="5" class="empty">No nodes</td></tr>':""}\n              ${a.nodes.map(e=>`\n                <tr>\n                  <td>${n(e.name)}</td>\n                  <td>${n(e.fqdn)}</td>\n                  <td>${e.memory} MB</td>\n                  <td>${e.disk} MB</td>\n                  <td>\n                    <button class="btn btn-sm btn-ghost" onclick="editNode('${e.id}')">Edit</button>\n                    <button class="btn btn-sm btn-ghost" onclick="showNodeConfig('${e.id}')">Config</button>\n                    <button class="btn btn-sm btn-ghost" onclick="showDeployCommand('${e.id}')">Deploy</button>\n                    <button class="btn btn-sm btn-danger" onclick="deleteNode('${e.id}')">Delete</button>\n                  </td>\n                </tr>\n              `).join("")}\n            </tbody>\n          </table>\n        </div>\n      </div>\n    `;const i=await fetch("/api/admin/locations"),o=await i.json();document.getElementById("node-location").innerHTML=o.locations.map(e=>`<option value="${e.id}">${n(e.long)} (${n(e.short)})</option>`).join(""),document.getElementById("add-node-btn").onclick=()=>{document.getElementById("node-form").style.display="block"},document.getElementById("cancel-node").onclick=()=>{document.getElementById("node-form").style.display="none"},document.getElementById("create-node-form").onsubmit=async n=>{n.preventDefault();const e=new FormData(n.target),s=Object.fromEntries(e);await fetch("/api/admin/nodes",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:t,node:s})}),h("nodes")}}catch(n){e.innerHTML='<div class="error">Failed to load nodes</div>'}}(t,s);break;case"servers":await async function(e,t){try{const s=await fetch(`/api/admin/servers?username=${encodeURIComponent(t)}`),a=await s.json();e.innerHTML=`\n      <div class="admin-section">\n        <div class="section-header">\n          <h2>Servers</h2>\n          <button class="btn btn-primary" id="add-server-btn"><span class="material-icons-outlined">add</span> Create Server</button>\n        </div>\n        \n        <div id="server-form" class="card form-card" style="display:none;">\n          <h3>Create Server</h3>\n          <form id="create-server-form">\n            <div class="form-group">\n              <label>Name</label>\n              <input type="text" name="name" required />\n            </div>\n            <div class="form-row">\n              <div class="form-group">\n                <label>Owner (User ID)</label>\n                <select name="user_id" id="server-user"></select>\n              </div>\n              <div class="form-group">\n                <label>Node</label>\n                <select name="node_id" id="server-node"></select>\n              </div>\n            </div>\n            <div class="form-group">\n              <label>Egg</label>\n              <select name="egg_id" id="server-egg"></select>\n            </div>\n            <div class="form-row">\n              <div class="form-group">\n                <label>Memory (MB)</label>\n                <input type="number" name="memory" value="1024" required />\n              </div>\n              <div class="form-group">\n                <label>Disk (MB)</label>\n                <input type="number" name="disk" value="5120" required />\n              </div>\n              <div class="form-group">\n                <label>CPU (%)</label>\n                <input type="number" name="cpu" value="100" required />\n              </div>\n            </div>\n            <div class="form-row">\n              <div class="form-group">\n                <label>Allocation IP</label>\n                <input type="text" name="allocation_ip" value="0.0.0.0" />\n              </div>\n              <div class="form-group">\n                <label>Allocation Port</label>\n                <input type="number" name="allocation_port" value="25565" />\n              </div>\n            </div>\n            <div class="form-actions">\n              <button type="submit" class="btn btn-primary">Create</button>\n              <button type="button" class="btn btn-ghost" id="cancel-server">Cancel</button>\n            </div>\n          </form>\n        </div>\n        \n        <div class="admin-table">\n          <table>\n            <thead>\n              <tr>\n                <th>Name</th>\n                <th>Owner</th>\n                <th>Resources</th>\n                <th>Status</th>\n                <th>Actions</th>\n              </tr>\n            </thead>\n            <tbody>\n              ${0===a.servers.length?'<tr><td colspan="5" class="empty">No servers</td></tr>':""}\n              ${a.servers.map(e=>`\n                <tr>\n                  <td>${n(e.name)}</td>\n                  <td>${e.user_id?.substring(0,8)||"--"}</td>\n                  <td>${e.limits?.memory||0}MB / ${e.limits?.disk||0}MB / ${e.limits?.cpu||0}%</td>\n                  <td><span class="status-badge status-${e.status}">${e.status}</span></td>\n                  <td>\n                    <button class="btn btn-sm btn-danger" onclick="deleteServer('${e.id}')">Delete</button>\n                  </td>\n                </tr>\n              `).join("")}\n            </tbody>\n          </table>\n        </div>\n      </div>\n    `;const i=await fetch(`/api/admin/users?username=${encodeURIComponent(t)}`),o=await i.json();document.getElementById("server-user").innerHTML=o.users.map(e=>`<option value="${e.id}">${n(e.username)}</option>`).join("");const r=await fetch(`/api/admin/nodes?username=${encodeURIComponent(t)}`),l=await r.json();document.getElementById("server-node").innerHTML=l.nodes.map(e=>`<option value="${e.id}">${n(e.name)}</option>`).join("");const d=await fetch("/api/admin/eggs"),c=await d.json();document.getElementById("server-egg").innerHTML=c.eggs.map(e=>`<option value="${e.id}">${n(e.name)}</option>`).join(""),document.getElementById("add-server-btn").onclick=()=>{document.getElementById("server-form").style.display="block"},document.getElementById("cancel-server").onclick=()=>{document.getElementById("server-form").style.display="none"},document.getElementById("create-server-form").onsubmit=async n=>{n.preventDefault();const e=new FormData(n.target),s=Object.fromEntries(e);await fetch("/api/admin/servers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:t,server:s})}),h("servers")}}catch(n){e.innerHTML='<div class="error">Failed to load servers</div>'}}(t,s);break;case"users":await async function(e,t){try{const s=await fetch(`/api/admin/users?username=${encodeURIComponent(t)}`),a=await s.json();e.innerHTML=`\n      <div class="admin-section">\n        <div class="section-header">\n          <h2>Users</h2>\n        </div>\n        \n        <div class="admin-table">\n          <table>\n            <thead>\n              <tr>\n                <th>Username</th>\n                <th>Display Name</th>\n                <th>Admin</th>\n                <th>Limits</th>\n                <th>Actions</th>\n              </tr>\n            </thead>\n            <tbody>\n              ${a.users.map(e=>`\n                <tr>\n                  <td>${n(e.username)}</td>\n                  <td>${n(e.displayName||e.username)}</td>\n                  <td>${e.isAdmin?"✓":"✗"}</td>\n                  <td>${e.limits?`${e.limits.servers} servers, ${e.limits.memory}MB`:"Default"}</td>\n                  <td>\n                    <button class="btn btn-sm btn-ghost" onclick="toggleAdmin('${e.id}', ${!e.isAdmin})">${e.isAdmin?"Remove Admin":"Make Admin"}</button>\n                    <button class="btn btn-sm btn-ghost" onclick="editUserLimits('${e.id}')">Edit Limits</button>\n                  </td>\n                </tr>\n              `).join("")}\n            </tbody>\n          </table>\n        </div>\n      </div>\n    `}catch(n){e.innerHTML='<div class="error">Failed to load users</div>'}}(t,s);break;case"nests":await async function(e,t){try{const s=await fetch("/api/admin/nests"),a=await s.json();e.innerHTML=`\n      <div class="admin-section">\n        <div class="section-header">\n          <h2>Nests & Eggs</h2>\n          <div>\n            <button class="btn btn-ghost" id="add-nest-btn"><span class="material-icons-outlined">add</span> Add Nest</button>\n            <button class="btn btn-primary" id="import-egg-btn"><span class="material-icons-outlined">upload</span> Import Egg</button>\n          </div>\n        </div>\n        \n        <div id="import-egg-form" class="card form-card" style="display:none;">\n          <h3>Import Pterodactyl Egg</h3>\n          <form id="egg-import-form">\n            <div class="form-group">\n              <label>Egg JSON</label>\n              <textarea name="eggJson" rows="10" placeholder="Paste egg JSON here..."></textarea>\n            </div>\n            <div class="form-actions">\n              <button type="submit" class="btn btn-primary">Import</button>\n              <button type="button" class="btn btn-ghost" id="cancel-import">Cancel</button>\n            </div>\n          </form>\n        </div>\n        \n        <div class="nests-grid">\n          ${a.nests.map(e=>`\n            <div class="nest-card card">\n              <h3>${n(e.name)}</h3>\n              <p>${n(e.description)}</p>\n              <div class="eggs-list">\n                <h4>Eggs (${e.eggs?.length||0})</h4>\n                ${(e.eggs||[]).map(e=>`\n                  <div class="egg-item">\n                    <span class="egg-name">${n(e.name)}</span>\n                    <span class="egg-image">${n(e.docker_image?.split("/").pop()||"")}</span>\n                  </div>\n                `).join("")||'<div class="empty">No eggs</div>'}\n              </div>\n            </div>\n          `).join("")}\n        </div>\n      </div>\n    `,document.getElementById("add-nest-btn").onclick=async()=>{const n=prompt("Nest name:");if(!n)return;const e=prompt("Description:")||"";await fetch("/api/admin/nests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:t,nest:{name:n,description:e}})}),h("nests")},document.getElementById("import-egg-btn").onclick=()=>{document.getElementById("import-egg-form").style.display="block"},document.getElementById("cancel-import").onclick=()=>{document.getElementById("import-egg-form").style.display="none"},document.getElementById("egg-import-form").onsubmit=async n=>{n.preventDefault();const e=new FormData(n.target);(await fetch("/api/admin/eggs/import",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:t,eggJson:e.get("eggJson")})})).ok?h("nests"):alert("Failed to import egg")}}catch(n){e.innerHTML='<div class="error">Failed to load nests</div>'}}(t,s);break;case"locations":await async function(e,t){try{const s=await fetch("/api/admin/locations"),a=await s.json();e.innerHTML=`\n      <div class="admin-section">\n        <div class="section-header">\n          <h2>Locations</h2>\n          <button class="btn btn-primary" id="add-location-btn"><span class="material-icons-outlined">add</span> Add Location</button>\n        </div>\n        \n        <div class="admin-table">\n          <table>\n            <thead>\n              <tr>\n                <th>ID</th>\n                <th>Short</th>\n                <th>Long</th>\n                <th>Actions</th>\n              </tr>\n            </thead>\n            <tbody>\n              ${a.locations.map(e=>`\n                <tr>\n                  <td>${e.id}</td>\n                  <td>${n(e.short)}</td>\n                  <td>${n(e.long)}</td>\n                  <td>\n                    <button class="btn btn-sm btn-danger" onclick="deleteLocation('${e.id}')">Delete</button>\n                  </td>\n                </tr>\n              `).join("")}\n            </tbody>\n          </table>\n        </div>\n      </div>\n    `,document.getElementById("add-location-btn").onclick=async()=>{const n=prompt("Short code (e.g., us, eu):");if(!n)return;const e=prompt("Full name:")||n;await fetch("/api/admin/locations",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:t,location:{short:n,long:e}})}),h("locations")}}catch(n){e.innerHTML='<div class="error">Failed to load locations</div>'}}(t,s)}}function y(n,e=0){let t="";const s="  ".repeat(e);for(const[a,i]of Object.entries(n))null==i?t+=`${s}${a}: null\n`:"object"!=typeof i||Array.isArray(i)?Array.isArray(i)?(t+=`${s}${a}:\n`,i.forEach(n=>{t+="object"==typeof n?`${s}  -\n${y(n,e+2)}`:`${s}  - ${n}\n`})):t+="string"==typeof i?`${s}${a}: "${i}"\n`:`${s}${a}: ${i}\n`:t+=`${s}${a}:\n${y(i,e+1)}`;return t}window.editNode=async function(e){const t=localStorage.getItem("username");try{const s=await fetch(`/api/admin/nodes?username=${encodeURIComponent(t)}`),a=(await s.json()).nodes.find(n=>n.id===e);if(!a)return alert("Node not found");const i=await fetch("/api/admin/locations"),o=await i.json(),r=document.createElement("div");r.className="modal active",r.innerHTML=`\n      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>\n      <div class="modal-content modal-large">\n        <h2>Edit Node</h2>\n        <form id="edit-node-form">\n          <div class="form-group">\n            <label>Name</label>\n            <input type="text" name="name" value="${n(a.name)}" required />\n          </div>\n          <div class="form-group">\n            <label>Description</label>\n            <input type="text" name="description" value="${n(a.description||"")}" />\n          </div>\n          <div class="form-row">\n            <div class="form-group">\n              <label>FQDN</label>\n              <input type="text" name="fqdn" value="${n(a.fqdn)}" required />\n            </div>\n            <div class="form-group">\n              <label>Scheme</label>\n              <select name="scheme">\n                <option value="https" ${"https"===a.scheme?"selected":""}>HTTPS</option>\n                <option value="http" ${"http"===a.scheme?"selected":""}>HTTP</option>\n              </select>\n            </div>\n          </div>\n          <div class="form-row">\n            <div class="form-group">\n              <label>Memory (MB)</label>\n              <input type="number" name="memory" value="${a.memory}" required />\n            </div>\n            <div class="form-group">\n              <label>Disk (MB)</label>\n              <input type="number" name="disk" value="${a.disk}" required />\n            </div>\n          </div>\n          <div class="form-row">\n            <div class="form-group">\n              <label>Daemon Port</label>\n              <input type="number" name="daemon_port" value="${a.daemon_port}" required />\n            </div>\n            <div class="form-group">\n              <label>SFTP Port</label>\n              <input type="number" name="daemon_sftp_port" value="${a.daemon_sftp_port}" required />\n            </div>\n          </div>\n          <div class="form-row">\n            <div class="form-group">\n              <label>Upload Size (MB)</label>\n              <input type="number" name="upload_size" value="${a.upload_size||100}" />\n            </div>\n            <div class="form-group">\n              <label>Location</label>\n              <select name="location_id">\n                ${o.locations.map(e=>`<option value="${e.id}" ${e.id===a.location_id?"selected":""}>${n(e.long)}</option>`).join("")}\n              </select>\n            </div>\n          </div>\n          <div class="form-row">\n            <div class="form-group">\n              <label><input type="checkbox" name="behind_proxy" ${a.behind_proxy?"checked":""} /> Behind Proxy</label>\n            </div>\n            <div class="form-group">\n              <label><input type="checkbox" name="maintenance_mode" ${a.maintenance_mode?"checked":""} /> Maintenance Mode</label>\n            </div>\n          </div>\n          <div class="modal-actions">\n            <button type="submit" class="btn btn-primary">Save</button>\n            <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>\n          </div>\n        </form>\n      </div>\n    `,document.body.appendChild(r),document.getElementById("edit-node-form").onsubmit=async n=>{n.preventDefault();const s=new FormData(n.target),a=Object.fromEntries(s);a.behind_proxy="on"===s.get("behind_proxy"),a.maintenance_mode="on"===s.get("maintenance_mode"),await fetch(`/api/admin/nodes/${e}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:t,node:a})}),r.remove(),h("nodes")}}catch(n){alert("Failed to load node: "+n.message)}},window.showDeployCommand=async function(e){const t=localStorage.getItem("username");try{const s=await fetch(`/api/admin/nodes/${e}/deploy?username=${encodeURIComponent(t)}`),a=await s.json();if(a.error)return void alert(a.error);const i=document.createElement("div");i.className="modal active",i.innerHTML=`\n      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>\n      <div class="modal-content">\n        <h2>Deploy Command</h2>\n        <p>Run this command on your node to configure Wings:</p>\n        <pre class="config-output" style="white-space:pre-wrap;word-break:break-all;">${n(a.command)}</pre>\n        <div class="modal-actions">\n          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.modal').querySelector('.config-output').textContent);this.textContent='Copied!'">Copy</button>\n          <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Close</button>\n        </div>\n      </div>\n    `,document.body.appendChild(i)}catch(n){alert("Failed to load deploy command: "+n.message)}},window.showNodeConfig=async function(e){const t=localStorage.getItem("username");try{const s=await fetch(`/api/admin/nodes/${e}/config?username=${encodeURIComponent(t)}`),a=await s.json();if(a.error)return void alert(a.error);const i=y(a.config),o=document.createElement("div");o.className="modal active",o.innerHTML=`\n      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>\n      <div class="modal-content">\n        <h2>Wings Configuration</h2>\n        <p>Copy this configuration to <code>/etc/pterodactyl/config.yml</code> on your node:</p>\n        <pre class="config-output">${n(i)}</pre>\n        <div class="modal-actions">\n          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.modal').querySelector('.config-output').textContent);this.textContent='Copied!'">Copy</button>\n          <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Close</button>\n        </div>\n      </div>\n    `,document.body.appendChild(o)}catch(n){alert("Failed to load config: "+n.message)}},window.deleteNode=async function(n){if(!confirm("Are you sure? This cannot be undone."))return;const e=localStorage.getItem("username");try{await fetch(`/api/admin/nodes/${n}`,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:e})}),h("nodes")}catch(n){alert("Failed to delete node")}},window.deleteServer=async function(n){if(!confirm("Are you sure? This will delete the server from the node."))return;const e=localStorage.getItem("username");try{await fetch(`/api/admin/servers/${n}`,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:e})}),h("servers")}catch(n){alert("Failed to delete server")}},window.toggleAdmin=async function(n,e){const t=localStorage.getItem("username");await fetch(`/api/admin/users/${n}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:t,updates:{isAdmin:e}})}),h("users")},window.editUserLimits=async function(n){const e={servers:parseInt(prompt("Max servers:","2"))||2,memory:parseInt(prompt("Max memory (MB):","2048"))||2048,disk:parseInt(prompt("Max disk (MB):","10240"))||10240,cpu:parseInt(prompt("Max CPU (%):","200"))||200},t=localStorage.getItem("username");await fetch(`/api/admin/users/${n}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:t,updates:{limits:e}})}),h("users")},window.deleteLocation=async function(n){if(!confirm("Delete this location?"))return;const e=localStorage.getItem("username");await fetch(`/api/admin/locations/${n}`,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:e})}),h("locations")};const f={"/":{redirect:"/auth"},"/auth":{render:function(){const n=document.getElementById("app");n.className="auth-page",n.innerHTML='\n    <div class="auth-container">\n      <div class="auth-card">\n        <div class="auth-header">\n          <div class="logo">\n            <span class="material-icons-outlined">bolt</span>\n            <span class="logo-text">Sodium</span>\n          </div>\n          <p class="auth-subtitle">Welcome back</p>\n        </div>\n        \n        <div class="auth-tabs">\n          <button class="tab-btn active" data-tab="login">Sign In</button>\n          <button class="tab-btn" data-tab="register">Sign Up</button>\n        </div>\n        \n        <form id="login-form" class="auth-form active">\n          <div class="form-group">\n            <label for="login-username">Username</label>\n            <div class="input-wrapper">\n              <span class="material-icons-outlined">person</span>\n              <input type="text" id="login-username" name="username" placeholder="Enter your username" required>\n            </div>\n          </div>\n          \n          <div class="form-group">\n            <label for="login-password">Password</label>\n            <div class="input-wrapper">\n              <span class="material-icons-outlined">lock</span>\n              <input type="password" id="login-password" name="password" placeholder="Enter your password" required>\n            </div>\n          </div>\n          \n          <div class="error-message" id="login-error"></div>\n          \n          <button type="submit" class="btn btn-primary btn-full">\n            <span>Sign In</span>\n            <span class="material-icons-outlined">arrow_forward</span>\n          </button>\n        </form>\n        \n        <form id="register-form" class="auth-form">\n          <div class="form-group">\n            <label for="register-username">Username</label>\n            <div class="input-wrapper">\n              <span class="material-icons-outlined">person</span>\n              <input type="text" id="register-username" name="username" placeholder="Choose a username" required minlength="3" maxlength="20">\n            </div>\n            <small class="form-hint">3-20 characters</small>\n          </div>\n          \n          <div class="form-group">\n            <label for="register-password">Password</label>\n            <div class="input-wrapper">\n              <span class="material-icons-outlined">lock</span>\n              <input type="password" id="register-password" name="password" placeholder="Create a password" required minlength="6">\n            </div>\n            <small class="form-hint">Minimum 6 characters</small>\n          </div>\n          \n          <div class="form-group">\n            <label for="register-confirm">Confirm Password</label>\n            <div class="input-wrapper">\n              <span class="material-icons-outlined">lock</span>\n              <input type="password" id="register-confirm" name="confirm" placeholder="Confirm your password" required>\n            </div>\n          </div>\n          \n          <div class="error-message" id="register-error"></div>\n          \n          <button type="submit" class="btn btn-primary btn-full">\n            <span>Create Account</span>\n            <span class="material-icons-outlined">arrow_forward</span>\n          </button>\n        </form>\n      </div>\n    </div>\n  ';const e=n.querySelectorAll(".tab-btn"),t=n.querySelector("#login-form"),s=n.querySelector("#register-form");e.forEach(n=>{n.addEventListener("click",()=>{e.forEach(n=>n.classList.remove("active")),n.classList.add("active"),"login"===n.dataset.tab?(t.classList.add("active"),s.classList.remove("active")):(s.classList.add("active"),t.classList.remove("active"))})}),t.addEventListener("submit",async n=>{n.preventDefault();const e=t.querySelector("#login-username").value,s=t.querySelector("#login-password").value,a=t.querySelector("#login-error"),i=t.querySelector('button[type="submit"]');i.disabled=!0,i.innerHTML='<span class="material-icons-outlined spinning">sync</span>';try{const n=await fetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:e,password:s})}),t=await n.json();if(t.error)return a.textContent=t.error,a.style.display="block",i.disabled=!1,void(i.innerHTML='<span>Sign In</span><span class="material-icons-outlined">arrow_forward</span>');localStorage.setItem("loggedIn","true"),localStorage.setItem("username",t.user.username),localStorage.setItem("password",s),k("/dashboard")}catch(n){a.textContent="Connection error. Please try again.",a.style.display="block",i.disabled=!1,i.innerHTML='<span>Sign In</span><span class="material-icons-outlined">arrow_forward</span>'}}),s.addEventListener("submit",async n=>{n.preventDefault();const e=s.querySelector("#register-username").value,t=s.querySelector("#register-password").value,a=s.querySelector("#register-confirm").value,i=s.querySelector("#register-error"),o=s.querySelector('button[type="submit"]');if(t!==a)return i.textContent="Passwords do not match",void(i.style.display="block");o.disabled=!0,o.innerHTML='<span class="material-icons-outlined spinning">sync</span>';try{const n=await fetch("/api/auth/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:e,password:t})}),s=await n.json();if(s.error)return i.textContent=s.error,i.style.display="block",o.disabled=!1,void(o.innerHTML='<span>Create Account</span><span class="material-icons-outlined">arrow_forward</span>');localStorage.setItem("loggedIn","true"),localStorage.setItem("username",s.user.username),localStorage.setItem("password",t),k("/dashboard")}catch(n){i.textContent="Connection error. Please try again.",i.style.display="block",o.disabled=!1,o.innerHTML='<span>Create Account</span><span class="material-icons-outlined">arrow_forward</span>'}})},options:{title:"Sign In",sidebar:!1}},"/dashboard":{render:function(){const n=document.getElementById("app");n.className="dashboard-page";const e=localStorage.getItem("displayName")||localStorage.getItem("username"),t=localStorage.getItem("username"),s=(new Date).getHours();let a="Good evening";s<12?a="Good morning":s<18&&(a="Good afternoon"),n.innerHTML=`\n    <div class="dashboard-container">\n      <header class="dashboard-header">\n        <div class="greeting">\n          <h1>${a}, <span class="highlight">${e}</span></h1>\n          <p>Welcome to your dashboard</p>\n        </div>\n      </header>\n      \n      <div class="stats-grid">\n        <div class="stat-card">\n          <div class="stat-icon">\n            <span class="material-icons-outlined">person</span>\n          </div>\n          <div class="stat-content">\n            <span class="stat-value">@${t}</span>\n            <span class="stat-label">Your Username</span>\n          </div>\n        </div>\n        \n        <div class="stat-card">\n          <div class="stat-icon">\n            <span class="material-icons-outlined">calendar_today</span>\n          </div>\n          <div class="stat-content">\n            <span class="stat-value">${(new Date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>\n            <span class="stat-label">Today's Date</span>\n          </div>\n        </div>\n        \n        <div class="stat-card">\n          <div class="stat-icon">\n            <span class="material-icons-outlined">schedule</span>\n          </div>\n          <div class="stat-content">\n            <span class="stat-value" id="current-time">${(new Date).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</span>\n            <span class="stat-label">Current Time</span>\n          </div>\n        </div>\n        \n        <div class="stat-card">\n          <div class="stat-icon">\n            <span class="material-icons-outlined">verified</span>\n          </div>\n          <div class="stat-content">\n            <span class="stat-value">Active</span>\n            <span class="stat-label">Account Status</span>\n          </div>\n        </div>\n      </div>\n      \n      <div class="quick-actions">\n        <h2>Quick Actions</h2>\n        <div class="actions-grid">\n          <a href="/profile" class="action-card">\n            <span class="material-icons-outlined">edit</span>\n            <span>Edit Profile</span>\n          </a>\n          <a href="/settings" class="action-card">\n            <span class="material-icons-outlined">settings</span>\n            <span>Settings</span>\n          </a>\n        </div>\n      </div>\n      \n      <div class="activity-section">\n        <h2>Recent Activity</h2>\n        <div class="activity-list">\n          <div class="activity-item">\n            <span class="material-icons-outlined">login</span>\n            <div class="activity-content">\n              <span class="activity-title">Signed in successfully</span>\n              <span class="activity-time">Just now</span>\n            </div>\n          </div>\n          <div class="activity-item">\n            <span class="material-icons-outlined">check_circle</span>\n            <div class="activity-content">\n              <span class="activity-title">Account created</span>\n              <span class="activity-time">Recently</span>\n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  `;const i=n.querySelector("#current-time"),o=setInterval(()=>{document.getElementById("current-time")?i.textContent=(new Date).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"}):clearInterval(o)},1e3)},options:{title:"Dashboard",auth:!0,sidebar:!0}},"/servers":{render:function(){const n=document.getElementById("app");JSON.parse(localStorage.getItem("user")||"{}"),n.innerHTML='\n    <div class="servers-page">\n      <div class="page-header">\n        <h1>My Servers</h1>\n      </div>\n      \n      <div class="resource-limits card">\n        <h3>Resource Usage</h3>\n        <div class="limits-grid" id="limits-display">\n          <div class="limit-item">\n            <span class="label">Loading...</span>\n          </div>\n        </div>\n      </div>\n      \n      <div class="servers-grid" id="servers-list">\n        <div class="loading-spinner"></div>\n      </div>\n    </div>\n  ',o(),async function(){const n=localStorage.getItem("username");try{const e=await fetch(`/api/user/limits?username=${encodeURIComponent(n)}`),t=await e.json(),s=document.getElementById("limits-display");if(!s)return;s.innerHTML=`\n      <div class="limit-item">\n        <span class="label">Servers</span>\n        <div class="progress-bar">\n          <div class="progress" style="width: ${t.used.servers/t.limits.servers*100}%"></div>\n        </div>\n        <span class="value">${t.used.servers} / ${t.limits.servers}</span>\n      </div>\n      <div class="limit-item">\n        <span class="label">Memory</span>\n        <div class="progress-bar">\n          <div class="progress" style="width: ${t.used.memory/t.limits.memory*100}%"></div>\n        </div>\n        <span class="value">${t.used.memory} / ${t.limits.memory} MB</span>\n      </div>\n      <div class="limit-item">\n        <span class="label">Disk</span>\n        <div class="progress-bar">\n          <div class="progress" style="width: ${t.used.disk/t.limits.disk*100}%"></div>\n        </div>\n        <span class="value">${t.used.disk} / ${t.limits.disk} MB</span>\n      </div>\n      <div class="limit-item">\n        <span class="label">CPU</span>\n        <div class="progress-bar">\n          <div class="progress" style="width: ${t.used.cpu/t.limits.cpu*100}%"></div>\n        </div>\n        <span class="value">${t.used.cpu} / ${t.limits.cpu}%</span>\n      </div>\n    `}catch(n){console.error("Failed to load limits:",n)}}(),i=setInterval(o,1e4)},cleanup:function(){i&&(clearInterval(i),i=null)},options:{title:"Servers",auth:!0,sidebar:!0}},"/status":{render:function(){document.getElementById("app").innerHTML='\n    <div class="status-page">\n      <div class="status-header">\n        <span class="material-icons-outlined header-icon">monitor_heart</span>\n        <h1>System Status</h1>\n        <p>Real-time status of all nodes</p>\n      </div>\n      \n      <div class="status-summary" id="status-summary">\n        <div class="summary-card">\n          <span class="number" id="nodes-online">-</span>\n          <span class="label">Nodes Online</span>\n        </div>\n        <div class="summary-card">\n          <span class="number" id="nodes-total">-</span>\n          <span class="label">Total Nodes</span>\n        </div>\n        <div class="summary-card">\n          <span class="number" id="servers-total">-</span>\n          <span class="label">Total Servers</span>\n        </div>\n      </div>\n      \n      <div class="nodes-status-grid" id="nodes-list">\n        <div class="loading-spinner"></div>\n      </div>\n      \n      <div class="status-footer">\n        <p>Last updated: <span id="last-update">--</span></p>\n      </div>\n    </div>\n  ',g(),v=setInterval(g,3e4)},cleanup:function(){v&&(clearInterval(v),v=null)},options:{title:"Status",sidebar:!1}},"/admin":{render:async function(){const n=document.getElementById("app"),e=localStorage.getItem("username"),t=localStorage.getItem("password");n.innerHTML='<div class="loading-spinner"></div>';try{const s=await fetch(`/api/auth/me?username=${encodeURIComponent(e)}&password=${encodeURIComponent(t)}`),a=await s.json();if(!a.user?.isAdmin)return void(n.innerHTML='\n        <div class="error-page">\n          <h1>403</h1>\n          <p>Access Denied</p>\n          <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>\n        </div>\n      ')}catch(e){return void(n.innerHTML='<div class="error">Failed to verify permissions</div>')}n.innerHTML='\n    <div class="admin-page">\n      <div class="page-header">\n        <h1>Admin Panel</h1>\n      </div>\n      \n      <div class="admin-tabs">\n        <button class="tab-btn active" data-tab="nodes">Nodes</button>\n        <button class="tab-btn" data-tab="servers">Servers</button>\n        <button class="tab-btn" data-tab="users">Users</button>\n        <button class="tab-btn" data-tab="nests">Nests & Eggs</button>\n        <button class="tab-btn" data-tab="locations">Locations</button>\n      </div>\n      \n      <div class="admin-content" id="admin-content">\n        <div class="loading-spinner"></div>\n      </div>\n    </div>\n  ',document.querySelectorAll(".tab-btn").forEach(n=>{n.onclick=()=>{document.querySelectorAll(".tab-btn").forEach(n=>n.classList.remove("active")),n.classList.add("active"),b=n.dataset.tab,h(b)}}),h("nodes")},cleanup:function(){},options:{title:"Admin",auth:!0,sidebar:!0}},"/profile":{render:function(){const e=document.getElementById("app");e.className="profile-page";const a=localStorage.getItem("username"),i=localStorage.getItem("displayName")||a;e.innerHTML=`\n    <div class="profile-container">\n      <div class="profile-header">\n        <h1>Profile</h1>\n        <p>Manage your public profile information</p>\n      </div>\n      \n      <div class="profile-content">\n        <div class="profile-card">\n          <div class="avatar-section">\n            <div class="avatar" id="avatar-preview">\n              <span class="material-icons-outlined">person</span>\n            </div>\n            <div class="avatar-info">\n              <h3 id="profile-display-name">${n(i)}</h3>\n              <span class="username">@${n(a)}</span>\n            </div>\n          </div>\n        </div>\n        \n        <form id="profile-form" class="profile-form">\n          <div class="form-section">\n            <h3>Basic Information</h3>\n            \n            <div class="form-group">\n              <label for="avatar-url">Profile Picture URL</label>\n              <div class="input-wrapper">\n                <span class="material-icons-outlined">image</span>\n                <input type="url" id="avatar-url" name="avatar" placeholder="https://example.com/avatar.png">\n              </div>\n              <small class="form-hint">Use a direct image URL (https only)</small>\n            </div>\n            \n            <div class="form-group">\n              <label for="display-name">Display Name</label>\n              <div class="input-wrapper">\n                <span class="material-icons-outlined">badge</span>\n                <input type="text" id="display-name" name="displayName" value="${n(i)}" maxlength="50" placeholder="Your display name">\n              </div>\n              <small class="form-hint">This is how others will see you</small>\n            </div>\n            \n            <div class="form-group">\n              <label for="bio">Bio</label>\n              <div class="textarea-wrapper">\n                <textarea id="bio" name="bio" maxlength="500" placeholder="Tell us about yourself..." rows="4"></textarea>\n              </div>\n              <small class="form-hint"><span id="bio-count">0</span>/500 characters</small>\n            </div>\n          </div>\n          \n          <div class="form-section">\n            <h3>Social Links</h3>\n            <p class="section-description">These will be visible on your public profile</p>\n            \n            <div class="form-group">\n              <label for="link-website">Website</label>\n              <div class="input-wrapper">\n                <span class="material-icons-outlined">language</span>\n                <input type="url" id="link-website" name="website" placeholder="https://yourwebsite.com">\n              </div>\n            </div>\n            \n            <div class="form-group">\n              <label for="link-twitter">Twitter / X</label>\n              <div class="input-wrapper">\n                <span class="material-icons-outlined">alternate_email</span>\n                <input type="url" id="link-twitter" name="twitter" placeholder="https://twitter.com/username">\n              </div>\n            </div>\n            \n            <div class="form-group">\n              <label for="link-github">GitHub</label>\n              <div class="input-wrapper">\n                <span class="material-icons-outlined">code</span>\n                <input type="url" id="link-github" name="github" placeholder="https://github.com/username">\n              </div>\n            </div>\n            \n            <div class="form-group">\n              <label for="link-discord">Discord</label>\n              <div class="input-wrapper">\n                <span class="material-icons-outlined">chat</span>\n                <input type="url" id="link-discord" name="discord" placeholder="https://discord.gg/invite">\n              </div>\n            </div>\n            \n            <div class="form-group">\n              <label for="link-instagram">Instagram</label>\n              <div class="input-wrapper">\n                <span class="material-icons-outlined">photo_camera</span>\n                <input type="url" id="link-instagram" name="instagram" placeholder="https://instagram.com/username">\n              </div>\n            </div>\n          </div>\n          \n          <div class="form-actions">\n            <div class="message" id="profile-message"></div>\n            <button type="submit" class="btn btn-primary">\n              <span class="material-icons-outlined">save</span>\n              <span>Save Changes</span>\n            </button>\n          </div>\n        </form>\n      </div>\n    </div>\n  `,async function(){try{const n=localStorage.getItem("username"),e=await fetch(`/api/user/profile?username=${encodeURIComponent(n)}&viewer=${encodeURIComponent(n)}`),t=await e.json();if(t.user){const n=document.getElementById("bio"),e=document.getElementById("bio-count"),a=document.getElementById("display-name"),i=document.getElementById("avatar-url"),o=document.getElementById("avatar-preview");if(n&&t.user.bio&&(n.value=t.user.bio,e.textContent=t.user.bio.length),a&&t.user.displayName&&(a.value=t.user.displayName),i&&t.user.avatar&&(i.value=t.user.avatar,s(t.user.avatar,o)),t.user.links){const n=t.user.links;n.website&&(document.getElementById("link-website").value=n.website),n.twitter&&(document.getElementById("link-twitter").value=n.twitter),n.github&&(document.getElementById("link-github").value=n.github),n.discord&&(document.getElementById("link-discord").value=n.discord),n.instagram&&(document.getElementById("link-instagram").value=n.instagram)}}}catch(n){console.error("Failed to load profile:",n)}}();const o=e.querySelector("#avatar-url"),r=e.querySelector("#avatar-preview");o.addEventListener("input",()=>{s(o.value,r)});const l=e.querySelector("#bio"),d=e.querySelector("#bio-count");l.addEventListener("input",()=>{d.textContent=l.value.length});const c=e.querySelector("#profile-form");c.addEventListener("submit",async e=>{e.preventDefault();const s=c.querySelector("#display-name").value.trim(),a=c.querySelector("#bio").value.trim(),i=c.querySelector("#avatar-url").value.trim(),o={website:c.querySelector("#link-website").value.trim(),twitter:c.querySelector("#link-twitter").value.trim(),github:c.querySelector("#link-github").value.trim(),discord:c.querySelector("#link-discord").value.trim(),instagram:c.querySelector("#link-instagram").value.trim()},r=c.querySelector("#profile-message"),l=c.querySelector('button[type="submit"]');if(!t([i,...Object.values(o)]))return r.textContent="Invalid URL detected. Only https:// URLs are allowed.",void(r.className="message error");l.disabled=!0,l.innerHTML='<span class="material-icons-outlined spinning">sync</span>';try{const e=await fetch("/api/user/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:localStorage.getItem("username"),password:localStorage.getItem("password"),displayName:s,bio:a,avatar:i,links:o})}),t=await e.json();if(t.error)r.textContent=n(t.error),r.className="message error";else{r.textContent="Profile updated successfully!",r.className="message success",localStorage.setItem("displayName",s);const e=document.getElementById("profile-display-name");e&&(e.textContent=n(s));const t=document.querySelector(".user-display-name");t&&(t.textContent=n(s))}}catch(n){r.textContent="Connection error. Please try again.",r.className="message error"}l.disabled=!1,l.innerHTML='<span class="material-icons-outlined">save</span><span>Save Changes</span>',setTimeout(()=>{r.textContent="",r.className="message"},3e3)})},options:{title:"Profile",auth:!0,sidebar:!0}},"/settings":{render:function(){const n=document.getElementById("app");n.className="settings-page",localStorage.getItem("username"),n.innerHTML='\n    <div class="settings-container">\n      <div class="settings-header">\n        <h1>Settings</h1>\n        <p>Manage your account preferences</p>\n      </div>\n      \n      <div class="settings-content">\n        <div class="settings-section">\n          <div class="section-header">\n            <span class="material-icons-outlined">palette</span>\n            <h3>Appearance</h3>\n          </div>\n          \n          <div class="setting-item">\n            <div class="setting-info">\n              <span class="setting-title">Theme</span>\n              <span class="setting-description">Choose your preferred color scheme</span>\n            </div>\n            <div class="setting-control">\n              <select id="theme-select" class="select-input">\n                <option value="dark">Dark</option>\n                <option value="light">Light</option>\n                <option value="system">System</option>\n              </select>\n            </div>\n          </div>\n        </div>\n        \n        <div class="settings-section">\n          <div class="section-header">\n            <span class="material-icons-outlined">notifications</span>\n            <h3>Notifications</h3>\n          </div>\n          \n          <div class="setting-item">\n            <div class="setting-info">\n              <span class="setting-title">Push Notifications</span>\n              <span class="setting-description">Receive notifications about activity</span>\n            </div>\n            <div class="setting-control">\n              <label class="toggle">\n                <input type="checkbox" id="notifications-toggle" checked>\n                <span class="toggle-slider"></span>\n              </label>\n            </div>\n          </div>\n        </div>\n        \n        <div class="settings-section">\n          <div class="section-header">\n            <span class="material-icons-outlined">lock</span>\n            <h3>Privacy</h3>\n          </div>\n          \n          <div class="setting-item">\n            <div class="setting-info">\n              <span class="setting-title">Profile Visibility</span>\n              <span class="setting-description">Control who can see your profile</span>\n            </div>\n            <div class="setting-control">\n              <select id="privacy-select" class="select-input">\n                <option value="public">Public</option>\n                <option value="private">Private</option>\n              </select>\n            </div>\n          </div>\n        </div>\n        \n        <div class="settings-section">\n          <div class="section-header">\n            <span class="material-icons-outlined">security</span>\n            <h3>Security</h3>\n          </div>\n          \n          <div class="setting-item clickable" id="change-password-btn">\n            <div class="setting-info">\n              <span class="setting-title">Change Password</span>\n              <span class="setting-description">Update your account password</span>\n            </div>\n            <span class="material-icons-outlined">chevron_right</span>\n          </div>\n        </div>\n        \n        <div class="settings-section danger-section">\n          <div class="section-header">\n            <span class="material-icons-outlined">warning</span>\n            <h3>Danger Zone</h3>\n          </div>\n          \n          <div class="setting-item">\n            <div class="setting-info">\n              <span class="setting-title">Sign Out</span>\n              <span class="setting-description">Sign out of your account on this device</span>\n            </div>\n            <button class="btn btn-danger" id="logout-btn">\n              <span class="material-icons-outlined">logout</span>\n              <span>Sign Out</span>\n            </button>\n          </div>\n        </div>\n      </div>\n    </div>\n    \n    <div class="modal" id="password-modal">\n      <div class="modal-backdrop"></div>\n      <div class="modal-content">\n        <div class="modal-header">\n          <h3>Change Password</h3>\n          <button class="modal-close" id="close-modal">\n            <span class="material-icons-outlined">close</span>\n          </button>\n        </div>\n        <form id="password-form">\n          <div class="form-group">\n            <label for="current-password">Current Password</label>\n            <div class="input-wrapper">\n              <span class="material-icons-outlined">lock</span>\n              <input type="password" id="current-password" required>\n            </div>\n          </div>\n          <div class="form-group">\n            <label for="new-password">New Password</label>\n            <div class="input-wrapper">\n              <span class="material-icons-outlined">lock</span>\n              <input type="password" id="new-password" required minlength="6">\n            </div>\n          </div>\n          <div class="form-group">\n            <label for="confirm-password">Confirm New Password</label>\n            <div class="input-wrapper">\n              <span class="material-icons-outlined">lock</span>\n              <input type="password" id="confirm-password" required>\n            </div>\n          </div>\n          <div class="message" id="password-message"></div>\n          <div class="modal-actions">\n            <button type="button" class="btn btn-secondary" id="cancel-modal">Cancel</button>\n            <button type="submit" class="btn btn-primary">Update Password</button>\n          </div>\n        </form>\n      </div>\n    </div>\n  ',async function(){try{const n=await fetch(`/api/user/profile?username=${encodeURIComponent(localStorage.getItem("username"))}`),e=await n.json();if(e.user?.settings){const{theme:n,notifications:t,privacy:s}=e.user.settings,a=document.getElementById("theme-select"),i=document.getElementById("notifications-toggle"),o=document.getElementById("privacy-select");a&&n&&(a.value=n),i&&(i.checked=!1!==t),o&&s&&(o.value=s)}}catch(n){console.error("Failed to load settings:",n)}}(),n.querySelector("#logout-btn").addEventListener("click",()=>{localStorage.removeItem("loggedIn"),localStorage.removeItem("username"),localStorage.removeItem("password"),localStorage.removeItem("displayName"),localStorage.removeItem("userId"),k("/auth")});const e=n.querySelector("#theme-select");e.addEventListener("change",()=>{a({theme:e.value})});const t=n.querySelector("#notifications-toggle");t.addEventListener("change",()=>{a({notifications:t.checked})});const s=n.querySelector("#privacy-select");s.addEventListener("change",()=>{a({privacy:s.value})});const i=n.querySelector("#password-modal"),o=n.querySelector("#change-password-btn"),r=n.querySelector("#close-modal"),l=n.querySelector("#cancel-modal"),d=i.querySelector(".modal-backdrop");o.addEventListener("click",()=>{i.classList.add("active")});const c=()=>{i.classList.remove("active"),i.querySelector("form").reset(),i.querySelector("#password-message").textContent=""};r.addEventListener("click",c),l.addEventListener("click",c),d.addEventListener("click",c);const p=n.querySelector("#password-form");p.addEventListener("submit",async n=>{n.preventDefault();const e=p.querySelector("#current-password").value,t=p.querySelector("#new-password").value,s=p.querySelector("#confirm-password").value,a=p.querySelector("#password-message"),i=p.querySelector('button[type="submit"]');if(t!==s)return a.textContent="Passwords do not match",void(a.className="message error");i.disabled=!0,i.innerHTML='<span class="material-icons-outlined spinning">sync</span>';try{const n=await fetch("/api/user/password",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:localStorage.getItem("username"),currentPassword:e,newPassword:t})}),s=await n.json();s.error?(a.textContent=s.error,a.className="message error"):(a.textContent="Password updated successfully!",a.className="message success",localStorage.setItem("password",t),setTimeout(()=>{c()},1500))}catch(n){a.textContent="Connection error. Please try again.",a.className="message error"}i.disabled=!1,i.innerHTML="Update Password"})},options:{title:"Settings",auth:!0,sidebar:!0}},"/404":{render:function(){const n=document.getElementById("app");n.className="notfound-page",n.innerHTML='\n    <div class="notfound-container">\n      <div class="notfound-content">\n        <span class="notfound-code">404</span>\n        <h1>Page Not Found</h1>\n        <p>The page you\'re looking for doesn\'t exist or has been moved.</p>\n        <a href="/dashboard" class="btn btn-primary">\n          <span class="material-icons-outlined">home</span>\n          <span>Back to Dashboard</span>\n        </a>\n      </div>\n    </div>\n  '},options:{title:"Not Found",sidebar:!1}}};function w(){const n=document.createElement("aside");n.id="sidebar",n.className="sidebar";const e=window.location.pathname;return n.innerHTML=`\n    <div class="sidebar-header">\n      <a href="/dashboard" class="sidebar-brand">\n        <span class="material-icons-outlined">bolt</span>\n        <span class="brand-text">Sodium</span>\n      </a>\n    </div>\n    \n    <nav class="sidebar-nav">\n      <ul class="nav-list" id="nav-list">\n        ${[{path:"/dashboard",icon:"dashboard",label:"Dashboard"},{path:"/servers",icon:"dns",label:"Servers"},{path:"/status",icon:"monitor_heart",label:"Status"},{path:"/profile",icon:"person",label:"Profile"},{path:"/settings",icon:"settings",label:"Settings"}].map(n=>`\n          <li class="nav-item">\n            <a href="${n.path}" class="nav-link ${e===n.path?"active":""}">\n              <span class="material-icons-outlined">${n.icon}</span>\n              <span class="nav-text">${n.label}</span>\n            </a>\n          </li>\n        `).join("")}\n      </ul>\n    </nav>\n    \n    <div class="sidebar-footer">\n      <div class="footer-content">\n        <span class="version">v1.0.0</span>\n      </div>\n    </div>\n  `,async function(n,e){const t=localStorage.getItem("username"),s=localStorage.getItem("password");if(t&&s)try{const a=await fetch(`/api/auth/me?username=${encodeURIComponent(t)}&password=${encodeURIComponent(s)}`),i=await a.json();if(i.user?.isAdmin){const t=n.querySelector("#nav-list"),s=t.querySelector('a[href="/settings"]')?.closest(".nav-item");if(s&&!t.querySelector('a[href="/admin"]')){const n=document.createElement("li");n.className="nav-item",n.innerHTML=`\n          <a href="/admin" class="nav-link ${"/admin"===e?"active":""}">\n            <span class="material-icons-outlined">admin_panel_settings</span>\n            <span class="nav-text">Admin</span>\n          </a>\n        `,t.insertBefore(n,s)}}}catch(n){console.error("Failed to check admin status:",n)}}(n,e),setTimeout(()=>{const e=()=>{window.innerWidth<=768&&n.classList.remove("open")};n.querySelectorAll(".nav-link").forEach(n=>{n.addEventListener("click",e)})},0),n}let S=!1,I=null;function $(n){if(n.defaultPrevented)return;if(0!==n.button||n.metaKey||n.ctrlKey||n.shiftKey||n.altKey)return;let e=n.target;for(;e&&"A"!==e.nodeName;)e=e.parentElement;if(!e)return;const t=e.getAttribute("href");!t||t.startsWith("http")||t.startsWith("mailto:")||t.startsWith("tel:")||(n.preventDefault(),k(t))}function k(n){n.startsWith("/")||(n=window.location.pathname.replace(/\/+$/,"")+"/"+n),window.history.pushState({},"",n),E()}function E(){const t=window.location.pathname;let s=f[t];if(!s&&t.startsWith("/u/")){const a=t.split("/")[2];a&&/^[a-zA-Z0-9_]{3,20}$/.test(a)&&(s=function(t){return{render:()=>function(t){const s=document.getElementById("app");s.className="user-page",s.innerHTML='\n    <div class="user-container">\n      <div class="loading-state">\n        <span class="material-icons-outlined spinning">sync</span>\n        <span>Loading profile...</span>\n      </div>\n    </div>\n  ',async function(t){const s=document.querySelector(".user-container"),a=localStorage.getItem("username")||"";try{const i=await fetch(`/api/user/profile?username=${encodeURIComponent(t)}&viewer=${encodeURIComponent(a)}`),o=await i.json();if(o.error)return void(s.innerHTML='\n        <div class="error-state">\n          <span class="material-icons-outlined">error</span>\n          <h2>User Not Found</h2>\n          <p>The user you\'re looking for doesn\'t exist.</p>\n          <a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>\n        </div>\n      ');const r=o.user,l=r.isPrivate,d={website:"language",twitter:"alternate_email",github:"code",discord:"chat",instagram:"photo_camera"},c={website:"Website",twitter:"Twitter",github:"GitHub",discord:"Discord",instagram:"Instagram"};let p="";if(!l&&r.links){const t=Object.entries(r.links).filter(([n,e])=>e);t.length>0&&(p=`\n          <div class="user-links">\n            <h3>Links</h3>\n            <div class="links-list">\n              ${t.map(([t,s])=>{const a=e(s);return a?`\n                  <a href="${a}" target="_blank" rel="noopener noreferrer" class="link-item">\n                    <span class="material-icons-outlined">${d[t]||"link"}</span>\n                    <span>${n(c[t]||t)}</span>\n                    <span class="material-icons-outlined external">open_in_new</span>\n                  </a>\n                `:""}).join("")}\n            </div>\n          </div>\n        `)}const m=r.avatar?`<img src="${e(r.avatar)}" alt="Avatar" onerror="this.parentElement.innerHTML='<span class=\\'material-icons-outlined\\'>person</span>'">`:'<span class="material-icons-outlined">person</span>';s.innerHTML=`\n      <div class="user-profile-card">\n        <div class="user-header">\n          <div class="user-avatar">\n            ${m}\n          </div>\n          <div class="user-info">\n            <h1>${n(r.displayName||r.username)}</h1>\n            <span class="user-username">@${n(r.username)}</span>\n            ${l?'<span class="private-badge"><span class="material-icons-outlined">lock</span> Private Profile</span>':""}\n          </div>\n        </div>\n        \n        ${!l&&r.bio?`\n          <div class="user-bio">\n            <h3>About</h3>\n            <p>${n(r.bio)}</p>\n          </div>\n        `:""}\n        \n        ${l?'\n          <div class="private-notice">\n            <span class="material-icons-outlined">visibility_off</span>\n            <p>This profile is private</p>\n          </div>\n        ':""}\n        \n        ${p}\n        \n        ${!l&&r.createdAt?`\n          <div class="user-meta">\n            <span class="material-icons-outlined">calendar_today</span>\n            <span>Joined ${new Date(r.createdAt).toLocaleDateString("en-US",{month:"long",year:"numeric"})}</span>\n          </div>\n        `:""}\n      </div>\n    `}catch(n){s.innerHTML='\n      <div class="error-state">\n        <span class="material-icons-outlined">wifi_off</span>\n        <h2>Connection Error</h2>\n        <p>Unable to load profile. Please try again.</p>\n        <a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>\n      </div>\n    '}}(t)}(t),options:{title:`${t}'s Profile`,sidebar:!0}}}(a))}if(!s&&t.startsWith("/server/")){const n=t.split("/")[2];n&&(s=function(n){return{render:()=>function(n){document.getElementById("app").innerHTML='\n    <div class="server-console-page">\n      <div class="page-header">\n        <a href="/servers" class="btn btn-ghost"><span class="material-icons-outlined">arrow_back</span> Back</a>\n        <h1 id="server-name">Loading...</h1>\n      </div>\n      \n      <div class="console-layout">\n        <div class="console-main">\n          <div class="card console-card">\n            <div class="console-header">\n              <h3>Console</h3>\n              <div class="power-buttons">\n                <button class="btn btn-success btn-sm" id="btn-start">Start</button>\n                <button class="btn btn-warning btn-sm" id="btn-restart">Restart</button>\n                <button class="btn btn-danger btn-sm" id="btn-stop">Stop</button>\n                <button class="btn btn-danger btn-sm" id="btn-kill">Kill</button>\n              </div>\n            </div>\n            <div class="console-output" id="console-output">\n              <div class="console-placeholder">Connecting to server...</div>\n            </div>\n            <div class="console-input">\n              <input type="text" id="command-input" placeholder="Type a command..." />\n              <button class="btn btn-primary" id="send-command">Send</button>\n            </div>\n          </div>\n        </div>\n        \n        <div class="console-sidebar">\n          <div class="card">\n            <h3>Resources</h3>\n            <div id="resources-display">\n              <div class="resource-item">\n                <span class="label">Status</span>\n                <span class="value" id="res-status">--</span>\n              </div>\n              <div class="resource-item">\n                <span class="label">CPU</span>\n                <span class="value" id="res-cpu">--</span>\n              </div>\n              <div class="resource-item">\n                <span class="label">Memory</span>\n                <span class="value" id="res-memory">--</span>\n              </div>\n              <div class="resource-item">\n                <span class="label">Disk</span>\n                <span class="value" id="res-disk">--</span>\n              </div>\n              <div class="resource-item">\n                <span class="label">Network ↑</span>\n                <span class="value" id="res-net-tx">--</span>\n              </div>\n              <div class="resource-item">\n                <span class="label">Network ↓</span>\n                <span class="value" id="res-net-rx">--</span>\n              </div>\n            </div>\n          </div>\n          \n          <div class="card">\n            <h3>Server Info</h3>\n            <div id="server-info">\n              <div class="info-item">\n                <span class="label">Address</span>\n                <span class="value" id="info-address">--</span>\n              </div>\n              <div class="info-item">\n                <span class="label">Node</span>\n                <span class="value" id="info-node">--</span>\n              </div>\n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  ',l(n),document.getElementById("btn-start").onclick=()=>d(n,"start"),document.getElementById("btn-restart").onclick=()=>d(n,"restart"),document.getElementById("btn-stop").onclick=()=>d(n,"stop"),document.getElementById("btn-kill").onclick=()=>d(n,"kill"),document.getElementById("send-command").onclick=()=>c(n),document.getElementById("command-input").onkeypress=e=>{"Enter"===e.key&&c(n)},r=setInterval(()=>l(n),5e3)}(n),cleanup:u,options:{title:"Console",auth:!0,sidebar:!0}}}(n))}s||(s=f["/404"]);const a=!!localStorage.getItem("loggedIn");if(s.redirect)return window.history.replaceState({},"",s.redirect),E();if(s.options?.auth&&!a)return window.history.replaceState({},"","/auth"),E();if(a&&"/auth"===t)return window.history.replaceState({},"","/dashboard"),E();if(a&&"/"===t)return window.history.replaceState({},"","/dashboard"),E();if(!a&&"/"===t)return window.history.replaceState({},"","/auth"),E();document.title="Sodium - "+(s.options?.title||"App");const i=document.getElementById("app");i&&i.classList.add("fade-out"),setTimeout(()=>{I&&(I(),I=null),function(n=!1){if(S){const e=document.getElementById("wrapper");if(e){e.className=n?"with-sidebar":"";const t=document.getElementById("sidebar");n&&!t?e.insertBefore(w(),e.firstChild):!n&&t&&t.remove()}}else{document.body.innerHTML="";const e=document.createElement("div");e.id="wrapper",e.className=n?"with-sidebar":"",n&&e.appendChild(w());const t=document.createElement("div");t.id="content-area",t.appendChild(function(){const n=document.createElement("nav");n.id="navbar",n.className="navbar";const e=localStorage.getItem("displayName")||localStorage.getItem("username")||"User",t=!!localStorage.getItem("loggedIn");return n.innerHTML=`\n    <div class="nav-content">\n      <div class="nav-left">\n        <button class="nav-toggle" id="sidebar-toggle">\n          <span class="material-icons-outlined">menu</span>\n        </button>\n        <a href="/dashboard" class="nav-brand">\n          <span class="material-icons-outlined">bolt</span>\n          <span class="brand-text">Sodium</span>\n        </a>\n      </div>\n      \n      <div class="nav-right">\n        ${t?`\n          <div class="user-menu" id="user-menu">\n            <button class="user-menu-btn" id="user-menu-btn">\n              <div class="user-avatar">\n                <span class="material-icons-outlined">person</span>\n              </div>\n              <span class="user-display-name">${e}</span>\n              <span class="material-icons-outlined dropdown-icon">expand_more</span>\n            </button>\n            <div class="user-dropdown" id="user-dropdown">\n              <a href="/profile" class="dropdown-item">\n                <span class="material-icons-outlined">person</span>\n                <span>Profile</span>\n              </a>\n              <a href="/settings" class="dropdown-item">\n                <span class="material-icons-outlined">settings</span>\n                <span>Settings</span>\n              </a>\n              <hr class="dropdown-divider">\n              <button class="dropdown-item logout" id="nav-logout">\n                <span class="material-icons-outlined">logout</span>\n                <span>Sign Out</span>\n              </button>\n            </div>\n          </div>\n        `:""}\n      </div>\n    </div>\n  `,setTimeout(()=>{const e=n.querySelector("#sidebar-toggle");e&&e.addEventListener("click",()=>{const n=document.getElementById("sidebar");n&&n.classList.toggle("open")});const t=n.querySelector("#user-menu-btn"),s=n.querySelector("#user-dropdown");t&&s&&(t.addEventListener("click",n=>{n.stopPropagation(),s.classList.toggle("active")}),document.addEventListener("click",()=>{s.classList.remove("active")}));const a=n.querySelector("#nav-logout");a&&a.addEventListener("click",()=>{localStorage.removeItem("loggedIn"),localStorage.removeItem("username"),localStorage.removeItem("password"),localStorage.removeItem("displayName"),localStorage.removeItem("userId"),k("/auth")})},0),n}());const s=document.createElement("main");s.id="app",t.appendChild(s),e.appendChild(t),document.body.appendChild(e),document.body.addEventListener("click",$),S=!0}}(!1!==s.options?.sidebar&&a),function(){const n=document.getElementById("app");n&&(n.innerHTML="")}();const n=document.getElementById("sidebar");n&&!1!==s.options?.sidebar&&a&&n.replaceWith(w()),s.render(),I=s.cleanup||null;const e=document.getElementById("app");e&&(e.classList.remove("fade-out"),e.classList.add("fade-in"))},150)}window.router={navigateTo:k},window.addEventListener("popstate",()=>{E()}),window.addEventListener("DOMContentLoaded",()=>{const n=document.getElementById("loading");setTimeout(()=>{n.classList.add("hidden"),n.addEventListener("transitionend",()=>{n.remove()}),E()},300)});
+var undefined$1 = undefined;
+
+function renderAuth() {
+  const app = document.getElementById('app');
+  app.className = 'auth-page';
+  
+  app.innerHTML = `
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="logo">
+            <span class="material-icons-outlined">bolt</span>
+            <span class="logo-text">Sodium</span>
+          </div>
+          <p class="auth-subtitle">Welcome back</p>
+        </div>
+        
+        <div class="auth-tabs">
+          <button class="tab-btn active" data-tab="login">Sign In</button>
+          <button class="tab-btn" data-tab="register">Sign Up</button>
+        </div>
+        
+        <form id="login-form" class="auth-form active">
+          <div class="form-group">
+            <label for="login-username">Username</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">person</span>
+              <input type="text" id="login-username" name="username" placeholder="Enter your username" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">lock</span>
+              <input type="password" id="login-password" name="password" placeholder="Enter your password" required>
+            </div>
+          </div>
+          
+          <div class="error-message" id="login-error"></div>
+          
+          <button type="submit" class="btn btn-primary btn-full">
+            <span>Sign In</span>
+            <span class="material-icons-outlined">arrow_forward</span>
+          </button>
+        </form>
+        
+        <form id="register-form" class="auth-form">
+          <div class="form-group">
+            <label for="register-username">Username</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">person</span>
+              <input type="text" id="register-username" name="username" placeholder="Choose a username" required minlength="3" maxlength="20">
+            </div>
+            <small class="form-hint">3-20 characters</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">lock</span>
+              <input type="password" id="register-password" name="password" placeholder="Create a password" required minlength="6">
+            </div>
+            <small class="form-hint">Minimum 6 characters</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="register-confirm">Confirm Password</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">lock</span>
+              <input type="password" id="register-confirm" name="confirm" placeholder="Confirm your password" required>
+            </div>
+          </div>
+          
+          <div class="error-message" id="register-error"></div>
+          
+          <button type="submit" class="btn btn-primary btn-full">
+            <span>Create Account</span>
+            <span class="material-icons-outlined">arrow_forward</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  const tabs = app.querySelectorAll('.tab-btn');
+  const loginForm = app.querySelector('#login-form');
+  const registerForm = app.querySelector('#register-form');
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      if (tab.dataset.tab === 'login') {
+        loginForm.classList.add('active');
+        registerForm.classList.remove('active');
+      } else {
+        registerForm.classList.add('active');
+        loginForm.classList.remove('active');
+      }
+    });
+  });
+  
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = loginForm.querySelector('#login-username').value;
+    const password = loginForm.querySelector('#login-password').value;
+    const errorEl = loginForm.querySelector('#login-error');
+    const btn = loginForm.querySelector('button[type="submit"]');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+    
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      
+      const data = await res.json();
+      
+      if (data.error) {
+        errorEl.textContent = data.error;
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<span>Sign In</span><span class="material-icons-outlined">arrow_forward</span>';
+        return;
+      }
+      
+      localStorage.setItem('loggedIn', 'true');
+      localStorage.setItem('username', data.user.username);
+      localStorage.setItem('password', password);
+      
+      navigate('/dashboard');
+    } catch (err) {
+      errorEl.textContent = 'Connection error. Please try again.';
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = '<span>Sign In</span><span class="material-icons-outlined">arrow_forward</span>';
+    }
+  });
+  
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = registerForm.querySelector('#register-username').value;
+    const password = registerForm.querySelector('#register-password').value;
+    const confirm = registerForm.querySelector('#register-confirm').value;
+    const errorEl = registerForm.querySelector('#register-error');
+    const btn = registerForm.querySelector('button[type="submit"]');
+    
+    if (password !== confirm) {
+      errorEl.textContent = 'Passwords do not match';
+      errorEl.style.display = 'block';
+      return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+    
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      
+      const data = await res.json();
+      
+      if (data.error) {
+        errorEl.textContent = data.error;
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<span>Create Account</span><span class="material-icons-outlined">arrow_forward</span>';
+        return;
+      }
+      
+      localStorage.setItem('loggedIn', 'true');
+      localStorage.setItem('username', data.user.username);
+      localStorage.setItem('password', password);
+      
+      navigate('/dashboard');
+    } catch (err) {
+      errorEl.textContent = 'Connection error. Please try again.';
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = '<span>Create Account</span><span class="material-icons-outlined">arrow_forward</span>';
+    }
+  });
+}
+
+function renderDashboard() {
+  const app = document.getElementById('app');
+  app.className = 'dashboard-page';
+  
+  const displayName = localStorage.getItem('displayName') || localStorage.getItem('username');
+  const username = localStorage.getItem('username');
+  
+  const hour = new Date().getHours();
+  let greeting = 'Good evening';
+  if (hour < 12) greeting = 'Good morning';
+  else if (hour < 18) greeting = 'Good afternoon';
+  
+  app.innerHTML = `
+    <div class="dashboard-container">
+      <header class="dashboard-header">
+        <div class="greeting">
+          <h1>${greeting}, <span class="highlight">${displayName}</span></h1>
+          <p>Welcome to your dashboard</p>
+        </div>
+      </header>
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <span class="material-icons-outlined">person</span>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">@${username}</span>
+            <span class="stat-label">Your Username</span>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">
+            <span class="material-icons-outlined">calendar_today</span>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span class="stat-label">Today's Date</span>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">
+            <span class="material-icons-outlined">schedule</span>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value" id="current-time">${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+            <span class="stat-label">Current Time</span>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">
+            <span class="material-icons-outlined">verified</span>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">Active</span>
+            <span class="stat-label">Account Status</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="quick-actions">
+        <h2>Quick Actions</h2>
+        <div class="actions-grid">
+          <a href="/profile" class="action-card">
+            <span class="material-icons-outlined">edit</span>
+            <span>Edit Profile</span>
+          </a>
+          <a href="/settings" class="action-card">
+            <span class="material-icons-outlined">settings</span>
+            <span>Settings</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="activity-section">
+        <h2>Recent Activity</h2>
+        <div class="activity-list">
+          <div class="activity-item">
+            <span class="material-icons-outlined">login</span>
+            <div class="activity-content">
+              <span class="activity-title">Signed in successfully</span>
+              <span class="activity-time">Just now</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="material-icons-outlined">check_circle</span>
+            <div class="activity-content">
+              <span class="activity-title">Account created</span>
+              <span class="activity-time">Recently</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const timeEl = app.querySelector('#current-time');
+  const interval = setInterval(() => {
+    if (!document.getElementById('current-time')) {
+      clearInterval(interval);
+      return;
+    }
+    timeEl.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }, 1000);
+}
+
+function escapeHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/`/g, '&#96;');
+}
+
+function escapeUrl(url) {
+  if (typeof url !== 'string' || !url.trim()) return '';
+  try {
+    const parsed = new URL(url.trim());
+    if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+    return parsed.href;
+  } catch {
+    return '';
+  }
+}
+
+function sanitizeText(text, maxLength = 1000) {
+  if (typeof text !== 'string') return '';
+  return escapeHtml(text.slice(0, maxLength).trim());
+}
+
+function isValidUrl(url) {
+  if (!url || typeof url !== 'string') return true;
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function createSafeElement(tag, attributes = {}, textContent = '') {
+  const el = document.createElement(tag);
+  
+  for (const [key, value] of Object.entries(attributes)) {
+    if (key === 'href' || key === 'src') {
+      const safeUrl = escapeUrl(value);
+      if (safeUrl) el.setAttribute(key, safeUrl);
+    } else if (key === 'class') {
+      el.className = value;
+    } else if (key.startsWith('data-')) {
+      el.setAttribute(key, escapeHtml(value));
+    } else {
+      el.setAttribute(key, escapeHtml(value));
+    }
+  }
+  
+  if (textContent) {
+    el.textContent = textContent;
+  }
+  
+  return el;
+}
+
+function safeInnerHTML(element, html) {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  
+  const scripts = template.content.querySelectorAll('script');
+  scripts.forEach(script => script.remove());
+  
+  const elements = template.content.querySelectorAll('*');
+  elements.forEach(el => {
+    const attrs = Array.from(el.attributes);
+    attrs.forEach(attr => {
+      if (attr.name.startsWith('on') || 
+          attr.value.includes('javascript:') ||
+          attr.value.includes('data:text/html')) {
+        el.removeAttribute(attr.name);
+      }
+    });
+  });
+  
+  element.innerHTML = '';
+  element.appendChild(template.content);
+}
+
+function renderProfile() {
+  const app = document.getElementById('app');
+  app.className = 'profile-page';
+  
+  const username = localStorage.getItem('username');
+  const displayName = localStorage.getItem('displayName') || username;
+  
+  app.innerHTML = `
+    <div class="profile-container">
+      <div class="profile-header">
+        <h1>Profile</h1>
+        <p>Manage your public profile information</p>
+      </div>
+      
+      <div class="profile-content">
+        <div class="profile-card">
+          <div class="avatar-section">
+            <div class="avatar" id="avatar-preview">
+              <span class="material-icons-outlined">person</span>
+            </div>
+            <div class="avatar-info">
+              <h3 id="profile-display-name">${escapeHtml(displayName)}</h3>
+              <span class="username">@${escapeHtml(username)}</span>
+            </div>
+          </div>
+        </div>
+        
+        <form id="profile-form" class="profile-form">
+          <div class="form-section">
+            <h3>Basic Information</h3>
+            
+            <div class="form-group">
+              <label for="avatar-url">Profile Picture URL</label>
+              <div class="input-wrapper">
+                <span class="material-icons-outlined">image</span>
+                <input type="url" id="avatar-url" name="avatar" placeholder="https://example.com/avatar.png">
+              </div>
+              <small class="form-hint">Use a direct image URL (https only)</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="display-name">Display Name</label>
+              <div class="input-wrapper">
+                <span class="material-icons-outlined">badge</span>
+                <input type="text" id="display-name" name="displayName" value="${escapeHtml(displayName)}" maxlength="50" placeholder="Your display name">
+              </div>
+              <small class="form-hint">This is how others will see you</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="bio">Bio</label>
+              <div class="textarea-wrapper">
+                <textarea id="bio" name="bio" maxlength="500" placeholder="Tell us about yourself..." rows="4"></textarea>
+              </div>
+              <small class="form-hint"><span id="bio-count">0</span>/500 characters</small>
+            </div>
+          </div>
+          
+          <div class="form-section">
+            <h3>Social Links</h3>
+            <p class="section-description">These will be visible on your public profile</p>
+            
+            <div class="form-group">
+              <label for="link-website">Website</label>
+              <div class="input-wrapper">
+                <span class="material-icons-outlined">language</span>
+                <input type="url" id="link-website" name="website" placeholder="https://yourwebsite.com">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="link-twitter">Twitter / X</label>
+              <div class="input-wrapper">
+                <span class="material-icons-outlined">alternate_email</span>
+                <input type="url" id="link-twitter" name="twitter" placeholder="https://twitter.com/username">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="link-github">GitHub</label>
+              <div class="input-wrapper">
+                <span class="material-icons-outlined">code</span>
+                <input type="url" id="link-github" name="github" placeholder="https://github.com/username">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="link-discord">Discord</label>
+              <div class="input-wrapper">
+                <span class="material-icons-outlined">chat</span>
+                <input type="url" id="link-discord" name="discord" placeholder="https://discord.gg/invite">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="link-instagram">Instagram</label>
+              <div class="input-wrapper">
+                <span class="material-icons-outlined">photo_camera</span>
+                <input type="url" id="link-instagram" name="instagram" placeholder="https://instagram.com/username">
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <div class="message" id="profile-message"></div>
+            <button type="submit" class="btn btn-primary">
+              <span class="material-icons-outlined">save</span>
+              <span>Save Changes</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  loadProfile();
+  
+  const avatarInput = app.querySelector('#avatar-url');
+  const avatarPreview = app.querySelector('#avatar-preview');
+  
+  avatarInput.addEventListener('input', () => {
+    updateAvatarPreview(avatarInput.value, avatarPreview);
+  });
+  
+  const bioInput = app.querySelector('#bio');
+  const bioCount = app.querySelector('#bio-count');
+  
+  bioInput.addEventListener('input', () => {
+    bioCount.textContent = bioInput.value.length;
+  });
+  
+  const form = app.querySelector('#profile-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const displayName = form.querySelector('#display-name').value.trim();
+    const bio = form.querySelector('#bio').value.trim();
+    const avatar = form.querySelector('#avatar-url').value.trim();
+    
+    const links = {
+      website: form.querySelector('#link-website').value.trim(),
+      twitter: form.querySelector('#link-twitter').value.trim(),
+      github: form.querySelector('#link-github').value.trim(),
+      discord: form.querySelector('#link-discord').value.trim(),
+      instagram: form.querySelector('#link-instagram').value.trim()
+    };
+    
+    const messageEl = form.querySelector('#profile-message');
+    const btn = form.querySelector('button[type="submit"]');
+    
+    if (!validateUrls([avatar, ...Object.values(links)])) {
+      messageEl.textContent = 'Invalid URL detected. Only https:// URLs are allowed.';
+      messageEl.className = 'message error';
+      return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+    
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: localStorage.getItem('username'),
+          password: localStorage.getItem('password'),
+          displayName,
+          bio,
+          avatar,
+          links
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.error) {
+        messageEl.textContent = escapeHtml(data.error);
+        messageEl.className = 'message error';
+      } else {
+        messageEl.textContent = 'Profile updated successfully!';
+        messageEl.className = 'message success';
+        localStorage.setItem('displayName', displayName);
+        
+        const profileDisplayName = document.getElementById('profile-display-name');
+        if (profileDisplayName) profileDisplayName.textContent = escapeHtml(displayName);
+        
+        const navDisplayName = document.querySelector('.user-display-name');
+        if (navDisplayName) navDisplayName.textContent = escapeHtml(displayName);
+      }
+    } catch (err) {
+      messageEl.textContent = 'Connection error. Please try again.';
+      messageEl.className = 'message error';
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-icons-outlined">save</span><span>Save Changes</span>';
+    
+    setTimeout(() => {
+      messageEl.textContent = '';
+      messageEl.className = 'message';
+    }, 3000);
+  });
+}
+
+function validateUrls(urls) {
+  for (const url of urls) {
+    if (!url) continue;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'https:') return false;
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+
+function updateAvatarPreview(url, container) {
+  if (!url || !validateUrls([url])) {
+    container.innerHTML = '<span class="material-icons-outlined">person</span>';
+    return;
+  }
+  
+  const img = new Image();
+  img.onload = () => {
+    container.innerHTML = '';
+    container.appendChild(img);
+  };
+  img.onerror = () => {
+    container.innerHTML = '<span class="material-icons-outlined">person</span>';
+  };
+  img.src = url;
+  img.alt = 'Avatar';
+}
+
+async function loadProfile() {
+  try {
+    const username = localStorage.getItem('username');
+    const res = await fetch(`/api/user/profile?username=${encodeURIComponent(username)}&viewer=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.user) {
+      const bioInput = document.getElementById('bio');
+      const bioCount = document.getElementById('bio-count');
+      const displayNameInput = document.getElementById('display-name');
+      const avatarInput = document.getElementById('avatar-url');
+      const avatarPreview = document.getElementById('avatar-preview');
+      
+      if (bioInput && data.user.bio) {
+        bioInput.value = data.user.bio;
+        bioCount.textContent = data.user.bio.length;
+      }
+      
+      if (displayNameInput && data.user.displayName) {
+        displayNameInput.value = data.user.displayName;
+      }
+      
+      if (avatarInput && data.user.avatar) {
+        avatarInput.value = data.user.avatar;
+        updateAvatarPreview(data.user.avatar, avatarPreview);
+      }
+      
+      if (data.user.links) {
+        const links = data.user.links;
+        if (links.website) document.getElementById('link-website').value = links.website;
+        if (links.twitter) document.getElementById('link-twitter').value = links.twitter;
+        if (links.github) document.getElementById('link-github').value = links.github;
+        if (links.discord) document.getElementById('link-discord').value = links.discord;
+        if (links.instagram) document.getElementById('link-instagram').value = links.instagram;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load profile:', err);
+  }
+}
+
+function renderSettings() {
+  const app = document.getElementById('app');
+  app.className = 'settings-page';
+  
+  const username = localStorage.getItem('username');
+  
+  app.innerHTML = `
+    <div class="settings-container">
+      <div class="settings-header">
+        <h1>Settings</h1>
+        <p>Manage your account preferences</p>
+      </div>
+      
+      <div class="settings-content">
+        <div class="settings-section">
+          <div class="section-header">
+            <span class="material-icons-outlined">palette</span>
+            <h3>Appearance</h3>
+          </div>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">Theme</span>
+              <span class="setting-description">Choose your preferred color scheme</span>
+            </div>
+            <div class="setting-control">
+              <select id="theme-select" class="select-input">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+                <option value="system">System</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <div class="section-header">
+            <span class="material-icons-outlined">notifications</span>
+            <h3>Notifications</h3>
+          </div>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">Push Notifications</span>
+              <span class="setting-description">Receive notifications about activity</span>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="notifications-toggle" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <div class="section-header">
+            <span class="material-icons-outlined">lock</span>
+            <h3>Privacy</h3>
+          </div>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">Profile Visibility</span>
+              <span class="setting-description">Control who can see your profile</span>
+            </div>
+            <div class="setting-control">
+              <select id="privacy-select" class="select-input">
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <div class="section-header">
+            <span class="material-icons-outlined">security</span>
+            <h3>Security</h3>
+          </div>
+          
+          <div class="setting-item clickable" id="change-password-btn">
+            <div class="setting-info">
+              <span class="setting-title">Change Password</span>
+              <span class="setting-description">Update your account password</span>
+            </div>
+            <span class="material-icons-outlined">chevron_right</span>
+          </div>
+        </div>
+        
+        <div class="settings-section danger-section">
+          <div class="section-header">
+            <span class="material-icons-outlined">warning</span>
+            <h3>Danger Zone</h3>
+          </div>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">Sign Out</span>
+              <span class="setting-description">Sign out of your account on this device</span>
+            </div>
+            <button class="btn btn-danger" id="logout-btn">
+              <span class="material-icons-outlined">logout</span>
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal" id="password-modal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Change Password</h3>
+          <button class="modal-close" id="close-modal">
+            <span class="material-icons-outlined">close</span>
+          </button>
+        </div>
+        <form id="password-form">
+          <div class="form-group">
+            <label for="current-password">Current Password</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">lock</span>
+              <input type="password" id="current-password" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="new-password">New Password</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">lock</span>
+              <input type="password" id="new-password" required minlength="6">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="confirm-password">Confirm New Password</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">lock</span>
+              <input type="password" id="confirm-password" required>
+            </div>
+          </div>
+          <div class="message" id="password-message"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  loadSettings();
+  
+  const logoutBtn = app.querySelector('#logout-btn');
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('loggedIn');
+    localStorage.removeItem('username');
+    localStorage.removeItem('password');
+    localStorage.removeItem('displayName');
+    localStorage.removeItem('userId');
+    navigate('/auth');
+  });
+  
+  const themeSelect = app.querySelector('#theme-select');
+  themeSelect.addEventListener('change', () => {
+    saveSettings({ theme: themeSelect.value });
+  });
+  
+  const notificationsToggle = app.querySelector('#notifications-toggle');
+  notificationsToggle.addEventListener('change', () => {
+    saveSettings({ notifications: notificationsToggle.checked });
+  });
+  
+  const privacySelect = app.querySelector('#privacy-select');
+  privacySelect.addEventListener('change', () => {
+    saveSettings({ privacy: privacySelect.value });
+  });
+  
+  const modal = app.querySelector('#password-modal');
+  const changePasswordBtn = app.querySelector('#change-password-btn');
+  const closeModal = app.querySelector('#close-modal');
+  const cancelModal = app.querySelector('#cancel-modal');
+  const backdrop = modal.querySelector('.modal-backdrop');
+  
+  changePasswordBtn.addEventListener('click', () => {
+    modal.classList.add('active');
+  });
+  
+  const closeModalFn = () => {
+    modal.classList.remove('active');
+    modal.querySelector('form').reset();
+    modal.querySelector('#password-message').textContent = '';
+  };
+  
+  closeModal.addEventListener('click', closeModalFn);
+  cancelModal.addEventListener('click', closeModalFn);
+  backdrop.addEventListener('click', closeModalFn);
+  
+  const passwordForm = app.querySelector('#password-form');
+  passwordForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const currentPassword = passwordForm.querySelector('#current-password').value;
+    const newPassword = passwordForm.querySelector('#new-password').value;
+    const confirmPassword = passwordForm.querySelector('#confirm-password').value;
+    const messageEl = passwordForm.querySelector('#password-message');
+    const btn = passwordForm.querySelector('button[type="submit"]');
+    
+    if (newPassword !== confirmPassword) {
+      messageEl.textContent = 'Passwords do not match';
+      messageEl.className = 'message error';
+      return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+    
+    try {
+      const res = await fetch('/api/user/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: localStorage.getItem('username'),
+          currentPassword,
+          newPassword
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.error) {
+        messageEl.textContent = data.error;
+        messageEl.className = 'message error';
+      } else {
+        messageEl.textContent = 'Password updated successfully!';
+        messageEl.className = 'message success';
+        localStorage.setItem('password', newPassword);
+        
+        setTimeout(() => {
+          closeModalFn();
+        }, 1500);
+      }
+    } catch (err) {
+      messageEl.textContent = 'Connection error. Please try again.';
+      messageEl.className = 'message error';
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = 'Update Password';
+  });
+}
+
+async function loadSettings() {
+  try {
+    const res = await fetch(`/api/user/profile?username=${encodeURIComponent(localStorage.getItem('username'))}`);
+    const data = await res.json();
+    
+    if (data.user?.settings) {
+      const { theme, notifications, privacy } = data.user.settings;
+      
+      const themeSelect = document.getElementById('theme-select');
+      const notificationsToggle = document.getElementById('notifications-toggle');
+      const privacySelect = document.getElementById('privacy-select');
+      
+      if (themeSelect && theme) themeSelect.value = theme;
+      if (notificationsToggle) notificationsToggle.checked = notifications !== false;
+      if (privacySelect && privacy) privacySelect.value = privacy;
+    }
+  } catch (err) {
+    console.error('Failed to load settings:', err);
+  }
+}
+
+async function saveSettings(settings) {
+  try {
+    await fetch('/api/user/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: localStorage.getItem('username'),
+        password: localStorage.getItem('password'),
+        settings
+      })
+    });
+  } catch (err) {
+    console.error('Failed to save settings:', err);
+  }
+}
+
+function renderNotFound() {
+  const app = document.getElementById('app');
+  app.className = 'notfound-page';
+  
+  app.innerHTML = `
+    <div class="notfound-container">
+      <div class="notfound-content">
+        <span class="notfound-code">404</span>
+        <h1>Page Not Found</h1>
+        <p>The page you're looking for doesn't exist or has been moved.</p>
+        <a href="/dashboard" class="btn btn-primary">
+          <span class="material-icons-outlined">home</span>
+          <span>Back to Dashboard</span>
+        </a>
+      </div>
+    </div>
+  `;
+}
+
+function renderUser(targetUsername) {
+  const app = document.getElementById('app');
+  app.className = 'user-page';
+  
+  app.innerHTML = `
+    <div class="user-container">
+      <div class="loading-state">
+        <span class="material-icons-outlined spinning">sync</span>
+        <span>Loading profile...</span>
+      </div>
+    </div>
+  `;
+  
+  loadUserProfile(targetUsername);
+}
+
+async function loadUserProfile(targetUsername) {
+  const container = document.querySelector('.user-container');
+  const viewer = localStorage.getItem('username') || '';
+  
+  try {
+    const res = await fetch(`/api/user/profile?username=${encodeURIComponent(targetUsername)}&viewer=${encodeURIComponent(viewer)}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      container.innerHTML = `
+        <div class="error-state">
+          <span class="material-icons-outlined">error</span>
+          <h2>User Not Found</h2>
+          <p>The user you're looking for doesn't exist.</p>
+          <a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>
+        </div>
+      `;
+      return;
+    }
+    
+    const user = data.user;
+    const isPrivate = user.isPrivate;
+    
+    const linkIcons = {
+      website: 'language',
+      twitter: 'alternate_email',
+      github: 'code',
+      discord: 'chat',
+      instagram: 'photo_camera'
+    };
+    
+    const linkLabels = {
+      website: 'Website',
+      twitter: 'Twitter',
+      github: 'GitHub',
+      discord: 'Discord',
+      instagram: 'Instagram'
+    };
+    
+    let linksHtml = '';
+    if (!isPrivate && user.links) {
+      const activeLinks = Object.entries(user.links).filter(([_, url]) => url);
+      if (activeLinks.length > 0) {
+        linksHtml = `
+          <div class="user-links">
+            <h3>Links</h3>
+            <div class="links-list">
+              ${activeLinks.map(([key, url]) => {
+                const safeUrl = escapeUrl(url);
+                if (!safeUrl) return '';
+                return `
+                  <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="link-item">
+                    <span class="material-icons-outlined">${linkIcons[key] || 'link'}</span>
+                    <span>${escapeHtml(linkLabels[key] || key)}</span>
+                    <span class="material-icons-outlined external">open_in_new</span>
+                  </a>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+    
+    const avatarHtml = user.avatar ? 
+      `<img src="${escapeUrl(user.avatar)}" alt="Avatar" onerror="this.parentElement.innerHTML='<span class=\\'material-icons-outlined\\'>person</span>'">` :
+      `<span class="material-icons-outlined">person</span>`;
+    
+    container.innerHTML = `
+      <div class="user-profile-card">
+        <div class="user-header">
+          <div class="user-avatar">
+            ${avatarHtml}
+          </div>
+          <div class="user-info">
+            <h1>${escapeHtml(user.displayName || user.username)}</h1>
+            <span class="user-username">@${escapeHtml(user.username)}</span>
+            ${isPrivate ? '<span class="private-badge"><span class="material-icons-outlined">lock</span> Private Profile</span>' : ''}
+          </div>
+        </div>
+        
+        ${!isPrivate && user.bio ? `
+          <div class="user-bio">
+            <h3>About</h3>
+            <p>${escapeHtml(user.bio)}</p>
+          </div>
+        ` : ''}
+        
+        ${isPrivate ? `
+          <div class="private-notice">
+            <span class="material-icons-outlined">visibility_off</span>
+            <p>This profile is private</p>
+          </div>
+        ` : ''}
+        
+        ${linksHtml}
+        
+        ${!isPrivate && user.createdAt ? `
+          <div class="user-meta">
+            <span class="material-icons-outlined">calendar_today</span>
+            <span>Joined ${new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `
+      <div class="error-state">
+        <span class="material-icons-outlined">wifi_off</span>
+        <h2>Connection Error</h2>
+        <p>Unable to load profile. Please try again.</p>
+        <a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>
+      </div>
+    `;
+  }
+}
+
+let pollInterval$2 = null;
+
+function renderServers() {
+  const app = document.getElementById('app');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  
+  app.innerHTML = `
+    <div class="servers-page">
+      <div class="page-header">
+        <h1>My Servers</h1>
+      </div>
+      
+      <div class="resource-limits card">
+        <h3>Resource Usage</h3>
+        <div class="limits-grid" id="limits-display">
+          <div class="limit-item">
+            <span class="label">Loading...</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="servers-grid" id="servers-list">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  `;
+  
+  loadServers();
+  loadLimits();
+  
+  pollInterval$2 = setInterval(loadServers, 10000);
+}
+
+async function loadLimits() {
+  const username = localStorage.getItem('username');
+  try {
+    const res = await fetch(`/api/user/limits?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    const container = document.getElementById('limits-display');
+    if (!container) return;
+    
+    container.innerHTML = `
+      <div class="limit-item">
+        <span class="label">Servers</span>
+        <div class="progress-bar">
+          <div class="progress" style="width: ${(data.used.servers / data.limits.servers) * 100}%"></div>
+        </div>
+        <span class="value">${data.used.servers} / ${data.limits.servers}</span>
+      </div>
+      <div class="limit-item">
+        <span class="label">Memory</span>
+        <div class="progress-bar">
+          <div class="progress" style="width: ${(data.used.memory / data.limits.memory) * 100}%"></div>
+        </div>
+        <span class="value">${data.used.memory} / ${data.limits.memory} MB</span>
+      </div>
+      <div class="limit-item">
+        <span class="label">Disk</span>
+        <div class="progress-bar">
+          <div class="progress" style="width: ${(data.used.disk / data.limits.disk) * 100}%"></div>
+        </div>
+        <span class="value">${data.used.disk} / ${data.limits.disk} MB</span>
+      </div>
+      <div class="limit-item">
+        <span class="label">CPU</span>
+        <div class="progress-bar">
+          <div class="progress" style="width: ${(data.used.cpu / data.limits.cpu) * 100}%"></div>
+        </div>
+        <span class="value">${data.used.cpu} / ${data.limits.cpu}%</span>
+      </div>
+    `;
+  } catch (e) {
+    console.error('Failed to load limits:', e);
+  }
+}
+
+async function loadServers() {
+  const username = localStorage.getItem('username');
+  const container = document.getElementById('servers-list');
+  if (!container) return;
+  
+  try {
+    const res = await fetch(`/api/servers?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.servers.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined icon">dns</span>
+          <h3>No Servers</h3>
+          <p>You don't have any servers yet. Contact an administrator to get started.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = data.servers.map(server => `
+      <div class="server-card card" data-id="${server.id}">
+        <div class="server-header">
+          <h3>${escapeHtml(server.name)}</h3>
+          <span class="status status-${server.status || 'offline'}">${server.status || 'offline'}</span>
+        </div>
+        <div class="server-info">
+          <div class="info-row">
+            <span class="label">Memory</span>
+            <span class="value">${server.limits?.memory || 0} MB</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Disk</span>
+            <span class="value">${server.limits?.disk || 0} MB</span>
+          </div>
+          <div class="info-row">
+            <span class="label">CPU</span>
+            <span class="value">${server.limits?.cpu || 0}%</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Address</span>
+            <span class="value">${server.allocation?.ip}:${server.allocation?.port}</span>
+          </div>
+        </div>
+        <div class="server-actions">
+          <button class="btn btn-success btn-sm" onclick="serverPower('${server.id}', 'start')">Start</button>
+          <button class="btn btn-warning btn-sm" onclick="serverPower('${server.id}', 'restart')">Restart</button>
+          <button class="btn btn-danger btn-sm" onclick="serverPower('${server.id}', 'stop')">Stop</button>
+          <a href="/server/${server.id}" class="btn btn-primary btn-sm">Console</a>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = `<div class="error">Failed to load servers</div>`;
+  }
+}
+
+window.serverPower = async function(serverId, action) {
+  const username = localStorage.getItem('username');
+  try {
+    await fetch(`/api/servers/${serverId}/power`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, action })
+    });
+    loadServers();
+  } catch (e) {
+    alert('Failed to execute power action');
+  }
+};
+
+function cleanupServers() {
+  if (pollInterval$2) {
+    clearInterval(pollInterval$2);
+    pollInterval$2 = null;
+  }
+}
+
+let pollInterval$1 = null;
+let consoleSocket = null;
+
+function renderServerConsole(serverId) {
+  const app = document.getElementById('app');
+  
+  app.innerHTML = `
+    <div class="server-console-page">
+      <div class="page-header">
+        <a href="/servers" class="btn btn-ghost"><span class="material-icons-outlined">arrow_back</span> Back</a>
+        <h1 id="server-name">Loading...</h1>
+      </div>
+      
+      <div class="console-layout">
+        <div class="console-main">
+          <div class="card console-card">
+            <div class="console-header">
+              <h3>Console</h3>
+              <div class="power-buttons">
+                <button class="btn btn-success btn-sm" id="btn-start">Start</button>
+                <button class="btn btn-warning btn-sm" id="btn-restart">Restart</button>
+                <button class="btn btn-danger btn-sm" id="btn-stop">Stop</button>
+                <button class="btn btn-danger btn-sm" id="btn-kill">Kill</button>
+              </div>
+            </div>
+            <div class="console-output" id="console-output">
+              <div class="console-placeholder">Connecting to server...</div>
+            </div>
+            <div class="console-input">
+              <input type="text" id="command-input" placeholder="Type a command..." />
+              <button class="btn btn-primary" id="send-command">Send</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="console-sidebar">
+          <div class="card">
+            <h3>Resources</h3>
+            <div id="resources-display">
+              <div class="resource-item">
+                <span class="label">Status</span>
+                <span class="value" id="res-status">--</span>
+              </div>
+              <div class="resource-item">
+                <span class="label">CPU</span>
+                <span class="value" id="res-cpu">--</span>
+              </div>
+              <div class="resource-item">
+                <span class="label">Memory</span>
+                <span class="value" id="res-memory">--</span>
+              </div>
+              <div class="resource-item">
+                <span class="label">Disk</span>
+                <span class="value" id="res-disk">--</span>
+              </div>
+              <div class="resource-item">
+                <span class="label">Network ↑</span>
+                <span class="value" id="res-net-tx">--</span>
+              </div>
+              <div class="resource-item">
+                <span class="label">Network ↓</span>
+                <span class="value" id="res-net-rx">--</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <h3>Server Info</h3>
+            <div id="server-info">
+              <div class="info-item">
+                <span class="label">Address</span>
+                <span class="value" id="info-address">--</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Node</span>
+                <span class="value" id="info-node">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  loadServerDetails(serverId);
+  connectWebSocket(serverId);
+  
+  document.getElementById('btn-start').onclick = () => powerAction(serverId, 'start');
+  document.getElementById('btn-restart').onclick = () => powerAction(serverId, 'restart');
+  document.getElementById('btn-stop').onclick = () => powerAction(serverId, 'stop');
+  document.getElementById('btn-kill').onclick = () => powerAction(serverId, 'kill');
+  
+  document.getElementById('send-command').onclick = () => sendCommand(serverId);
+  document.getElementById('command-input').onkeypress = (e) => {
+    if (e.key === 'Enter') sendCommand(serverId);
+  };
+}
+
+async function loadServerDetails(serverId) {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${serverId}?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      document.getElementById('server-name').textContent = 'Error';
+      return;
+    }
+    
+    const server = data.server;
+    
+    document.getElementById('server-name').textContent = server.name;
+    document.getElementById('info-address').textContent = `${server.allocation?.ip}:${server.allocation?.port}`;
+    document.getElementById('info-node').textContent = server.node_id?.substring(0, 8) || '--';
+  } catch (e) {
+    console.error('Failed to load server:', e);
+  }
+}
+
+async function connectWebSocket(serverId) {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${serverId}/websocket?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      appendConsole(`[ERROR] ${data.error}`);
+      return;
+    }
+    
+    const { token, socket } = data.data;
+    
+    appendConsole('[SYSTEM] Connecting to console...');
+    
+    consoleSocket = new WebSocket(socket);
+    
+    consoleSocket.onopen = () => {
+      appendConsole('[SYSTEM] WebSocket connected, authenticating...');
+      consoleSocket.send(JSON.stringify({
+        event: 'auth',
+        args: [token]
+      }));
+    };
+    
+    consoleSocket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        handleSocketMessage(message);
+      } catch (e) {
+        console.error('Failed to parse WebSocket message:', e);
+      }
+    };
+    
+    consoleSocket.onclose = () => {
+      appendConsole('[SYSTEM] Connection closed');
+      setTimeout(() => connectWebSocket(serverId), 5000);
+    };
+    
+    consoleSocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      appendConsole('[ERROR] WebSocket connection failed');
+    };
+    
+  } catch (e) {
+    console.error('Failed to connect WebSocket:', e);
+    appendConsole('[ERROR] Failed to connect to console');
+  }
+}
+
+function handleSocketMessage(message) {
+  const { event, args } = message;
+  
+  switch (event) {
+    case 'auth success':
+      appendConsole('[SYSTEM] Authenticated successfully');
+      consoleSocket.send(JSON.stringify({ event: 'send logs', args: [null] }));
+      consoleSocket.send(JSON.stringify({ event: 'send stats', args: [null] }));
+      break;
+      
+    case 'token expiring':
+    case 'token expired':
+      appendConsole('[SYSTEM] Token expired, reconnecting...');
+      break;
+      
+    case 'console output':
+      if (args && args[0]) {
+        const lines = args[0].split('\n');
+        lines.forEach(line => {
+          if (line.trim()) appendConsole(line);
+        });
+      }
+      break;
+      
+    case 'status':
+      if (args && args[0]) {
+        const status = args[0];
+        const statusEl = document.getElementById('res-status');
+        if (statusEl) {
+          statusEl.textContent = status;
+          statusEl.className = `value status-${status}`;
+        }
+      }
+      break;
+      
+    case 'stats':
+      if (args && args[0]) {
+        updateResources(args[0]);
+      }
+      break;
+      
+    case 'install output':
+      if (args && args[0]) {
+        appendConsole(`[INSTALL] ${args[0]}`);
+      }
+      break;
+      
+    case 'install started':
+      appendConsole('[SYSTEM] Installation started...');
+      break;
+      
+    case 'install completed':
+      appendConsole('[SYSTEM] Installation completed');
+      break;
+      
+    case 'daemon error':
+      if (args && args[0]) {
+        appendConsole(`[DAEMON ERROR] ${args[0]}`);
+      }
+      break;
+      
+    default:
+      console.log('Unhandled WebSocket event:', event, args);
+  }
+}
+
+function updateResources(stats) {
+  const cpuEl = document.getElementById('res-cpu');
+  const memEl = document.getElementById('res-memory');
+  const diskEl = document.getElementById('res-disk');
+  const netTxEl = document.getElementById('res-net-tx');
+  const netRxEl = document.getElementById('res-net-rx');
+  
+  if (cpuEl) cpuEl.textContent = `${(stats.cpu_absolute || 0).toFixed(1)}%`;
+  if (memEl) memEl.textContent = formatBytes(stats.memory_bytes || 0);
+  if (diskEl) diskEl.textContent = formatBytes(stats.disk_bytes || 0);
+  if (netTxEl) netTxEl.textContent = formatBytes(stats.network?.tx_bytes || 0);
+  if (netRxEl) netRxEl.textContent = formatBytes(stats.network?.rx_bytes || 0);
+}
+
+async function powerAction(serverId, action) {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${serverId}/power`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, action })
+    });
+    
+    if (res.ok) {
+      appendConsole(`[SYSTEM] Power action: ${action}`);
+      loadServerDetails(serverId);
+    } else {
+      const data = await res.json();
+      appendConsole(`[ERROR] ${data.error}`);
+    }
+  } catch (e) {
+    appendConsole(`[ERROR] Failed to execute power action`);
+  }
+}
+
+async function sendCommand(serverId) {
+  const input = document.getElementById('command-input');
+  const command = input.value.trim();
+  if (!command) return;
+  
+  appendConsole(`> ${command}`);
+  input.value = '';
+  
+  if (consoleSocket && consoleSocket.readyState === WebSocket.OPEN) {
+    consoleSocket.send(JSON.stringify({
+      event: 'send command',
+      args: [command]
+    }));
+  } else {
+    const username = localStorage.getItem('username');
+    try {
+      const res = await fetch(`/api/servers/${serverId}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, command })
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        appendConsole(`[ERROR] ${data.error}`);
+      }
+    } catch (e) {
+      appendConsole(`[ERROR] Failed to send command`);
+    }
+  }
+}
+
+function appendConsole(text) {
+  const output = document.getElementById('console-output');
+  const placeholder = output.querySelector('.console-placeholder');
+  if (placeholder) placeholder.remove();
+  
+  const line = document.createElement('div');
+  line.className = 'console-line';
+  line.textContent = text;
+  output.appendChild(line);
+  output.scrollTop = output.scrollHeight;
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function cleanupServerConsole() {
+  if (pollInterval$1) {
+    clearInterval(pollInterval$1);
+    pollInterval$1 = null;
+  }
+  if (consoleSocket) {
+    consoleSocket.close();
+    consoleSocket = null;
+  }
+}
+
+let pollInterval = null;
+
+function renderStatus() {
+  const app = document.getElementById('app');
+  
+  app.innerHTML = `
+    <div class="status-page">
+      <div class="status-header">
+        <span class="material-icons-outlined header-icon">monitor_heart</span>
+        <h1>System Status</h1>
+        <p>Real-time status of all nodes</p>
+      </div>
+      
+      <div class="status-summary" id="status-summary">
+        <div class="summary-card">
+          <span class="number" id="nodes-online">-</span>
+          <span class="label">Nodes Online</span>
+        </div>
+        <div class="summary-card">
+          <span class="number" id="nodes-total">-</span>
+          <span class="label">Total Nodes</span>
+        </div>
+        <div class="summary-card">
+          <span class="number" id="servers-total">-</span>
+          <span class="label">Total Servers</span>
+        </div>
+      </div>
+      
+      <div class="nodes-status-grid" id="nodes-list">
+        <div class="loading-spinner"></div>
+      </div>
+      
+      <div class="status-footer">
+        <p>Last updated: <span id="last-update">--</span></p>
+      </div>
+    </div>
+  `;
+  
+  loadStatus();
+  pollInterval = setInterval(loadStatus, 30000);
+}
+
+async function loadStatus() {
+  const container = document.getElementById('nodes-list');
+  
+  try {
+    const res = await fetch('/api/status/nodes');
+    const data = await res.json();
+    
+    const online = data.nodes.filter(n => n.status === 'online').length;
+    const total = data.nodes.length;
+    const servers = data.nodes.reduce((sum, n) => sum + n.servers, 0);
+    
+    document.getElementById('nodes-online').textContent = online;
+    document.getElementById('nodes-total').textContent = total;
+    document.getElementById('servers-total').textContent = servers;
+    document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+    
+    if (data.nodes.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined icon">power_off</span>
+          <h3>No Nodes</h3>
+          <p>No nodes have been configured yet.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = data.nodes.map(node => {
+      const memPercent = node.memory.total > 0 ? (node.memory.used / (node.memory.total * 1024 * 1024)) * 100 : 0;
+      const diskPercent = node.disk.total > 0 ? (node.disk.used / (node.disk.total * 1024 * 1024)) * 100 : 0;
+      
+      return `
+        <div class="node-status-card card ${node.status}">
+          <div class="node-header">
+            <h3>${escapeHtml(node.name)}</h3>
+            <span class="status-badge status-${node.status}">${node.status}</span>
+          </div>
+          <div class="node-stats">
+            <div class="stat">
+              <span class="label">Servers</span>
+              <span class="value">${node.servers}</span>
+            </div>
+            <div class="stat">
+              <span class="label">Memory</span>
+              <div class="progress-bar">
+                <div class="progress" style="width: ${Math.min(memPercent, 100)}%"></div>
+              </div>
+              <span class="value">${memPercent.toFixed(1)}%</span>
+            </div>
+            <div class="stat">
+              <span class="label">Disk</span>
+              <div class="progress-bar">
+                <div class="progress" style="width: ${Math.min(diskPercent, 100)}%"></div>
+              </div>
+              <span class="value">${diskPercent.toFixed(1)}%</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    container.innerHTML = `<div class="error">Failed to load status</div>`;
+  }
+}
+
+function cleanupStatus() {
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+}
+
+let currentTab = 'nodes';
+
+async function renderAdmin() {
+  const app = document.getElementById('app');
+  const username = localStorage.getItem('username');
+  const password = localStorage.getItem('password');
+  
+  app.innerHTML = '<div class="loading-spinner"></div>';
+  
+  try {
+    const res = await fetch(`/api/auth/me?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+    const data = await res.json();
+    
+    if (!data.user?.isAdmin) {
+      app.innerHTML = `
+        <div class="error-page">
+          <h1>403</h1>
+          <p>Access Denied</p>
+          <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+        </div>
+      `;
+      return;
+    }
+  } catch (e) {
+    app.innerHTML = '<div class="error">Failed to verify permissions</div>';
+    return;
+  }
+  
+  app.innerHTML = `
+    <div class="admin-page">
+      <div class="page-header">
+        <h1>Admin Panel</h1>
+      </div>
+      
+      <div class="admin-tabs">
+        <button class="tab-btn active" data-tab="nodes">Nodes</button>
+        <button class="tab-btn" data-tab="servers">Servers</button>
+        <button class="tab-btn" data-tab="users">Users</button>
+        <button class="tab-btn" data-tab="nests">Nests & Eggs</button>
+        <button class="tab-btn" data-tab="locations">Locations</button>
+      </div>
+      
+      <div class="admin-content" id="admin-content">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  `;
+  
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTab = btn.dataset.tab;
+      loadTab(currentTab);
+    };
+  });
+  
+  loadTab('nodes');
+}
+
+async function loadTab(tab) {
+  const container = document.getElementById('admin-content');
+  const username = localStorage.getItem('username');
+  
+  container.innerHTML = '<div class="loading-spinner"></div>';
+  
+  switch (tab) {
+    case 'nodes':
+      await loadNodes(container, username);
+      break;
+    case 'servers':
+      await loadServersTab(container, username);
+      break;
+    case 'users':
+      await loadUsers(container, username);
+      break;
+    case 'nests':
+      await loadNests(container, username);
+      break;
+    case 'locations':
+      await loadLocations(container, username);
+      break;
+  }
+}
+
+async function loadNodes(container, username) {
+  try {
+    const res = await fetch(`/api/admin/nodes?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    container.innerHTML = `
+      <div class="admin-section">
+        <div class="section-header">
+          <h2>Nodes</h2>
+          <button class="btn btn-primary" id="add-node-btn"><span class="material-icons-outlined">add</span> Add Node</button>
+        </div>
+        
+        <div id="node-form" class="card form-card" style="display:none;">
+          <h3>Create Node</h3>
+          <form id="create-node-form">
+            <div class="form-group">
+              <label>Name</label>
+              <input type="text" name="name" required />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>FQDN</label>
+                <input type="text" name="fqdn" placeholder="node.example.com" required />
+              </div>
+              <div class="form-group">
+                <label>Scheme</label>
+                <select name="scheme">
+                  <option value="https">HTTPS</option>
+                  <option value="http">HTTP</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Memory (MB)</label>
+                <input type="number" name="memory" value="8192" required />
+              </div>
+              <div class="form-group">
+                <label>Disk (MB)</label>
+                <input type="number" name="disk" value="51200" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Daemon Port</label>
+                <input type="number" name="daemon_port" value="8080" required />
+              </div>
+              <div class="form-group">
+                <label>SFTP Port</label>
+                <input type="number" name="daemon_sftp_port" value="2022" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <select name="location_id" id="node-location"></select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Create</button>
+              <button type="button" class="btn btn-ghost" id="cancel-node">Cancel</button>
+            </div>
+          </form>
+        </div>
+        
+        <div class="admin-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>FQDN</th>
+                <th>Memory</th>
+                <th>Disk</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.nodes.length === 0 ? '<tr><td colspan="5" class="empty">No nodes</td></tr>' : ''}
+              ${data.nodes.map(node => `
+                <tr>
+                  <td>${escapeHtml(node.name)}</td>
+                  <td>${escapeHtml(node.fqdn)}</td>
+                  <td>${node.memory} MB</td>
+                  <td>${node.disk} MB</td>
+                  <td>
+                    <button class="btn btn-sm btn-ghost" onclick="editNode('${node.id}')">Edit</button>
+                    <button class="btn btn-sm btn-ghost" onclick="showNodeConfig('${node.id}')">Config</button>
+                    <button class="btn btn-sm btn-ghost" onclick="showDeployCommand('${node.id}')">Deploy</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteNode('${node.id}')">Delete</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    
+    const locRes = await fetch('/api/admin/locations');
+    const locData = await locRes.json();
+    document.getElementById('node-location').innerHTML = locData.locations.map(l => 
+      `<option value="${l.id}">${escapeHtml(l.long)} (${escapeHtml(l.short)})</option>`
+    ).join('');
+    
+    document.getElementById('add-node-btn').onclick = () => {
+      document.getElementById('node-form').style.display = 'block';
+    };
+    
+    document.getElementById('cancel-node').onclick = () => {
+      document.getElementById('node-form').style.display = 'none';
+    };
+    
+    document.getElementById('create-node-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const node = Object.fromEntries(form);
+      
+      await fetch('/api/admin/nodes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, node })
+      });
+      
+      loadTab('nodes');
+    };
+  } catch (e) {
+    container.innerHTML = `<div class="error">Failed to load nodes</div>`;
+  }
+}
+
+window.editNode = async function(nodeId) {
+  const username = localStorage.getItem('username');
+  try {
+    const res = await fetch(`/api/admin/nodes?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    const node = data.nodes.find(n => n.id === nodeId);
+    if (!node) return alert('Node not found');
+    
+    const locRes = await fetch('/api/admin/locations');
+    const locData = await locRes.json();
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+      <div class="modal-content modal-large">
+        <h2>Edit Node</h2>
+        <form id="edit-node-form">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" value="${escapeHtml(node.name)}" required />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" name="description" value="${escapeHtml(node.description || '')}" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>FQDN</label>
+              <input type="text" name="fqdn" value="${escapeHtml(node.fqdn)}" required />
+            </div>
+            <div class="form-group">
+              <label>Scheme</label>
+              <select name="scheme">
+                <option value="https" ${node.scheme === 'https' ? 'selected' : ''}>HTTPS</option>
+                <option value="http" ${node.scheme === 'http' ? 'selected' : ''}>HTTP</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Memory (MB)</label>
+              <input type="number" name="memory" value="${node.memory}" required />
+            </div>
+            <div class="form-group">
+              <label>Disk (MB)</label>
+              <input type="number" name="disk" value="${node.disk}" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Daemon Port</label>
+              <input type="number" name="daemon_port" value="${node.daemon_port}" required />
+            </div>
+            <div class="form-group">
+              <label>SFTP Port</label>
+              <input type="number" name="daemon_sftp_port" value="${node.daemon_sftp_port}" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Upload Size (MB)</label>
+              <input type="number" name="upload_size" value="${node.upload_size || 100}" />
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <select name="location_id">
+                ${locData.locations.map(l => `<option value="${l.id}" ${l.id === node.location_id ? 'selected' : ''}>${escapeHtml(l.long)}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label><input type="checkbox" name="behind_proxy" ${node.behind_proxy ? 'checked' : ''} /> Behind Proxy</label>
+            </div>
+            <div class="form-group">
+              <label><input type="checkbox" name="maintenance_mode" ${node.maintenance_mode ? 'checked' : ''} /> Maintenance Mode</label>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    document.getElementById('edit-node-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const nodeData = Object.fromEntries(form);
+      nodeData.behind_proxy = form.get('behind_proxy') === 'on';
+      nodeData.maintenance_mode = form.get('maintenance_mode') === 'on';
+      
+      await fetch(`/api/admin/nodes/${nodeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, node: nodeData })
+      });
+      
+      modal.remove();
+      loadTab('nodes');
+    };
+  } catch (e) {
+    alert('Failed to load node: ' + e.message);
+  }
+};
+
+window.showDeployCommand = async function(nodeId) {
+  const username = localStorage.getItem('username');
+  try {
+    const res = await fetch(`/api/admin/nodes/${nodeId}/deploy?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+      <div class="modal-content">
+        <h2>Deploy Command</h2>
+        <p>Run this command on your node to configure Wings:</p>
+        <pre class="config-output" style="white-space:pre-wrap;word-break:break-all;">${escapeHtml(data.command)}</pre>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.modal').querySelector('.config-output').textContent);this.textContent='Copied!'">Copy</button>
+          <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Close</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } catch (e) {
+    alert('Failed to load deploy command: ' + e.message);
+  }
+};
+
+window.showNodeConfig = async function(nodeId) {
+  const username = localStorage.getItem('username');
+  try {
+    const res = await fetch(`/api/admin/nodes/${nodeId}/config?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+    
+    const yamlConfig = jsonToYaml(data.config);
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+      <div class="modal-content">
+        <h2>Wings Configuration</h2>
+        <p>Copy this configuration to <code>/etc/pterodactyl/config.yml</code> on your node:</p>
+        <pre class="config-output">${escapeHtml(yamlConfig)}</pre>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.modal').querySelector('.config-output').textContent);this.textContent='Copied!'">Copy</button>
+          <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Close</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } catch (e) {
+    alert('Failed to load config: ' + e.message);
+  }
+};
+
+function jsonToYaml(obj, indent = 0) {
+  let yaml = '';
+  const spaces = '  '.repeat(indent);
+  
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === null || value === undefined) {
+      yaml += `${spaces}${key}: null\n`;
+    } else if (typeof value === 'object' && !Array.isArray(value)) {
+      yaml += `${spaces}${key}:\n${jsonToYaml(value, indent + 1)}`;
+    } else if (Array.isArray(value)) {
+      yaml += `${spaces}${key}:\n`;
+      value.forEach(item => {
+        if (typeof item === 'object') {
+          yaml += `${spaces}  -\n${jsonToYaml(item, indent + 2)}`;
+        } else {
+          yaml += `${spaces}  - ${item}\n`;
+        }
+      });
+    } else if (typeof value === 'string') {
+      yaml += `${spaces}${key}: "${value}"\n`;
+    } else {
+      yaml += `${spaces}${key}: ${value}\n`;
+    }
+  }
+  return yaml;
+}
+
+window.deleteNode = async function(nodeId) {
+  if (!confirm('Are you sure? This cannot be undone.')) return;
+  const username = localStorage.getItem('username');
+  
+  try {
+    await fetch(`/api/admin/nodes/${nodeId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    loadTab('nodes');
+  } catch (e) {
+    alert('Failed to delete node');
+  }
+};
+
+async function loadServersTab(container, username) {
+  try {
+    const res = await fetch(`/api/admin/servers?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    container.innerHTML = `
+      <div class="admin-section">
+        <div class="section-header">
+          <h2>Servers</h2>
+          <button class="btn btn-primary" id="add-server-btn"><span class="material-icons-outlined">add</span> Create Server</button>
+        </div>
+        
+        <div id="server-form" class="card form-card" style="display:none;">
+          <h3>Create Server</h3>
+          <form id="create-server-form">
+            <div class="form-group">
+              <label>Name</label>
+              <input type="text" name="name" required />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Owner (User ID)</label>
+                <select name="user_id" id="server-user"></select>
+              </div>
+              <div class="form-group">
+                <label>Node</label>
+                <select name="node_id" id="server-node"></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Egg</label>
+              <select name="egg_id" id="server-egg"></select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Memory (MB)</label>
+                <input type="number" name="memory" value="1024" required />
+              </div>
+              <div class="form-group">
+                <label>Disk (MB)</label>
+                <input type="number" name="disk" value="5120" required />
+              </div>
+              <div class="form-group">
+                <label>CPU (%)</label>
+                <input type="number" name="cpu" value="100" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Allocation IP</label>
+                <input type="text" name="allocation_ip" value="0.0.0.0" />
+              </div>
+              <div class="form-group">
+                <label>Allocation Port</label>
+                <input type="number" name="allocation_port" value="25565" />
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Create</button>
+              <button type="button" class="btn btn-ghost" id="cancel-server">Cancel</button>
+            </div>
+          </form>
+        </div>
+        
+        <div class="admin-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Owner</th>
+                <th>Resources</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.servers.length === 0 ? '<tr><td colspan="5" class="empty">No servers</td></tr>' : ''}
+              ${data.servers.map(s => `
+                <tr>
+                  <td>${escapeHtml(s.name)}</td>
+                  <td>${s.user_id?.substring(0, 8) || '--'}</td>
+                  <td>${s.limits?.memory || 0}MB / ${s.limits?.disk || 0}MB / ${s.limits?.cpu || 0}%</td>
+                  <td><span class="status-badge status-${s.status}">${s.status}</span></td>
+                  <td>
+                    <button class="btn btn-sm btn-danger" onclick="deleteServer('${s.id}')">Delete</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    
+    const usersRes = await fetch(`/api/admin/users?username=${encodeURIComponent(username)}`);
+    const usersData = await usersRes.json();
+    document.getElementById('server-user').innerHTML = usersData.users.map(u => 
+      `<option value="${u.id}">${escapeHtml(u.username)}</option>`
+    ).join('');
+    
+    const nodesRes = await fetch(`/api/admin/nodes?username=${encodeURIComponent(username)}`);
+    const nodesData = await nodesRes.json();
+    document.getElementById('server-node').innerHTML = nodesData.nodes.map(n => 
+      `<option value="${n.id}">${escapeHtml(n.name)}</option>`
+    ).join('');
+    
+    const eggsRes = await fetch('/api/admin/eggs');
+    const eggsData = await eggsRes.json();
+    document.getElementById('server-egg').innerHTML = eggsData.eggs.map(e => 
+      `<option value="${e.id}">${escapeHtml(e.name)}</option>`
+    ).join('');
+    
+    document.getElementById('add-server-btn').onclick = () => {
+      document.getElementById('server-form').style.display = 'block';
+    };
+    
+    document.getElementById('cancel-server').onclick = () => {
+      document.getElementById('server-form').style.display = 'none';
+    };
+    
+    document.getElementById('create-server-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const server = Object.fromEntries(form);
+      
+      await fetch('/api/admin/servers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, server })
+      });
+      
+      loadTab('servers');
+    };
+  } catch (e) {
+    container.innerHTML = `<div class="error">Failed to load servers</div>`;
+  }
+}
+
+window.deleteServer = async function(serverId) {
+  if (!confirm('Are you sure? This will delete the server from the node.')) return;
+  const username = localStorage.getItem('username');
+  
+  try {
+    await fetch(`/api/admin/servers/${serverId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    loadTab('servers');
+  } catch (e) {
+    alert('Failed to delete server');
+  }
+};
+
+async function loadUsers(container, username) {
+  try {
+    const res = await fetch(`/api/admin/users?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    container.innerHTML = `
+      <div class="admin-section">
+        <div class="section-header">
+          <h2>Users</h2>
+        </div>
+        
+        <div class="admin-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Display Name</th>
+                <th>Admin</th>
+                <th>Limits</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.users.map(u => `
+                <tr>
+                  <td>${escapeHtml(u.username)}</td>
+                  <td>${escapeHtml(u.displayName || u.username)}</td>
+                  <td>${u.isAdmin ? '✓' : '✗'}</td>
+                  <td>${u.limits ? `${u.limits.servers} servers, ${u.limits.memory}MB` : 'Default'}</td>
+                  <td>
+                    <button class="btn btn-sm btn-ghost" onclick="toggleAdmin('${u.id}', ${!u.isAdmin})">${u.isAdmin ? 'Remove Admin' : 'Make Admin'}</button>
+                    <button class="btn btn-sm btn-ghost" onclick="editUserLimits('${u.id}')">Edit Limits</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    container.innerHTML = `<div class="error">Failed to load users</div>`;
+  }
+}
+
+window.toggleAdmin = async function(userId, makeAdmin) {
+  const username = localStorage.getItem('username');
+  
+  await fetch(`/api/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, updates: { isAdmin: makeAdmin } })
+  });
+  
+  loadTab('users');
+};
+
+window.editUserLimits = async function(userId) {
+  const limits = {
+    servers: parseInt(prompt('Max servers:', '2')) || 2,
+    memory: parseInt(prompt('Max memory (MB):', '2048')) || 2048,
+    disk: parseInt(prompt('Max disk (MB):', '10240')) || 10240,
+    cpu: parseInt(prompt('Max CPU (%):', '200')) || 200
+  };
+  
+  const username = localStorage.getItem('username');
+  
+  await fetch(`/api/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, updates: { limits } })
+  });
+  
+  loadTab('users');
+};
+
+async function loadNests(container, username) {
+  try {
+    const res = await fetch('/api/admin/nests');
+    const data = await res.json();
+    
+    container.innerHTML = `
+      <div class="admin-section">
+        <div class="section-header">
+          <h2>Nests & Eggs</h2>
+          <div>
+            <button class="btn btn-ghost" id="add-nest-btn"><span class="material-icons-outlined">add</span> Add Nest</button>
+            <button class="btn btn-primary" id="import-egg-btn"><span class="material-icons-outlined">upload</span> Import Egg</button>
+          </div>
+        </div>
+        
+        <div id="import-egg-form" class="card form-card" style="display:none;">
+          <h3>Import Pterodactyl Egg</h3>
+          <form id="egg-import-form">
+            <div class="form-group">
+              <label>Egg JSON</label>
+              <textarea name="eggJson" rows="10" placeholder="Paste egg JSON here..."></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Import</button>
+              <button type="button" class="btn btn-ghost" id="cancel-import">Cancel</button>
+            </div>
+          </form>
+        </div>
+        
+        <div class="nests-grid">
+          ${data.nests.map(nest => `
+            <div class="nest-card card">
+              <h3>${escapeHtml(nest.name)}</h3>
+              <p>${escapeHtml(nest.description)}</p>
+              <div class="eggs-list">
+                <h4>Eggs (${nest.eggs?.length || 0})</h4>
+                ${(nest.eggs || []).map(egg => `
+                  <div class="egg-item">
+                    <span class="egg-name">${escapeHtml(egg.name)}</span>
+                    <span class="egg-image">${escapeHtml(egg.docker_image?.split('/').pop() || '')}</span>
+                  </div>
+                `).join('') || '<div class="empty">No eggs</div>'}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('add-nest-btn').onclick = async () => {
+      const name = prompt('Nest name:');
+      if (!name) return;
+      const description = prompt('Description:') || '';
+      
+      await fetch('/api/admin/nests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, nest: { name, description } })
+      });
+      
+      loadTab('nests');
+    };
+    
+    document.getElementById('import-egg-btn').onclick = () => {
+      document.getElementById('import-egg-form').style.display = 'block';
+    };
+    
+    document.getElementById('cancel-import').onclick = () => {
+      document.getElementById('import-egg-form').style.display = 'none';
+    };
+    
+    document.getElementById('egg-import-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      
+      const res = await fetch('/api/admin/eggs/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, eggJson: form.get('eggJson') })
+      });
+      
+      if (res.ok) {
+        loadTab('nests');
+      } else {
+        alert('Failed to import egg');
+      }
+    };
+  } catch (e) {
+    container.innerHTML = `<div class="error">Failed to load nests</div>`;
+  }
+}
+
+async function loadLocations(container, username) {
+  try {
+    const res = await fetch('/api/admin/locations');
+    const data = await res.json();
+    
+    container.innerHTML = `
+      <div class="admin-section">
+        <div class="section-header">
+          <h2>Locations</h2>
+          <button class="btn btn-primary" id="add-location-btn"><span class="material-icons-outlined">add</span> Add Location</button>
+        </div>
+        
+        <div class="admin-table">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Short</th>
+                <th>Long</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.locations.map(l => `
+                <tr>
+                  <td>${l.id}</td>
+                  <td>${escapeHtml(l.short)}</td>
+                  <td>${escapeHtml(l.long)}</td>
+                  <td>
+                    <button class="btn btn-sm btn-danger" onclick="deleteLocation('${l.id}')">Delete</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('add-location-btn').onclick = async () => {
+      const short = prompt('Short code (e.g., us, eu):');
+      if (!short) return;
+      const long = prompt('Full name:') || short;
+      
+      await fetch('/api/admin/locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, location: { short, long } })
+      });
+      
+      loadTab('locations');
+    };
+  } catch (e) {
+    container.innerHTML = `<div class="error">Failed to load locations</div>`;
+  }
+}
+
+window.deleteLocation = async function(locationId) {
+  if (!confirm('Delete this location?')) return;
+  const username = localStorage.getItem('username');
+  
+  await fetch(`/api/admin/locations/${locationId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username })
+  });
+  
+  loadTab('locations');
+};
+
+function cleanupAdmin() {}
+
+const routes = {
+  '/': {
+    redirect: '/auth'
+  },
+  '/auth': {
+    render: renderAuth,
+    options: {
+      title: 'Sign In',
+      sidebar: false
+    }
+  },
+  '/dashboard': {
+    render: renderDashboard,
+    options: {
+      title: 'Dashboard',
+      auth: true,
+      sidebar: true
+    }
+  },
+  '/servers': {
+    render: renderServers,
+    cleanup: cleanupServers,
+    options: {
+      title: 'Servers',
+      auth: true,
+      sidebar: true
+    }
+  },
+  '/status': {
+    render: renderStatus,
+    cleanup: cleanupStatus,
+    options: {
+      title: 'Status',
+      sidebar: false
+    }
+  },
+  '/admin': {
+    render: renderAdmin,
+    cleanup: cleanupAdmin,
+    options: {
+      title: 'Admin',
+      auth: true,
+      sidebar: true
+    }
+  },
+  '/profile': {
+    render: renderProfile,
+    options: {
+      title: 'Profile',
+      auth: true,
+      sidebar: true
+    }
+  },
+  '/settings': {
+    render: renderSettings,
+    options: {
+      title: 'Settings',
+      auth: true,
+      sidebar: true
+    }
+  },
+  '/404': {
+    render: renderNotFound,
+    options: {
+      title: 'Not Found',
+      sidebar: false
+    }
+  }
+};
+
+function getUserRoute(username) {
+  return {
+    render: () => renderUser(username),
+    options: {
+      title: `${username}'s Profile`,
+      sidebar: true
+    }
+  };
+}
+
+function getServerRoute(serverId) {
+  return {
+    render: () => renderServerConsole(serverId),
+    cleanup: cleanupServerConsole,
+    options: {
+      title: 'Console',
+      auth: true,
+      sidebar: true
+    }
+  };
+}
+
+function renderNav() {
+  const nav = document.createElement('nav');
+  nav.id = 'navbar';
+  nav.className = 'navbar';
+  
+  const displayName = localStorage.getItem('displayName') || localStorage.getItem('username') || 'User';
+  const isLoggedIn = !!localStorage.getItem('loggedIn');
+  
+  nav.innerHTML = `
+    <div class="nav-content">
+      <div class="nav-left">
+        <button class="nav-toggle" id="sidebar-toggle">
+          <span class="material-icons-outlined">menu</span>
+        </button>
+        <a href="/dashboard" class="nav-brand">
+          <span class="material-icons-outlined">bolt</span>
+          <span class="brand-text">Sodium</span>
+        </a>
+      </div>
+      
+      <div class="nav-right">
+        ${isLoggedIn ? `
+          <div class="user-menu" id="user-menu">
+            <button class="user-menu-btn" id="user-menu-btn">
+              <div class="user-avatar">
+                <span class="material-icons-outlined">person</span>
+              </div>
+              <span class="user-display-name">${displayName}</span>
+              <span class="material-icons-outlined dropdown-icon">expand_more</span>
+            </button>
+            <div class="user-dropdown" id="user-dropdown">
+              <a href="/profile" class="dropdown-item">
+                <span class="material-icons-outlined">person</span>
+                <span>Profile</span>
+              </a>
+              <a href="/settings" class="dropdown-item">
+                <span class="material-icons-outlined">settings</span>
+                <span>Settings</span>
+              </a>
+              <hr class="dropdown-divider">
+              <button class="dropdown-item logout" id="nav-logout">
+                <span class="material-icons-outlined">logout</span>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+  
+  setTimeout(() => {
+    const toggle = nav.querySelector('#sidebar-toggle');
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+          sidebar.classList.toggle('open');
+        }
+      });
+    }
+    
+    const userMenuBtn = nav.querySelector('#user-menu-btn');
+    const userDropdown = nav.querySelector('#user-dropdown');
+    
+    if (userMenuBtn && userDropdown) {
+      userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle('active');
+      });
+      
+      document.addEventListener('click', () => {
+        userDropdown.classList.remove('active');
+      });
+    }
+    
+    const logoutBtn = nav.querySelector('#nav-logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('loggedIn');
+        localStorage.removeItem('username');
+        localStorage.removeItem('password');
+        localStorage.removeItem('displayName');
+        localStorage.removeItem('userId');
+        navigate('/auth');
+      });
+    }
+  }, 0);
+  
+  return nav;
+}
+
+function renderSidebar() {
+  const sidebar = document.createElement('aside');
+  sidebar.id = 'sidebar';
+  sidebar.className = 'sidebar';
+  
+  const currentPath = window.location.pathname;
+  
+  const baseItems = [
+    { path: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
+    { path: '/servers', icon: 'dns', label: 'Servers' },
+    { path: '/status', icon: 'monitor_heart', label: 'Status' },
+    { path: '/profile', icon: 'person', label: 'Profile' },
+    { path: '/settings', icon: 'settings', label: 'Settings' }
+  ];
+  
+  sidebar.innerHTML = `
+    <div class="sidebar-header">
+      <a href="/dashboard" class="sidebar-brand">
+        <span class="material-icons-outlined">bolt</span>
+        <span class="brand-text">Sodium</span>
+      </a>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <ul class="nav-list" id="nav-list">
+        ${baseItems.map(item => `
+          <li class="nav-item">
+            <a href="${item.path}" class="nav-link ${currentPath === item.path ? 'active' : ''}">
+              <span class="material-icons-outlined">${item.icon}</span>
+              <span class="nav-text">${item.label}</span>
+            </a>
+          </li>
+        `).join('')}
+      </ul>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <div class="footer-content">
+        <span class="version">v1.0.0</span>
+      </div>
+    </div>
+  `;
+  
+  checkAdminStatus(sidebar, currentPath);
+  
+  setTimeout(() => {
+    const closeOnMobile = () => {
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove('open');
+      }
+    };
+    
+    sidebar.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', closeOnMobile);
+    });
+  }, 0);
+  
+  return sidebar;
+}
+
+async function checkAdminStatus(sidebar, currentPath) {
+  const username = localStorage.getItem('username');
+  const password = localStorage.getItem('password');
+  
+  if (!username || !password) return;
+  
+  try {
+    const res = await fetch(`/api/auth/me?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+    const data = await res.json();
+    
+    if (data.user?.isAdmin) {
+      const navList = sidebar.querySelector('#nav-list');
+      const settingsItem = navList.querySelector('a[href="/settings"]')?.closest('.nav-item');
+      
+      if (settingsItem && !navList.querySelector('a[href="/admin"]')) {
+        const adminItem = document.createElement('li');
+        adminItem.className = 'nav-item';
+        adminItem.innerHTML = `
+          <a href="/admin" class="nav-link ${currentPath === '/admin' ? 'active' : ''}">
+            <span class="material-icons-outlined">admin_panel_settings</span>
+            <span class="nav-text">Admin</span>
+          </a>
+        `;
+        navList.insertBefore(adminItem, settingsItem);
+      }
+    }
+  } catch (e) {
+    console.error('Failed to check admin status:', e);
+  }
+}
+
+let mounted = false;
+let currentCleanup = null;
+
+function clearMain() {
+  const existing = document.getElementById('app');
+  if (existing) existing.innerHTML = '';
+}
+
+function mountShell(withSidebar = false) {
+  if (!mounted) {
+    document.body.innerHTML = '';
+    
+    const wrapper = document.createElement('div');
+    wrapper.id = 'wrapper';
+    wrapper.className = withSidebar ? 'with-sidebar' : '';
+    
+    if (withSidebar) {
+      wrapper.appendChild(renderSidebar());
+    }
+    
+    const contentArea = document.createElement('div');
+    contentArea.id = 'content-area';
+    
+    contentArea.appendChild(renderNav());
+    
+    const main = document.createElement('main');
+    main.id = 'app';
+    contentArea.appendChild(main);
+    
+    wrapper.appendChild(contentArea);
+    document.body.appendChild(wrapper);
+    
+    document.body.addEventListener('click', onBodyClick);
+    mounted = true;
+  } else {
+    const wrapper = document.getElementById('wrapper');
+    if (wrapper) {
+      wrapper.className = withSidebar ? 'with-sidebar' : '';
+      
+      const existingSidebar = document.getElementById('sidebar');
+      if (withSidebar && !existingSidebar) {
+        wrapper.insertBefore(renderSidebar(), wrapper.firstChild);
+      } else if (!withSidebar && existingSidebar) {
+        existingSidebar.remove();
+      }
+    }
+  }
+}
+
+function onBodyClick(e) {
+  if (e.defaultPrevented) return;
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  
+  let a = e.target;
+  while (a && a.nodeName !== 'A') a = a.parentElement;
+  if (!a) return;
+  
+  const href = a.getAttribute('href');
+  if (!href || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+  
+  e.preventDefault();
+  navigate(href);
+}
+
+function navigate(path) {
+  if (!path.startsWith('/')) {
+    const base = window.location.pathname.replace(/\/+$/, '');
+    path = base + '/' + path;
+  }
+  window.history.pushState({}, '', path);
+  router();
+}
+
+window.router = {
+  navigateTo: navigate
+};
+
+window.addEventListener('popstate', () => {
+  router();
+});
+
+function router() {
+  const path = window.location.pathname;
+  let route = routes[path];
+  
+  if (!route && path.startsWith('/u/')) {
+    const username = path.split('/')[2];
+    if (username && /^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      route = getUserRoute(username);
+    }
+  }
+  
+  if (!route && path.startsWith('/server/')) {
+    const serverId = path.split('/')[2];
+    if (serverId) {
+      route = getServerRoute(serverId);
+    }
+  }
+  
+  if (!route) {
+    route = routes['/404'];
+  }
+  
+  const isAuthenticated = !!localStorage.getItem('loggedIn');
+  
+  if (route.redirect) {
+    window.history.replaceState({}, '', route.redirect);
+    return router();
+  }
+  
+  if (route.options?.auth && !isAuthenticated) {
+    window.history.replaceState({}, '', '/auth');
+    return router();
+  }
+  
+  if (isAuthenticated && path === '/auth') {
+    window.history.replaceState({}, '', '/dashboard');
+    return router();
+  }
+  
+  if (isAuthenticated && path === '/') {
+    window.history.replaceState({}, '', '/dashboard');
+    return router();
+  }
+  
+  if (!isAuthenticated && path === '/') {
+    window.history.replaceState({}, '', '/auth');
+    return router();
+  }
+  
+  document.title = 'Sodium - ' + (route.options?.title || 'App');
+  
+  const appEl = document.getElementById('app');
+  if (appEl) appEl.classList.add('fade-out');
+  
+  setTimeout(() => {
+    if (currentCleanup) {
+      currentCleanup();
+      currentCleanup = null;
+    }
+    
+    mountShell(route.options?.sidebar !== false && isAuthenticated);
+    clearMain();
+    
+    const existingSidebar = document.getElementById('sidebar');
+    if (existingSidebar && route.options?.sidebar !== false && isAuthenticated) {
+      existingSidebar.replaceWith(renderSidebar());
+    }
+    
+    route.render();
+    currentCleanup = route.cleanup || null;
+    
+    const newAppEl = document.getElementById('app');
+    if (newAppEl) {
+      newAppEl.classList.remove('fade-out');
+      newAppEl.classList.add('fade-in');
+    }
+  }, 150);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const loading = document.getElementById('loading');
+  
+  setTimeout(() => {
+    loading.classList.add('hidden');
+    loading.addEventListener('transitionend', () => {
+      loading.remove();
+    });
+    router();
+  }, 300);
+});
