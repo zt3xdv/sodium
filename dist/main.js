@@ -1991,10 +1991,13 @@ async function editFile(serverId, path) {
           </div>
         </div>
         <div class="editor-content">
-          <textarea id="file-content" spellcheck="false">${escapeHtml(data.content || '')}</textarea>
+          <textarea id="file-content" spellcheck="false"></textarea>
         </div>
       </div>
     `;
+    
+    // Set content via JS to avoid HTML escaping issues
+    document.getElementById('file-content').value = data.content || '';
     
     document.getElementById('btn-back').onclick = () => {
       isEditing = false;

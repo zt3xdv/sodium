@@ -140,17 +140,25 @@ function generateToken() {
   return token;
 }
 
-async function wingsRequest(node, method, endpoint, data = null) {
+async function wingsRequest(node, method, endpoint, data = null, rawContent = false) {
   const url = `${node.scheme}://${node.fqdn}:${node.daemon_port}${endpoint}`;
   console.log(`[WINGS OUT] ${method} ${url}`);
   
   const headers = {
     'Authorization': `Bearer ${node.daemon_token}`,
-    'Content-Type': 'application/json',
     'Accept': 'application/json'
   };
+  
+  if (rawContent) {
+    headers['Content-Type'] = 'text/plain';
+  } else {
+    headers['Content-Type'] = 'application/json';
+  }
+  
   const options = { method, headers };
-  if (data) options.body = JSON.stringify(data);
+  if (data !== null) {
+    options.body = rawContent ? data : JSON.stringify(data);
+  }
   
   try {
     const response = await fetch(url, options);
