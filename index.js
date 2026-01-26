@@ -180,8 +180,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/remote')) {
-    console.log(`[REMOTE] ${req.method} ${req.path}`);
+  if (req.path.startsWith('/api')) {
+    console.log(`[API] ${req.method} ${req.path}`);
   }
   next();
 });
