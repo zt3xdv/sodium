@@ -1,4 +1,5 @@
 import './styles/main.scss';
+import '@xterm/xterm/css/xterm.css';
 import { router } from './router.js';
 
 window.addEventListener('DOMContentLoaded', () => {

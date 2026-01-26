@@ -234,27 +234,36 @@
   min-height: 400px;
 }
 
-.console-output {
+.console-terminal {
   flex: 1;
   background: #0d1117;
   border-radius: var(--radius-sm);
-  padding: 1rem;
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  overflow-y: auto;
-  overflow-x: auto;
-  color: #c9d1d9;
-}
-
-.console-placeholder {
-  color: var(--text-muted);
-}
-
-.console-line {
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  padding: 0.5rem;
+  overflow: hidden;
+  
+  .xterm {
+    height: 100%;
+    padding: 0.5rem;
+  }
+  
+  .xterm-viewport {
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+  }
 }
 
 .console-input {
@@ -493,9 +502,12 @@
     padding: 0.75rem;
   }
   
-  .console-output {
-    font-size: 0.75rem;
-    padding: 0.75rem;
+  .console-terminal {
+    padding: 0.25rem;
+    
+    .xterm {
+      padding: 0.25rem;
+    }
   }
   
   .console-input {
@@ -596,7 +608,4 @@
     font-size: 0.6875rem;
   }
   
-  .console-output {
-    font-size: 0.6875rem;
-  }
 }

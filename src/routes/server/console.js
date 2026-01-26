@@ -1,4 +1,11 @@
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+
 let consoleSocket = null;
+let terminal = null;
+let fitAddon = null;
+let resizeObserver = null;
 let statusCallback = null;
 let resourcesCallback = null;
 let serverIdGetter = null;
@@ -13,9 +20,7 @@ export function renderConsoleTab() {
   return `
     <div class="console-tab">
       <div class="card console-card">
-        <div class="console-output" id="console-output">
-          <div class="console-placeholder">Connecting to server...</div>
-        </div>
+        <div class="console-terminal" id="console-terminal"></div>
         <div class="console-input">
           <input type="text" id="command-input" placeholder="Type a command..." />
           <button class="btn btn-primary" id="send-command">
@@ -28,6 +33,7 @@ export function renderConsoleTab() {
 }
 
 export function initConsoleTab(serverId) {
+  initTerminal();
   connectWebSocket(serverId);
   
   document.getElementById('send-command').onclick = () => sendCommand(serverId);
@@ -36,10 +42,74 @@ export function initConsoleTab(serverId) {
   };
 }
 
+function initTerminal() {
+  const container = document.getElementById('console-terminal');
+  if (!container) return;
+  
+  terminal = new Terminal({
+    theme: {
+      background: '#0d1117',
+      foreground: '#c9d1d9',
+      cursor: '#58a6ff',
+      cursorAccent: '#0d1117',
+      selectionBackground: '#264f78',
+      black: '#484f58',
+      red: '#ff7b72',
+      green: '#3fb950',
+      yellow: '#d29922',
+      blue: '#58a6ff',
+      magenta: '#bc8cff',
+      cyan: '#39c5cf',
+      white: '#b1bac4',
+      brightBlack: '#6e7681',
+      brightRed: '#ffa198',
+      brightGreen: '#56d364',
+      brightYellow: '#e3b341',
+      brightBlue: '#79c0ff',
+      brightMagenta: '#d2a8ff',
+      brightCyan: '#56d4dd',
+      brightWhite: '#f0f6fc'
+    },
+    fontFamily: '"JetBrains Mono", "Fira Code", "Monaco", "Menlo", monospace',
+    fontSize: 13,
+    lineHeight: 1.2,
+    cursorBlink: true,
+    cursorStyle: 'bar',
+    scrollback: 5000,
+    convertEol: true,
+    disableStdin: true
+  });
+  
+  fitAddon = new FitAddon();
+  terminal.loadAddon(fitAddon);
+  terminal.loadAddon(new WebLinksAddon());
+  
+  terminal.open(container);
+  
+  setTimeout(() => {
+    fitAddon.fit();
+  }, 0);
+  
+  resizeObserver = new ResizeObserver(() => {
+    if (fitAddon) {
+      fitAddon.fit();
+    }
+  });
+  resizeObserver.observe(container);
+  
+  window.addEventListener('resize', handleResize);
+  
+  terminal.writeln('\x1b[90m[SYSTEM] Connecting to console...\x1b[0m');
+}
+
+function handleResize() {
+  if (fitAddon) {
+    fitAddon.fit();
+  }
+}
+
 async function connectWebSocket(serverId) {
   const username = localStorage.getItem('username');
-  
-  appendConsole('[SYSTEM] Connecting to console...');
   
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${wsProtocol}//${window.location.host}/ws/console?server=${serverId}&username=${encodeURIComponent(username)}`;
@@ -47,7 +117,7 @@ async function connectWebSocket(serverId) {
   consoleSocket = new WebSocket(wsUrl);
   
   consoleSocket.onopen = () => {
-    appendConsole('[SYSTEM] Connected to console');
+    writeSystem('Connected to console');
   };
   
   consoleSocket.onmessage = (event) => {
@@ -61,14 +131,14 @@ async function connectWebSocket(serverId) {
   
   consoleSocket.onclose = () => {
     if (serverIdGetter && serverIdGetter() === serverId) {
-      appendConsole('[SYSTEM] Connection closed, reconnecting...');
+      writeSystem('Connection closed, reconnecting...');
       setTimeout(() => connectWebSocket(serverId), 5000);
     }
   };
   
   consoleSocket.onerror = (error) => {
     console.error('WebSocket error:', error);
-    appendConsole('[ERROR] WebSocket connection failed');
+    writeError('WebSocket connection failed');
   };
 }
 
@@ -77,22 +147,19 @@ function handleSocketMessage(message) {
   
   switch (event) {
     case 'auth success':
-      appendConsole('[SYSTEM] Authenticated successfully');
+      writeSystem('Authenticated successfully');
       consoleSocket.send(JSON.stringify({ event: 'send logs', args: [null] }));
       consoleSocket.send(JSON.stringify({ event: 'send stats', args: [null] }));
       break;
       
     case 'token expiring':
     case 'token expired':
-      appendConsole('[SYSTEM] Token expired, reconnecting...');
+      writeSystem('Token expired, reconnecting...');
       break;
       
     case 'console output':
-      if (args && args[0]) {
-        const lines = args[0].split('\n');
-        lines.forEach(line => {
-          if (line.trim()) appendConsole(line);
-        });
+      if (args && args[0] && terminal) {
+        terminal.write(args[0]);
       }
       break;
       
@@ -109,22 +176,28 @@ function handleSocketMessage(message) {
       break;
       
     case 'install output':
-      if (args && args[0]) {
-        appendConsole(`[INSTALL] ${args[0]}`);
+      if (args && args[0] && terminal) {
+        terminal.writeln(`\x1b[33m[INSTALL]\x1b[0m ${args[0]}`);
       }
       break;
       
     case 'install started':
-      appendConsole('[SYSTEM] Installation started...');
+      writeSystem('Installation started...');
       break;
       
     case 'install completed':
-      appendConsole('[SYSTEM] Installation completed');
+      writeSystem('Installation completed');
       break;
       
     case 'daemon error':
       if (args && args[0]) {
-        appendConsole(`[DAEMON ERROR] ${args[0]}`);
+        writeError(`DAEMON: ${args[0]}`);
+      }
+      break;
+      
+    case 'daemon message':
+      if (args && args[0]) {
+        writeSystem(`DAEMON: ${args[0]}`);
       }
       break;
       
@@ -133,12 +206,26 @@ function handleSocketMessage(message) {
   }
 }
 
+function writeSystem(text) {
+  if (terminal) {
+    terminal.writeln(`\x1b[90m[SYSTEM] ${text}\x1b[0m`);
+  }
+}
+
+function writeError(text) {
+  if (terminal) {
+    terminal.writeln(`\x1b[31m[ERROR] ${text}\x1b[0m`);
+  }
+}
+
 async function sendCommand(serverId) {
   const input = document.getElementById('command-input');
   const command = input.value.trim();
   if (!command) return;
   
-  appendConsole(`> ${command}`);
+  if (terminal) {
+    terminal.writeln(`\x1b[36m> ${command}\x1b[0m`);
+  }
   input.value = '';
   
   if (consoleSocket && consoleSocket.readyState === WebSocket.OPEN) {
@@ -157,29 +244,31 @@ async function sendCommand(serverId) {
       
       if (!res.ok) {
         const data = await res.json();
-        appendConsole(`[ERROR] ${data.error}`);
+        writeError(data.error);
       }
     } catch (e) {
-      appendConsole(`[ERROR] Failed to send command`);
+      writeError('Failed to send command');
     }
   }
 }
 
-function appendConsole(text) {
-  const output = document.getElementById('console-output');
-  if (!output) return;
-  
-  const placeholder = output.querySelector('.console-placeholder');
-  if (placeholder) placeholder.remove();
-  
-  const line = document.createElement('div');
-  line.className = 'console-line';
-  line.textContent = text;
-  output.appendChild(line);
-  output.scrollTop = output.scrollHeight;
-}
-
 export function cleanupConsoleTab() {
+  window.removeEventListener('resize', handleResize);
+  
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
+  
+  if (terminal) {
+    terminal.dispose();
+    terminal = null;
+  }
+  
+  if (fitAddon) {
+    fitAddon = null;
+  }
+  
   if (consoleSocket) {
     consoleSocket.close();
     consoleSocket = null;
