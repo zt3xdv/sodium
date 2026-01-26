@@ -2383,9 +2383,20 @@ input, textarea, select {
 .admin-page {
   max-width: 1400px;
   margin: 0 auto;
+  padding: 0 16px;
+}
+@media (max-width: 480px) {
+  .admin-page {
+    padding: 0 12px;
+  }
 }
 .admin-page .page-header {
   margin-bottom: 24px;
+}
+@media (max-width: 480px) {
+  .admin-page .page-header {
+    margin-bottom: 16px;
+  }
 }
 .admin-page .page-header h1 {
   font-size: 28px;
@@ -2394,6 +2405,11 @@ input, textarea, select {
 @media (max-width: 768px) {
   .admin-page .page-header h1 {
     font-size: 22px;
+  }
+}
+@media (max-width: 480px) {
+  .admin-page .page-header h1 {
+    font-size: 20px;
   }
 }
 .admin-page .admin-tabs {
@@ -2556,6 +2572,11 @@ input, textarea, select {
     padding: 0;
   }
 }
+@media (max-width: 768px) {
+  .admin-page .admin-table {
+    display: none;
+  }
+}
 .admin-page .admin-table table {
   width: 100%;
   min-width: 600px;
@@ -2570,12 +2591,6 @@ input, textarea, select {
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
-@media (max-width: 768px) {
-  .admin-page .admin-table table th, .admin-page .admin-table table td {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-}
 .admin-page .admin-table table th {
   background: var(--bg-tertiary);
   font-weight: 600;
@@ -2583,11 +2598,6 @@ input, textarea, select {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-@media (max-width: 768px) {
-  .admin-page .admin-table table th {
-    font-size: 11px;
-  }
 }
 .admin-page .admin-table table td {
   font-size: 14px;
@@ -2597,39 +2607,137 @@ input, textarea, select {
   color: var(--text-tertiary);
   padding: 40px;
 }
-@media (max-width: 480px) {
-  .admin-page .admin-table table td .btn-sm {
-    padding: 4px 8px;
-    font-size: 11px;
-  }
-}
 .admin-page .admin-table table tbody tr:last-child td {
   border-bottom: none;
 }
 .admin-page .admin-table table tbody tr:hover {
   background: var(--bg-tertiary);
 }
-.admin-page .admin-table .status-badge {
+.admin-page .admin-cards {
+  display: none;
+}
+@media (max-width: 768px) {
+  .admin-page .admin-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+@media (max-width: 480px) {
+  .admin-page .admin-cards {
+    gap: 12px;
+  }
+}
+.admin-page .admin-cards .admin-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+@media (max-width: 480px) {
+  .admin-page .admin-cards .admin-card {
+    padding: 12px;
+  }
+}
+.admin-page .admin-cards .admin-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.admin-page .admin-cards .admin-card .card-header h4 {
+  font-size: 16px;
+  font-weight: 600;
+}
+@media (max-width: 480px) {
+  .admin-page .admin-cards .admin-card .card-header h4 {
+    font-size: 15px;
+  }
+}
+.admin-page .admin-cards .admin-card .card-header .status {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.admin-page .admin-cards .admin-card .card-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (max-width: 360px) {
+  .admin-page .admin-cards .admin-card .card-info {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+.admin-page .admin-cards .admin-card .card-info .info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.admin-page .admin-cards .admin-card .card-info .info-row .label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.admin-page .admin-cards .admin-card .card-info .info-row .value {
+  font-size: 14px;
+  font-weight: 500;
+  word-break: break-all;
+}
+@media (max-width: 480px) {
+  .admin-page .admin-cards .admin-card .card-info .info-row .value {
+    font-size: 13px;
+  }
+}
+.admin-page .admin-cards .admin-card .card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.admin-page .admin-cards .admin-card .card-actions .btn {
+  flex: 1;
+  min-width: 70px;
+  justify-content: center;
+}
+@media (max-width: 480px) {
+  .admin-page .admin-cards .admin-card .card-actions .btn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+.admin-page .admin-cards .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-tertiary);
+}
+.admin-page .status-badge, .admin-page .status {
   display: inline-block;
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
+  background: rgba(100, 100, 100, 0.15);
+  color: var(--text-secondary);
 }
-.admin-page .admin-table .status-badge.status-running, .admin-page .admin-table .status-badge.status-online, .admin-page .admin-table .status-badge.status-offline {
+.admin-page .status-badge.status-running, .admin-page .status-badge.status-online, .admin-page .status.status-running, .admin-page .status.status-online {
   background: rgba(34, 197, 94, 0.15);
   color: var(--success);
 }
-.admin-page .admin-table .status-badge.status-offline, .admin-page .admin-table .status-badge.status-stopped {
+.admin-page .status-badge.status-offline, .admin-page .status-badge.status-stopped, .admin-page .status.status-offline, .admin-page .status.status-stopped {
   background: rgba(239, 68, 68, 0.15);
   color: var(--danger);
 }
-.admin-page .admin-table .status-badge.status-installing {
+.admin-page .status-badge.status-installing, .admin-page .status.status-installing {
   background: rgba(99, 102, 241, 0.15);
   color: var(--accent);
 }
-.admin-page .admin-table .status-badge.status-install_failed {
+.admin-page .status-badge.status-install_failed, .admin-page .status.status-install_failed {
   background: rgba(239, 68, 68, 0.15);
   color: var(--danger);
 }

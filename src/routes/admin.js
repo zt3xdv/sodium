@@ -178,6 +178,41 @@ async function loadNodes(container, username) {
             </tbody>
           </table>
         </div>
+        
+        <div class="admin-cards">
+          ${data.nodes.length === 0 ? '<div class="empty-state"><p>No nodes</p></div>' : ''}
+          ${data.nodes.map(node => `
+            <div class="admin-card">
+              <div class="card-header">
+                <h4>${escapeHtml(node.name)}</h4>
+              </div>
+              <div class="card-info">
+                <div class="info-row">
+                  <span class="label">FQDN</span>
+                  <span class="value">${escapeHtml(node.fqdn)}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Memory</span>
+                  <span class="value">${node.memory} MB</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Disk</span>
+                  <span class="value">${node.disk} MB</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Port</span>
+                  <span class="value">${node.daemon_port}</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button class="btn btn-sm btn-ghost" onclick="editNode('${node.id}')">Edit</button>
+                <button class="btn btn-sm btn-ghost" onclick="showNodeConfig('${node.id}')">Config</button>
+                <button class="btn btn-sm btn-ghost" onclick="showDeployCommand('${node.id}')">Deploy</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteNode('${node.id}')">Delete</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
       </div>
     `;
     
@@ -621,6 +656,31 @@ async function loadUsers(container, username) {
             </tbody>
           </table>
         </div>
+        
+        <div class="admin-cards">
+          ${data.users.map(u => `
+            <div class="admin-card">
+              <div class="card-header">
+                <h4>${escapeHtml(u.username)}</h4>
+                <span class="status ${u.isAdmin ? 'status-online' : ''}">${u.isAdmin ? 'Admin' : 'User'}</span>
+              </div>
+              <div class="card-info">
+                <div class="info-row">
+                  <span class="label">Display Name</span>
+                  <span class="value">${escapeHtml(u.displayName || u.username)}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Limits</span>
+                  <span class="value">${u.limits ? `${u.limits.servers} servers` : 'Default'}</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button class="btn btn-sm btn-ghost" onclick="toggleAdmin('${u.id}', ${!u.isAdmin})">${u.isAdmin ? 'Remove Admin' : 'Make Admin'}</button>
+                <button class="btn btn-sm btn-ghost" onclick="editUserLimits('${u.id}')">Limits</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
       </div>
     `;
   } catch (e) {
@@ -786,6 +846,30 @@ async function loadLocations(container, username) {
               `).join('')}
             </tbody>
           </table>
+        </div>
+        
+        <div class="admin-cards">
+          ${data.locations.length === 0 ? '<div class="empty-state"><p>No locations</p></div>' : ''}
+          ${data.locations.map(l => `
+            <div class="admin-card">
+              <div class="card-header">
+                <h4>${escapeHtml(l.short)}</h4>
+              </div>
+              <div class="card-info">
+                <div class="info-row">
+                  <span class="label">Full Name</span>
+                  <span class="value">${escapeHtml(l.long)}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">ID</span>
+                  <span class="value">${l.id}</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button class="btn btn-sm btn-danger" onclick="deleteLocation('${l.id}')">Delete</button>
+              </div>
+            </div>
+          `).join('')}
         </div>
       </div>
     `;
