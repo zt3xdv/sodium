@@ -9,10 +9,16 @@
   }
   
   .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 24px;
     
     @media (max-width: 480px) {
       margin-bottom: 16px;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
     }
     
     h1 {
@@ -346,5 +352,57 @@
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
+  }
+}
+
+.remaining-resources {
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  
+  span {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+}
+
+.modal-large {
+  max-width: 560px;
+  
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .form-group {
+    margin-bottom: 16px;
+    
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-size: 14px;
+      
+      &:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+    }
   }
 }

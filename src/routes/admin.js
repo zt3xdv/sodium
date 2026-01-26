@@ -247,6 +247,16 @@ async function loadNodes(container, username) {
               <label>Location</label>
               <select name="location_id" id="node-location"></select>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Port Range Start</label>
+                <input type="number" name="allocation_start" value="25565" required />
+              </div>
+              <div class="form-group">
+                <label>Port Range End</label>
+                <input type="number" name="allocation_end" value="25665" required />
+              </div>
+            </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">Create</button>
               <button type="button" class="btn btn-ghost" id="cancel-node">Cancel</button>
@@ -262,17 +272,19 @@ async function loadNodes(container, username) {
                 <th>FQDN</th>
                 <th>Memory</th>
                 <th>Disk</th>
+                <th>Ports</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              ${data.nodes.length === 0 ? '<tr><td colspan="5" class="empty">No nodes</td></tr>' : ''}
+              ${data.nodes.length === 0 ? '<tr><td colspan="6" class="empty">No nodes</td></tr>' : ''}
               ${data.nodes.map(node => `
                 <tr>
                   <td>${escapeHtml(node.name)}</td>
                   <td>${escapeHtml(node.fqdn)}</td>
                   <td>${node.memory} MB</td>
                   <td>${node.disk} MB</td>
+                  <td>${node.allocation_start || 25565}-${node.allocation_end || 25665}</td>
                   <td>
                     <button class="btn btn-sm btn-ghost" onclick="editNode('${node.id}')">Edit</button>
                     <button class="btn btn-sm btn-ghost" onclick="showNodeConfig('${node.id}')">Config</button>
@@ -308,6 +320,10 @@ async function loadNodes(container, username) {
                 <div class="info-row">
                   <span class="label">Port</span>
                   <span class="value">${node.daemon_port}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Ports</span>
+                  <span class="value">${node.allocation_start || 25565}-${node.allocation_end || 25665}</span>
                 </div>
               </div>
               <div class="card-actions">
@@ -435,6 +451,16 @@ window.editNode = async function(nodeId) {
             </div>
             <div class="form-group">
               <label><input type="checkbox" name="maintenance_mode" ${node.maintenance_mode ? 'checked' : ''} /> Maintenance Mode</label>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Port Range Start</label>
+              <input type="number" name="allocation_start" value="${node.allocation_start || 25565}" required />
+            </div>
+            <div class="form-group">
+              <label>Port Range End</label>
+              <input type="number" name="allocation_end" value="${node.allocation_end || 25665}" required />
             </div>
           </div>
           <div class="modal-actions">

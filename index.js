@@ -521,6 +521,8 @@ app.post('/api/admin/nodes', (req, res) => {
     upload_size: parseInt(node.upload_size) || 100,
     behind_proxy: node.behind_proxy || false,
     maintenance_mode: false,
+    allocation_start: parseInt(node.allocation_start) || 25565,
+    allocation_end: parseInt(node.allocation_end) || 25665,
     created_at: new Date().toISOString()
   };
   
@@ -625,7 +627,9 @@ app.put('/api/admin/nodes/:id', (req, res) => {
     daemon_sftp_port: parseInt(node.daemon_sftp_port) || current.daemon_sftp_port,
     upload_size: parseInt(node.upload_size) || current.upload_size,
     behind_proxy: node.behind_proxy ?? current.behind_proxy,
-    maintenance_mode: node.maintenance_mode ?? current.maintenance_mode
+    maintenance_mode: node.maintenance_mode ?? current.maintenance_mode,
+    allocation_start: parseInt(node.allocation_start) || current.allocation_start || 25565,
+    allocation_end: parseInt(node.allocation_end) || current.allocation_end || 25665
   });
   
   saveNodes(data);
@@ -1516,6 +1520,211 @@ app.post('/api/remote/sftp/auth', async (req, res) => {
     permissions: ['*'],
     user: userObj.id
   });
+});
+
+// ==================== NODE RESOURCES ====================
+function getNodeAvailableResources(nodeId) {
+  const nodes = loadNodes();
+  const node = nodes.nodes.find(n => n.id === nodeId);
+  if (!node) return null;
+  
+  const servers = loadServers();
+  const nodeServers = servers.servers.filter(s => s.node_id === nodeId);
+  
+  const usedMemory = nodeServers.reduce((sum, s) => sum + (s.limits?.memory || 0), 0);
+  const usedDisk = nodeServers.reduce((sum, s) => sum + (s.limits?.disk || 0), 0);
+  const usedPorts = nodeServers.map(s => s.allocation?.port).filter(p => p);
+  
+  const allocationStart = node.allocation_start || 25565;
+  const allocationEnd = node.allocation_end || 25665;
+  
+  const availablePorts = [];
+  for (let port = allocationStart; port <= allocationEnd; port++) {
+    if (!usedPorts.includes(port)) {
+      availablePorts.push(port);
+    }
+  }
+  
+  return {
+    available_memory: node.memory - usedMemory,
+    available_disk: node.disk - usedDisk,
+    available_ports: availablePorts,
+    allocation_start: allocationStart,
+    allocation_end: allocationEnd
+  };
+}
+
+app.get('/api/nodes/available', (req, res) => {
+  const nodes = loadNodes();
+  const availableNodes = nodes.nodes
+    .filter(n => !n.maintenance_mode)
+    .map(n => {
+      const resources = getNodeAvailableResources(n.id);
+      return {
+        id: n.id,
+        name: n.name,
+        fqdn: n.fqdn,
+        location_id: n.location_id,
+        available_memory: resources?.available_memory || 0,
+        available_disk: resources?.available_disk || 0,
+        available_ports: resources?.available_ports?.length || 0
+      };
+    })
+    .filter(n => n.available_ports > 0);
+  
+  res.json({ nodes: availableNodes });
+});
+
+app.get('/api/nodes/:id/ports', (req, res) => {
+  const { username } = req.query;
+  if (!username) return res.status(400).json({ error: 'Username required' });
+  
+  const users = loadUsers();
+  const user = users.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  
+  const resources = getNodeAvailableResources(req.params.id);
+  if (!resources) return res.status(404).json({ error: 'Node not found' });
+  
+  res.json({ 
+    ports: resources.available_ports,
+    allocation_start: resources.allocation_start,
+    allocation_end: resources.allocation_end
+  });
+});
+
+// ==================== USER: CREATE SERVER ====================
+app.post('/api/servers', async (req, res) => {
+  const { username, name, node_id, egg_id, port, memory, disk, cpu } = req.body;
+  
+  if (!username) return res.status(400).json({ error: 'Username required' });
+  
+  const users = loadUsers();
+  const user = users.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  
+  const userLimits = user.limits || { servers: 2, memory: 2048, disk: 10240, cpu: 200 };
+  const servers = loadServers();
+  const userServers = servers.servers.filter(s => s.user_id === user.id);
+  
+  const usedResources = userServers.reduce((acc, s) => ({
+    servers: acc.servers + 1,
+    memory: acc.memory + (s.limits?.memory || 0),
+    disk: acc.disk + (s.limits?.disk || 0),
+    cpu: acc.cpu + (s.limits?.cpu || 0)
+  }), { servers: 0, memory: 0, disk: 0, cpu: 0 });
+  
+  const requestedMemory = parseInt(memory) || 1024;
+  const requestedDisk = parseInt(disk) || 5120;
+  const requestedCpu = parseInt(cpu) || 100;
+  const requestedPort = parseInt(port);
+  
+  if (usedResources.servers + 1 > userLimits.servers) {
+    return res.status(400).json({ error: 'Server limit reached' });
+  }
+  if (usedResources.memory + requestedMemory > userLimits.memory) {
+    return res.status(400).json({ error: 'Memory limit exceeded' });
+  }
+  if (usedResources.disk + requestedDisk > userLimits.disk) {
+    return res.status(400).json({ error: 'Disk limit exceeded' });
+  }
+  if (usedResources.cpu + requestedCpu > userLimits.cpu) {
+    return res.status(400).json({ error: 'CPU limit exceeded' });
+  }
+  
+  const nodes = loadNodes();
+  const node = nodes.nodes.find(n => n.id === node_id);
+  if (!node) return res.status(400).json({ error: 'Invalid node' });
+  
+  const nodeResources = getNodeAvailableResources(node_id);
+  if (!nodeResources) return res.status(400).json({ error: 'Could not get node resources' });
+  
+  if (requestedMemory > nodeResources.available_memory) {
+    return res.status(400).json({ error: 'Node does not have enough memory' });
+  }
+  if (requestedDisk > nodeResources.available_disk) {
+    return res.status(400).json({ error: 'Node does not have enough disk space' });
+  }
+  
+  if (!requestedPort) {
+    return res.status(400).json({ error: 'Port is required' });
+  }
+  
+  const allocationStart = node.allocation_start || 25565;
+  const allocationEnd = node.allocation_end || 25665;
+  
+  if (requestedPort < allocationStart || requestedPort > allocationEnd) {
+    return res.status(400).json({ error: `Port must be between ${allocationStart} and ${allocationEnd}` });
+  }
+  
+  if (!nodeResources.available_ports.includes(requestedPort)) {
+    return res.status(400).json({ error: 'Port is already in use' });
+  }
+  
+  const eggs = loadEggs();
+  const egg = eggs.eggs.find(e => e.id === egg_id);
+  if (!egg) return res.status(400).json({ error: 'Invalid egg' });
+  
+  const uuid = generateUUID();
+  const newServer = {
+    id: uuid,
+    uuid,
+    name: sanitizeText(name),
+    description: '',
+    user_id: user.id,
+    node_id: node_id,
+    egg_id: egg_id,
+    docker_image: egg.docker_image,
+    startup: egg.startup,
+    limits: {
+      memory: requestedMemory,
+      disk: requestedDisk,
+      cpu: requestedCpu,
+      io: 500,
+      swap: 0
+    },
+    feature_limits: {
+      databases: 0,
+      backups: 0,
+      allocations: 1
+    },
+    environment: {},
+    allocation: { ip: '0.0.0.0', port: requestedPort },
+    status: 'installing',
+    suspended: false,
+    created_at: new Date().toISOString()
+  };
+  
+  try {
+    await wingsRequest(node, 'POST', '/api/servers', {
+      uuid: newServer.uuid,
+      start_on_completion: false,
+      suspended: false,
+      environment: newServer.environment,
+      invocation: newServer.startup,
+      skip_egg_scripts: false,
+      build: {
+        memory_limit: newServer.limits.memory,
+        swap: newServer.limits.swap,
+        io_weight: newServer.limits.io,
+        cpu_limit: newServer.limits.cpu,
+        disk_space: newServer.limits.disk
+      },
+      container: { image: newServer.docker_image },
+      allocations: {
+        default: { ip: newServer.allocation.ip, port: newServer.allocation.port },
+        mappings: { [newServer.allocation.ip]: [newServer.allocation.port] }
+      }
+    });
+    newServer.status = 'offline';
+  } catch (e) {
+    newServer.status = 'install_failed';
+    newServer.install_error = e.message;
+  }
+  
+  servers.servers.push(newServer);
+  saveServers(servers);
+  res.json({ success: true, server: newServer });
 });
 
 // ==================== USER LIMITS ====================
