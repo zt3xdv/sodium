@@ -1,35 +1,51 @@
 {
   "name": "sodium",
   "version": "1.0.0",
-  "description": "Sodium - Game Server Management Panel",
+  "module": "index.js",
   "type": "module",
-  "main": "server/index.js",
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "node --watch server/index.js",
-    "daemon": "node daemon/index.js",
-    "daemon:dev": "node --watch daemon/index.js",
+    "start": "node index.js",
     "build": "node app.build.js",
-    "build:prod": "node app.build.js prod",
+    "fast-build": "node app.build.js fast",
     "watch": "node app.build.js dev"
   },
+  "keywords": [
+    "game-server",
+    "pterodactyl",
+    "wings",
+    "server-panel",
+    "hosting"
+  ],
+  "author": "sodium_dev",
+  "license": "MIT",
+  "description": "Modern game server management panel with Pterodactyl Wings support.",
   "dependencies": {
-    "archiver": "^7.0.1",
-    "bcryptjs": "^2.4.3",
-    "sql.js": "^1.10.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.18.3",
-    "jsonwebtoken": "^9.0.2",
-    "multer": "^1.4.5-lts.1",
-    "unzipper": "^0.12.3",
-    "uuid": "^9.0.1",
-    "ws": "^8.16.0"
+    "bcryptjs": "^3.0.2",
+    "express": "^5.1.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^25.0.7",
-    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "autoprefixer": "^10.4.21",
+    "chokidar": "^4.0.3",
+    "postcss": "^8.5.6",
+    "rollup": "^2.79.2",
+    "rollup-cache": "^2.0.0",
     "rollup-plugin-postcss": "^4.0.2",
-    "sass": "^1.71.1"
+    "rollup-plugin-progress": "^1.1.2",
+    "rollup-plugin-terser": "^7.0.2",
+    "sass": "^1.93.3"
+  },
+  "manifest": {
+    "name": "Sodium Panel",
+    "short_name": "Sodium",
+    "description": "Modern game server management panel with Pterodactyl Wings support.",
+    "start_url": "/",
+    "url": "https://sodium.app/",
+    "display": "standalone",
+    "background_color": "#0a0a0a",
+    "theme_color": "#6366f1"
   }
 }

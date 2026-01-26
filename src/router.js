@@ -1,206 +1,164 @@
-class Router {
-  constructor() {
-    this.routes = new Map();
-    this.middlewares = [];
-    this.currentRoute = null;
-    this.outlet = null;
-    this.notFoundHandler = null;
-    this.transitioning = false;
+import { routes, getUserRoute, getServerRoute } from './routes/routes.js';
+import { renderNav } from './components/nav.js';
+import { renderSidebar } from './components/sidebar.js';
+import { escapeHtml } from './utils/security.js';
 
-    window.addEventListener('popstate', () => this.handleRoute());
-    window.addEventListener('load', () => this.handleRoute());
-  }
+let mounted = false;
+let currentCleanup = null;
 
-  setOutlet(element) {
-    this.outlet = typeof element === 'string' ? document.querySelector(element) : element;
-  }
+function clearMain() {
+  const existing = document.getElementById('app');
+  if (existing) existing.innerHTML = '';
+}
 
-  use(middleware) {
-    this.middlewares.push(middleware);
-    return this;
-  }
-
-  route(path, handler, options = {}) {
-    this.routes.set(path, { handler, ...options });
-    return this;
-  }
-
-  notFound(handler) {
-    this.notFoundHandler = handler;
-    return this;
-  }
-
-  getPath() {
-    return window.location.pathname || '/';
-  }
-
-  matchRoute(path) {
-    if (this.routes.has(path)) {
-      return { route: this.routes.get(path), params: {} };
+function mountShell(withSidebar = false) {
+  if (!mounted) {
+    document.body.innerHTML = '';
+    
+    const wrapper = document.createElement('div');
+    wrapper.id = 'wrapper';
+    wrapper.className = withSidebar ? 'with-sidebar' : '';
+    
+    if (withSidebar) {
+      wrapper.appendChild(renderSidebar());
     }
-
-    for (const [pattern, route] of this.routes) {
-      const regex = this.patternToRegex(pattern);
-      const match = path.match(regex);
-      if (match) {
-        const params = this.extractParams(pattern, match);
-        return { route, params };
+    
+    const contentArea = document.createElement('div');
+    contentArea.id = 'content-area';
+    
+    contentArea.appendChild(renderNav());
+    
+    const main = document.createElement('main');
+    main.id = 'app';
+    contentArea.appendChild(main);
+    
+    wrapper.appendChild(contentArea);
+    document.body.appendChild(wrapper);
+    
+    document.body.addEventListener('click', onBodyClick);
+    mounted = true;
+  } else {
+    const wrapper = document.getElementById('wrapper');
+    if (wrapper) {
+      wrapper.className = withSidebar ? 'with-sidebar' : '';
+      
+      const existingSidebar = document.getElementById('sidebar');
+      if (withSidebar && !existingSidebar) {
+        wrapper.insertBefore(renderSidebar(), wrapper.firstChild);
+      } else if (!withSidebar && existingSidebar) {
+        existingSidebar.remove();
       }
     }
-    return null;
-  }
-
-  patternToRegex(pattern) {
-    const escaped = pattern
-      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      .replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '([^/]+)');
-    return new RegExp(`^${escaped}$`);
-  }
-
-  extractParams(pattern, match) {
-    const params = {};
-    const paramNames = pattern.match(/:([a-zA-Z_][a-zA-Z0-9_]*)/g) || [];
-    paramNames.forEach((name, i) => {
-      params[name.slice(1)] = match[i + 1];
-    });
-    return params;
-  }
-
-  async handleRoute() {
-    const path = this.getPath();
-    const matched = this.matchRoute(path);
-
-    if (!matched) {
-      this.handle404(path);
-      return;
-    }
-
-    const { route, params } = matched;
-    const context = { path, params, router: this };
-
-    this.emit('beforeNavigate', context);
-
-    for (const middleware of this.middlewares) {
-      const result = await middleware(context);
-      if (result === false) return;
-    }
-
-    await this.render(route, context);
-    this.currentRoute = path;
-
-    this.emit('afterNavigate', context);
-  }
-
-  async render(route, context) {
-    if (!this.outlet) return;
-
-    this.transitioning = true;
-    this.outlet.classList.add('route-exit');
-
-    await this.wait(150);
-
-    let handler = route.handler;
-    let mountFn = null;
-
-    if (route.lazy && typeof handler === 'function') {
-      const module = await handler();
-      handler = module.default || module;
-      mountFn = module.mount;
-    }
-
-    if (typeof handler === 'function') {
-      const content = await handler(context);
-      if (typeof content === 'string') {
-        this.outlet.innerHTML = content;
-      } else if (content instanceof Node) {
-        this.outlet.innerHTML = '';
-        this.outlet.appendChild(content);
-      }
-    }
-
-    this.outlet.classList.remove('route-exit');
-    this.outlet.classList.add('route-enter');
-
-    if (typeof mountFn === 'function') {
-      setTimeout(() => mountFn(context.params), 0);
-    }
-
-    await this.wait(150);
-    this.outlet.classList.remove('route-enter');
-    this.transitioning = false;
-  }
-
-  handle404(path) {
-    if (this.notFoundHandler) {
-      this.notFoundHandler({ path, router: this });
-    } else if (this.outlet) {
-      this.outlet.innerHTML = `<div class="not-found"><h1>404</h1><p>Page not found</p></div>`;
-    }
-  }
-
-  navigate(path) {
-    if (path === this.getPath()) return;
-    window.history.pushState({}, '', path);
-    this.handleRoute();
-  }
-
-  back() {
-    window.history.back();
-  }
-
-  forward() {
-    window.history.forward();
-  }
-
-  wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  emit(event, detail) {
-    window.dispatchEvent(new CustomEvent(`router:${event}`, { detail }));
-  }
-
-  on(event, handler) {
-    window.addEventListener(`router:${event}`, e => handler(e.detail));
-    return this;
   }
 }
 
-export const router = new Router();
+function onBodyClick(e) {
+  if (e.defaultPrevented) return;
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  
+  let a = e.target;
+  while (a && a.nodeName !== 'A') a = a.parentElement;
+  if (!a) return;
+  
+  const href = a.getAttribute('href');
+  if (!href || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+  
+  e.preventDefault();
+  navigate(href);
+}
 
 export function navigate(path) {
-  router.navigate(path);
+  if (!path.startsWith('/')) {
+    const base = window.location.pathname.replace(/\/+$/, '');
+    path = base + '/' + path;
+  }
+  window.history.pushState({}, '', path);
+  router();
 }
 
-export function authGuard(redirectTo = '/login') {
-  return (context) => {
-    const token = localStorage.getItem('sodium_token');
-    if (!token) {
-      context.router.navigate(redirectTo);
-      return false;
-    }
-    return true;
-  };
-}
+window.router = {
+  navigateTo: navigate
+};
 
-export function adminGuard(redirectTo = '/') {
-  return (context) => {
-    const user = JSON.parse(localStorage.getItem('sodium_user') || 'null');
-    if (!user || user.role !== 'admin') {
-      context.router.navigate(redirectTo);
-      return false;
-    }
-    return true;
-  };
-}
+window.addEventListener('popstate', () => {
+  router();
+});
 
-export function guestGuard(redirectTo = '/') {
-  return (context) => {
-    const token = localStorage.getItem('sodium_token');
-    if (token) {
-      context.router.navigate(redirectTo);
-      return false;
+export function router() {
+  const path = window.location.pathname;
+  let route = routes[path];
+  
+  if (!route && path.startsWith('/u/')) {
+    const username = path.split('/')[2];
+    if (username && /^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      route = getUserRoute(username);
     }
-    return true;
-  };
+  }
+  
+  if (!route && path.startsWith('/server/')) {
+    const serverId = path.split('/')[2];
+    if (serverId) {
+      route = getServerRoute(serverId);
+    }
+  }
+  
+  if (!route) {
+    route = routes['/404'];
+  }
+  
+  const isAuthenticated = !!localStorage.getItem('loggedIn');
+  
+  if (route.redirect) {
+    window.history.replaceState({}, '', route.redirect);
+    return router();
+  }
+  
+  if (route.options?.auth && !isAuthenticated) {
+    window.history.replaceState({}, '', '/auth');
+    return router();
+  }
+  
+  if (isAuthenticated && path === '/auth') {
+    window.history.replaceState({}, '', '/dashboard');
+    return router();
+  }
+  
+  if (isAuthenticated && path === '/') {
+    window.history.replaceState({}, '', '/dashboard');
+    return router();
+  }
+  
+  if (!isAuthenticated && path === '/') {
+    window.history.replaceState({}, '', '/auth');
+    return router();
+  }
+  
+  document.title = 'Sodium - ' + (route.options?.title || 'App');
+  
+  const appEl = document.getElementById('app');
+  if (appEl) appEl.classList.add('fade-out');
+  
+  setTimeout(() => {
+    if (currentCleanup) {
+      currentCleanup();
+      currentCleanup = null;
+    }
+    
+    mountShell(route.options?.sidebar !== false && isAuthenticated);
+    clearMain();
+    
+    const existingSidebar = document.getElementById('sidebar');
+    if (existingSidebar && route.options?.sidebar !== false && isAuthenticated) {
+      existingSidebar.replaceWith(renderSidebar());
+    }
+    
+    route.render();
+    currentCleanup = route.cleanup || null;
+    
+    const newAppEl = document.getElementById('app');
+    if (newAppEl) {
+      newAppEl.classList.remove('fade-out');
+      newAppEl.classList.add('fade-in');
+    }
+  }, 150);
 }

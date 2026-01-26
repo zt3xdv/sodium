@@ -1,156 +1,90 @@
-import { icon } from './icon.js';
-
-const adminSections = [
-  { id: 'overview', label: 'Overview', icon: 'home', path: '/admin' },
-  { id: 'servers', label: 'Servers', icon: 'server', path: '/admin/servers' },
-  { id: 'users', label: 'Users', icon: 'users', path: '/admin/users' },
-  { id: 'nodes', label: 'Nodes', icon: 'cpu', path: '/admin/nodes' },
-  { id: 'allocations', label: 'Allocations', icon: 'globe', path: '/admin/allocations' },
-  { divider: true },
-  { id: 'eggs', label: 'Eggs', icon: 'package', path: '/admin/eggs' },
-  { id: 'nests', label: 'Nests', icon: 'folder', path: '/admin/nests' },
-  { divider: true },
-  { id: 'settings', label: 'Settings', icon: 'settings', path: '/admin/settings' },
-];
-
-const serverSections = [
-  { id: 'console', label: 'Console', icon: 'terminal', path: 'console' },
-  { id: 'files', label: 'Files', icon: 'folder', path: 'files' },
-  { id: 'databases', label: 'Databases', icon: 'database', path: 'databases' },
-  { id: 'schedules', label: 'Schedules', icon: 'clock', path: 'schedules' },
-  { id: 'users', label: 'Users', icon: 'users', path: 'users' },
-  { id: 'backups', label: 'Backups', icon: 'archive', path: 'backups' },
-  { id: 'network', label: 'Network', icon: 'globe', path: 'network' },
-  { id: 'startup', label: 'Startup', icon: 'play', path: 'startup' },
-  { divider: true },
-  { id: 'settings', label: 'Settings', icon: 'settings', path: 'settings' },
-];
-
-export function sidebar({ type = 'admin', currentPath = '', serverId = null, collapsed = false }) {
-  const sections = type === 'admin' ? adminSections : serverSections;
-  const baseUrl = type === 'server' && serverId ? `/server/${serverId}` : '';
-
-  const items = sections.map(section => {
-    if (section.divider) {
-      return '<div class="sidebar-divider"></div>';
-    }
-
-    const href = type === 'admin' ? section.path : `${baseUrl}/${section.path}`;
-    const isActive = type === 'admin' 
-      ? currentPath === section.path || (section.id === 'overview' && currentPath === '/admin')
-      : currentPath.endsWith(section.path);
-
-    return `
-      <a href="${href}" class="sidebar-link ${isActive ? 'active' : ''}">
-        ${icon(section.icon, 18)}
-        <span>${section.label}</span>
+export function renderSidebar() {
+  const sidebar = document.createElement('aside');
+  sidebar.id = 'sidebar';
+  sidebar.className = 'sidebar';
+  
+  const currentPath = window.location.pathname;
+  
+  const baseItems = [
+    { path: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
+    { path: '/servers', icon: 'dns', label: 'Servers' },
+    { path: '/status', icon: 'monitor_heart', label: 'Status' },
+    { path: '/profile', icon: 'person', label: 'Profile' },
+    { path: '/settings', icon: 'settings', label: 'Settings' }
+  ];
+  
+  sidebar.innerHTML = `
+    <div class="sidebar-header">
+      <a href="/dashboard" class="sidebar-brand">
+        <span class="material-icons-outlined">bolt</span>
+        <span class="brand-text">Sodium</span>
       </a>
-    `;
-  }).join('');
-
-  return `
-    <aside class="admin-sidebar ${collapsed ? 'sidebar--collapsed' : ''}" data-sidebar>
-      <div class="sidebar-header">
-        <h2>${icon(type === 'admin' ? 'shield' : 'server', 20)} ${type === 'admin' ? 'Admin' : 'Server'}</h2>
-        <button class="sidebar-toggle" data-action="toggle-sidebar" title="Toggle sidebar">
-          ${icon('chevrons-left', 18)}
-        </button>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <ul class="nav-list" id="nav-list">
+        ${baseItems.map(item => `
+          <li class="nav-item">
+            <a href="${item.path}" class="nav-link ${currentPath === item.path ? 'active' : ''}">
+              <span class="material-icons-outlined">${item.icon}</span>
+              <span class="nav-text">${item.label}</span>
+            </a>
+          </li>
+        `).join('')}
+      </ul>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <div class="footer-content">
+        <span class="version">v1.0.0</span>
       </div>
-      <nav class="sidebar-nav">
-        ${items}
-      </nav>
-    </aside>
+    </div>
   `;
+  
+  checkAdminStatus(sidebar, currentPath);
+  
+  setTimeout(() => {
+    const closeOnMobile = () => {
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove('open');
+      }
+    };
+    
+    sidebar.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', closeOnMobile);
+    });
+  }, 0);
+  
+  return sidebar;
 }
 
-export function renderAdminSidebar(active = 'overview') {
-  const items = adminSections.map(section => {
-    if (section.divider) {
-      return '<div class="sidebar-divider"></div>';
-    }
-    const isActive = section.id === active || (active === 'dashboard' && section.id === 'overview');
-    return `
-      <a href="${section.path}" class="sidebar-link ${isActive ? 'active' : ''}" data-link>
-        ${icon(section.icon, 18)}
-        <span>${section.label}</span>
-      </a>
-    `;
-  }).join('');
-
-  return `
-    <aside class="admin-sidebar" data-sidebar>
-      <div class="sidebar-header">
-        <h2>${icon('shield', 20)} Admin</h2>
-        <button class="sidebar-toggle" data-action="toggle-sidebar" title="Toggle sidebar">
-          ${icon('chevrons-left', 18)}
-        </button>
-      </div>
-      <nav class="sidebar-nav">
-        ${items}
-      </nav>
-    </aside>
-  `;
-}
-
-export function renderServerSidebar(serverId, active = 'console') {
-  const items = serverSections.map(section => {
-    if (section.divider) {
-      return '<div class="sidebar-divider"></div>';
-    }
-    const isActive = section.id === active;
-    const fullPath = `/server/${serverId}/${section.path}`;
-    return `
-      <a href="${fullPath}" class="sidebar-link ${isActive ? 'active' : ''}" data-link>
-        ${icon(section.icon, 18)}
-        <span>${section.label}</span>
-      </a>
-    `;
-  }).join('');
-
-  return `
-    <aside class="admin-sidebar server-sidebar" data-sidebar>
-      <div class="sidebar-header">
-        <h2>${icon('server', 20)} Server</h2>
-        <button class="sidebar-toggle" data-action="toggle-sidebar" title="Toggle sidebar">
-          ${icon('chevrons-left', 18)}
-        </button>
-      </div>
-      <nav class="sidebar-nav">
-        ${items}
-      </nav>
-    </aside>
-  `;
-}
-
-export function initSidebar() {
-  document.addEventListener('click', (e) => {
-    const toggle = e.target.closest('[data-action="toggle-sidebar"]');
-    if (toggle) {
-      const sidebar = document.querySelector('[data-sidebar]');
-      if (sidebar) {
-        sidebar.classList.toggle('sidebar--collapsed');
-        const isCollapsed = sidebar.classList.contains('sidebar--collapsed');
-        localStorage.setItem('sidebar-collapsed', isCollapsed.toString());
-        
-        const icon = toggle.querySelector('svg');
-        if (icon) {
-          icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
-        }
+async function checkAdminStatus(sidebar, currentPath) {
+  const username = localStorage.getItem('username');
+  const password = localStorage.getItem('password');
+  
+  if (!username || !password) return;
+  
+  try {
+    const res = await fetch(`/api/auth/me?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+    const data = await res.json();
+    
+    if (data.user?.isAdmin) {
+      const navList = sidebar.querySelector('#nav-list');
+      const settingsItem = navList.querySelector('a[href="/settings"]')?.closest('.nav-item');
+      
+      if (settingsItem && !navList.querySelector('a[href="/admin"]')) {
+        const adminItem = document.createElement('li');
+        adminItem.className = 'nav-item';
+        adminItem.innerHTML = `
+          <a href="/admin" class="nav-link ${currentPath === '/admin' ? 'active' : ''}">
+            <span class="material-icons-outlined">admin_panel_settings</span>
+            <span class="nav-text">Admin</span>
+          </a>
+        `;
+        navList.insertBefore(adminItem, settingsItem);
       }
     }
-  });
-
-  const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-  const sidebar = document.querySelector('[data-sidebar]');
-  if (isCollapsed && sidebar) {
-    sidebar.classList.add('sidebar--collapsed');
-    const toggle = sidebar.querySelector('[data-action="toggle-sidebar"] svg');
-    if (toggle) {
-      toggle.style.transform = 'rotate(180deg)';
-    }
+  } catch (e) {
+    console.error('Failed to check admin status:', e);
   }
-}
-
-export function getSidebarSections(type = 'admin') {
-  return type === 'admin' ? adminSections : serverSections;
 }

@@ -1,13 +1,19 @@
-import { watch, rollup } from './src/bundler/rollup.js';
+import { watch, rollup } from '../hawk/src/bundler/rollup.js';
+import { cacheBuild } from 'rollup-cache';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
+import json from '@rollup/plugin-json';
+import { terser } from 'rollup-plugin-terser';
+import progress from 'rollup-plugin-progress';
 import postcss from 'rollup-plugin-postcss';
-import htmlPlugin from './src/bundler/html-plugin.js';
+import autoprefixer from 'autoprefixer';
+import htmlPlugin from '../hawk/src/bundler/html-plugin.js';
 import path from 'path';
 
 const args = process.argv.slice(2).map(a => a.toLowerCase());
-const isDev = args.includes('dev') || args.includes('--watch');
-const isProd = !isDev || args.includes('prod');
+const isDev = args.includes('dev');
+const isFast = args.includes('fast');
+const isProd = (!isDev && !isFast) || args.includes('prod');
 
 const input = 'src/main.js';
 const outDir = path.resolve('dist');
@@ -17,7 +23,8 @@ const c = {
   bold: "\x1b[1m",
   dim: "\x1b[2m",
   gray: "\x1b[90m",
-  white: "\x1b[37m"
+  white: "\x1b[37m",
+  cyan: "\x1b[36m"
 };
 
 const formatError = (err) => {
@@ -43,6 +50,7 @@ const basePlugins = [
   commonjs({
     sourceMap: false
   }),
+  json(),
   postcss({
     extensions: ['.css', '.scss'],
     extract: 'main.css',
@@ -52,13 +60,31 @@ const basePlugins = [
       sass: {
         silenceDeprecations: ['legacy-js-api']
       }
-    }
+    },
+    plugins: [
+      autoprefixer()
+    ]
   }),
   htmlPlugin({
     template: 'src/templates/index.html',
     filename: 'index.html'
   })
 ];
+
+if (!isDev && !isFast) {
+  basePlugins.push(progress());
+}
+
+if (isProd) {
+  basePlugins.push(terser({
+    format: {
+      comments: false
+    },
+    compress: {
+      passes: 2
+    }
+  }));
+}
 
 const baseConfig = {
   input,
@@ -72,7 +98,7 @@ const baseConfig = {
     compact: isProd
   },
   cache: true,
-  treeshake: isProd,
+  treeshake: isProd ? true : false,
   onwarn(warning, warn) {
     if (warning.code === 'FILE_NAME_CONFLICT') return;
     if (warning.plugin === 'postcss' && warning.message.includes('deprecation')) return;
@@ -80,13 +106,20 @@ const baseConfig = {
   }
 };
 
+const cacheOptions = {
+  name: 'sodium-build-cache',
+  dependencies: [],
+  enabled: true
+};
+
+const cachedBuildConfig = isFast ? baseConfig : cacheBuild(cacheOptions, baseConfig);
+
 async function runBuild() {
   try {
-    console.log(`${c.gray}│ ${c.white}Building Sodium...${c.reset}`);
-    const bundle = await rollup(baseConfig);
-    await bundle.write(baseConfig.output);
+    const bundle = await rollup(cachedBuildConfig);
+    await bundle.write(cachedBuildConfig.output);
     await bundle.close();
-    console.log(`${c.gray}│ ${c.white}Build successful${c.reset}`);
+    console.log(`${c.cyan}│ ${c.white}Sodium build successful ${c.cyan}│${c.reset}`);
     process.exit(0);
   } catch (err) {
     formatError(err);
@@ -117,7 +150,7 @@ async function runWatch() {
     if (event.code === 'BUNDLE_START') {
       console.clear(); 
       console.log(`${c.gray}┌──────────────────────────────────────────────${c.reset}`);
-      console.log(`${c.gray}│ ${c.white}Sodium Bundler ${c.gray}running...${c.reset}`);
+      console.log(`${c.gray}│ ${c.cyan}Sodium Bundler ${c.gray}running...${c.reset}`);
       console.log(`${c.gray}├──────────────────────────────────────────────${c.reset}`);
       process.stdout.write(`${c.gray}│ ${c.white}Bundling...${c.reset}`);
     } else if (event.code === 'BUNDLE_END') {

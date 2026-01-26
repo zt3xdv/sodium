@@ -1,0 +1,124 @@
+.settings-page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-header {
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  
+  p {
+    color: var(--text-secondary);
+  }
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  
+  &.danger-section {
+    border-color: rgba(239, 68, 68, 0.3);
+    
+    .section-header {
+      .material-icons-outlined {
+        color: var(--danger);
+      }
+    }
+  }
+  
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    
+    .material-icons-outlined {
+      font-size: 20px;
+      color: var(--accent);
+    }
+    
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+  }
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &.clickable {
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    
+    &:hover {
+      background: var(--bg-tertiary);
+    }
+    
+    > .material-icons-outlined {
+      color: var(--text-tertiary);
+    }
+  }
+  
+  .setting-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    
+    .setting-title {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .setting-description {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+  }
+  
+  .setting-control {
+    flex-shrink: 0;
+  }
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    
+    .setting-control {
+      width: 100%;
+      
+      .select-input {
+        width: 100%;
+      }
+    }
+  }
+}
