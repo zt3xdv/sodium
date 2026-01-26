@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1264,6 +1265,18 @@ wss.on('connection', (clientWs, req) => {
   
   console.log(`[WS PROXY] Connecting to Wings: ${wingsWsUrl}`);
   
+  const wsToken = jwt.sign({
+    server_uuid: serverData.uuid,
+    permissions: ['*'],
+    user_uuid: user.id,
+    user_id: user.id,
+    unique_id: generateUUID()
+  }, node.daemon_token, {
+    expiresIn: '10m',
+    issuer: node.fqdn,
+    audience: [node.fqdn]
+  });
+  
   const wingsWs = new WebSocket(wingsWsUrl, {
     headers: {
       'Authorization': `Bearer ${node.daemon_token}`
@@ -1272,10 +1285,10 @@ wss.on('connection', (clientWs, req) => {
   });
   
   wingsWs.on('open', () => {
-    console.log('[WS PROXY] Connected to Wings');
+    console.log('[WS PROXY] Connected to Wings, sending auth...');
     wingsWs.send(JSON.stringify({
       event: 'auth',
-      args: [node.daemon_token]
+      args: [wsToken]
     }));
   });
   
