@@ -168,7 +168,9 @@ async function loadNodes(container, username) {
                   <td>${node.memory} MB</td>
                   <td>${node.disk} MB</td>
                   <td>
+                    <button class="btn btn-sm btn-ghost" onclick="editNode('${node.id}')">Edit</button>
                     <button class="btn btn-sm btn-ghost" onclick="showNodeConfig('${node.id}')">Config</button>
+                    <button class="btn btn-sm btn-ghost" onclick="showDeployCommand('${node.id}')">Deploy</button>
                     <button class="btn btn-sm btn-danger" onclick="deleteNode('${node.id}')">Delete</button>
                   </td>
                 </tr>
@@ -210,6 +212,146 @@ async function loadNodes(container, username) {
     container.innerHTML = `<div class="error">Failed to load nodes</div>`;
   }
 }
+
+window.editNode = async function(nodeId) {
+  const username = localStorage.getItem('username');
+  try {
+    const res = await fetch(`/api/admin/nodes?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    const node = data.nodes.find(n => n.id === nodeId);
+    if (!node) return alert('Node not found');
+    
+    const locRes = await fetch('/api/admin/locations');
+    const locData = await locRes.json();
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+      <div class="modal-content modal-large">
+        <h2>Edit Node</h2>
+        <form id="edit-node-form">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" value="${escapeHtml(node.name)}" required />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" name="description" value="${escapeHtml(node.description || '')}" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>FQDN</label>
+              <input type="text" name="fqdn" value="${escapeHtml(node.fqdn)}" required />
+            </div>
+            <div class="form-group">
+              <label>Scheme</label>
+              <select name="scheme">
+                <option value="https" ${node.scheme === 'https' ? 'selected' : ''}>HTTPS</option>
+                <option value="http" ${node.scheme === 'http' ? 'selected' : ''}>HTTP</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Memory (MB)</label>
+              <input type="number" name="memory" value="${node.memory}" required />
+            </div>
+            <div class="form-group">
+              <label>Disk (MB)</label>
+              <input type="number" name="disk" value="${node.disk}" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Daemon Port</label>
+              <input type="number" name="daemon_port" value="${node.daemon_port}" required />
+            </div>
+            <div class="form-group">
+              <label>SFTP Port</label>
+              <input type="number" name="daemon_sftp_port" value="${node.daemon_sftp_port}" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Upload Size (MB)</label>
+              <input type="number" name="upload_size" value="${node.upload_size || 100}" />
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <select name="location_id">
+                ${locData.locations.map(l => `<option value="${l.id}" ${l.id === node.location_id ? 'selected' : ''}>${escapeHtml(l.long)}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label><input type="checkbox" name="behind_proxy" ${node.behind_proxy ? 'checked' : ''} /> Behind Proxy</label>
+            </div>
+            <div class="form-group">
+              <label><input type="checkbox" name="maintenance_mode" ${node.maintenance_mode ? 'checked' : ''} /> Maintenance Mode</label>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    document.getElementById('edit-node-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const nodeData = Object.fromEntries(form);
+      nodeData.behind_proxy = form.get('behind_proxy') === 'on';
+      nodeData.maintenance_mode = form.get('maintenance_mode') === 'on';
+      
+      await fetch(`/api/admin/nodes/${nodeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, node: nodeData })
+      });
+      
+      modal.remove();
+      loadTab('nodes');
+    };
+  } catch (e) {
+    alert('Failed to load node: ' + e.message);
+  }
+};
+
+window.showDeployCommand = async function(nodeId) {
+  const username = localStorage.getItem('username');
+  try {
+    const res = await fetch(`/api/admin/nodes/${nodeId}/deploy?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+      <div class="modal-content">
+        <h2>Deploy Command</h2>
+        <p>Run this command on your node to configure Wings:</p>
+        <pre class="config-output" style="white-space:pre-wrap;word-break:break-all;">${escapeHtml(data.command)}</pre>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.modal').querySelector('.config-output').textContent);this.textContent='Copied!'">Copy</button>
+          <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Close</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } catch (e) {
+    alert('Failed to load deploy command: ' + e.message);
+  }
+};
 
 window.showNodeConfig = async function(nodeId) {
   const username = localStorage.getItem('username');

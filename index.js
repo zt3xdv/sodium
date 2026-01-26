@@ -544,17 +544,24 @@ app.put('/api/admin/nodes/:id', (req, res) => {
   const idx = data.nodes.findIndex(n => n.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Node not found' });
   
-  Object.assign(data.nodes[idx], {
-    name: sanitizeText(node.name) || data.nodes[idx].name,
-    description: sanitizeText(node.description) ?? data.nodes[idx].description,
-    fqdn: node.fqdn || data.nodes[idx].fqdn,
-    memory: parseInt(node.memory) || data.nodes[idx].memory,
-    disk: parseInt(node.disk) || data.nodes[idx].disk,
-    maintenance_mode: node.maintenance_mode ?? data.nodes[idx].maintenance_mode
+  const current = data.nodes[idx];
+  Object.assign(current, {
+    name: sanitizeText(node.name) || current.name,
+    description: sanitizeText(node.description) ?? current.description,
+    location_id: node.location_id || current.location_id,
+    fqdn: node.fqdn || current.fqdn,
+    scheme: node.scheme || current.scheme,
+    memory: parseInt(node.memory) || current.memory,
+    disk: parseInt(node.disk) || current.disk,
+    daemon_port: parseInt(node.daemon_port) || current.daemon_port,
+    daemon_sftp_port: parseInt(node.daemon_sftp_port) || current.daemon_sftp_port,
+    upload_size: parseInt(node.upload_size) || current.upload_size,
+    behind_proxy: node.behind_proxy ?? current.behind_proxy,
+    maintenance_mode: node.maintenance_mode ?? current.maintenance_mode
   });
   
   saveNodes(data);
-  res.json({ success: true, node: data.nodes[idx] });
+  res.json({ success: true, node: current });
 });
 
 app.delete('/api/admin/nodes/:id', (req, res) => {
