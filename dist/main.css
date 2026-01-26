@@ -892,7 +892,7 @@ input, textarea, select {
 }
 
 .profile-page {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -999,7 +999,7 @@ input, textarea, select {
 }
 
 .settings-page {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -1146,7 +1146,7 @@ input, textarea, select {
 }
 
 .user-page {
-  max-width: 700px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -2841,7 +2841,7 @@ input, textarea, select {
   }
 }
 .status-page {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 @media (max-width: 768px) {
@@ -3230,7 +3230,7 @@ input, textarea, select {
   }
 }
 .admin-page {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 16px;
 }
