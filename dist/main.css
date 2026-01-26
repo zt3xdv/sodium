@@ -2732,12 +2732,12 @@ input, textarea, select {
 }
 
 .modal {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .modal-header {
@@ -2745,24 +2745,25 @@ input, textarea, select {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border);
 }
 .modal-header h3 {
   font-size: 1rem;
   font-weight: 600;
   margin: 0;
+  color: var(--text-primary);
 }
 .modal-header .modal-close {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
   line-height: 1;
 }
 .modal-header .modal-close:hover {
-  color: var(--text);
+  color: var(--text-primary);
 }
 
 .modal-body {
@@ -2770,28 +2771,28 @@ input, textarea, select {
 }
 .modal-body p {
   font-size: 0.875rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   margin: 0 0 1rem;
 }
 .modal-body p strong {
-  color: var(--text);
-  font-family: var(--font-mono);
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", monospace;
 }
 .modal-body input[type=text] {
   width: 100%;
   padding: 0.75rem;
   font-size: 0.875rem;
   background: var(--bg-secondary);
-  color: var(--text);
-  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   text-align: center;
-  font-family: var(--font-mono);
+  font-family: "JetBrains Mono", monospace;
   letter-spacing: 0.1em;
 }
 .modal-body input[type=text]:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--accent);
 }
 
 .warning-box {
@@ -2799,8 +2800,8 @@ input, textarea, select {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem;
-  background: rgba(var(--warning-rgb), 0.1);
-  border: 1px solid rgba(var(--warning-rgb), 0.3);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
   border-radius: var(--radius-sm);
   margin-bottom: 1rem;
 }
@@ -2811,13 +2812,13 @@ input, textarea, select {
 }
 .warning-box p {
   font-size: 0.8125rem;
-  color: var(--text);
+  color: var(--text-primary);
   margin: 0;
   line-height: 1.5;
 }
 .warning-box.danger {
-  background: rgba(var(--danger-rgb), 0.1);
-  border-color: rgba(var(--danger-rgb), 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 .warning-box.danger .material-icons-outlined {
   color: var(--danger);
@@ -2828,9 +2829,9 @@ input, textarea, select {
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border);
   background: var(--bg-secondary);
-  border-radius: 0 0 var(--radius) var(--radius);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 @media (max-width: 768px) {
