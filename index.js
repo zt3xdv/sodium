@@ -1779,19 +1779,38 @@ app.post('/api/servers', async (req, res) => {
       }
     };
     
+    // Save server BEFORE calling Wings (Wings will callback to verify)
+    newServer.environment = { ...defaultEnv, ...newServer.environment };
+    servers.servers.push(newServer);
+    saveServers(servers);
+    
     console.log('[SERVER CREATE] Sending to Wings:', JSON.stringify(wingsPayload, null, 2));
     
     await wingsRequest(node, 'POST', '/api/servers', wingsPayload);
-    newServer.status = 'installing';
+    
+    // Update status after successful Wings call
+    const updatedServers = loadServers();
+    const idx = updatedServers.servers.findIndex(s => s.id === newServer.id);
+    if (idx !== -1) {
+      updatedServers.servers[idx].status = 'installing';
+      saveServers(updatedServers);
+    }
+    
+    res.json({ success: true, server: newServer });
   } catch (e) {
     console.error('[SERVER CREATE] Wings error:', e.message);
-    newServer.status = 'install_failed';
-    newServer.install_error = e.message;
+    
+    // Update status to failed
+    const updatedServers = loadServers();
+    const idx = updatedServers.servers.findIndex(s => s.id === newServer.id);
+    if (idx !== -1) {
+      updatedServers.servers[idx].status = 'install_failed';
+      updatedServers.servers[idx].install_error = e.message;
+      saveServers(updatedServers);
+    }
+    
+    res.json({ success: true, server: { ...newServer, status: 'install_failed', install_error: e.message } });
   }
-  
-  servers.servers.push(newServer);
-  saveServers(servers);
-  res.json({ success: true, server: newServer });
 });
 
 // ==================== SERVER SETTINGS ====================
