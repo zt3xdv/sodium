@@ -159,8 +159,14 @@ function handleSocketMessage(message) {
       
     case 'console output':
       if (args && args[0] && terminal) {
-        const output = args[0].replace(/\r?\n/g, '\r\n');
-        terminal.write(output);
+        const lines = args[0].split(/\r?\n/);
+        lines.forEach((line, index) => {
+          if (index < lines.length - 1) {
+            terminal.writeln(line);
+          } else if (line) {
+            terminal.write(line);
+          }
+        });
       }
       break;
       
@@ -178,8 +184,12 @@ function handleSocketMessage(message) {
       
     case 'install output':
       if (args && args[0] && terminal) {
-        const output = args[0].replace(/\r?\n/g, '\r\n');
-        terminal.write(`\x1b[33m${output}\x1b[0m`);
+        const lines = args[0].split(/\r?\n/);
+        lines.forEach((line, index) => {
+          if (line || index < lines.length - 1) {
+            terminal.writeln(`\x1b[33m${line}\x1b[0m`);
+          }
+        });
       }
       break;
       
