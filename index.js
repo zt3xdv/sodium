@@ -1705,12 +1705,42 @@ app.post('/api/servers', async (req, res) => {
   
   const node = bestNode;
   
+  // Parse egg config for process configuration
+  let startupConfig = { done: ['Done'] };
+  let stopConfig = { type: 'command', value: 'stop' };
+  
+  try {
+    if (egg.config?.startup) {
+      const parsed = JSON.parse(egg.config.startup);
+      if (parsed.done) {
+        startupConfig.done = Array.isArray(parsed.done) ? parsed.done : [parsed.done];
+      }
+    }
+    if (egg.config?.stop) {
+      if (egg.config.stop === '^C') {
+        stopConfig = { type: 'signal', value: 'SIGINT' };
+      } else {
+        stopConfig = { type: 'command', value: egg.config.stop };
+      }
+    }
+  } catch (e) {
+    console.log('[SERVER CREATE] Error parsing egg config:', e.message);
+  }
+  
+  // Build default environment from egg variables
+  const defaultEnv = {};
+  if (egg.variables && Array.isArray(egg.variables)) {
+    for (const v of egg.variables) {
+      defaultEnv[v.env_variable] = v.default_value || '';
+    }
+  }
+  
   try {
     const wingsPayload = {
       uuid: newServer.uuid,
       start_on_completion: false,
       suspended: false,
-      environment: newServer.environment || {},
+      environment: { ...defaultEnv, ...newServer.environment },
       invocation: newServer.startup,
       skip_egg_scripts: false,
       build: {
@@ -1737,6 +1767,15 @@ app.post('/api/servers', async (req, res) => {
       egg: {
         id: egg.id || '',
         file_denylist: []
+      },
+      process_configuration: {
+        startup: {
+          done: startupConfig.done,
+          user_interaction: [],
+          strip_ansi: false
+        },
+        stop: stopConfig,
+        configs: []
       }
     };
     
