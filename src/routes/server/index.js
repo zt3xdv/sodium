@@ -7,6 +7,7 @@ let currentServerId = null;
 let serverLimits = null;
 let currentTab = 'console';
 let serverData = null;
+let installCheckInterval = null;
 
 const tabs = [
   { id: 'console', label: 'Console', icon: 'terminal' },
@@ -197,8 +198,72 @@ async function loadServerDetails(serverId) {
     document.getElementById('server-name').textContent = serverData.name;
     document.getElementById('server-address').textContent = 
       serverData.node_address || `${serverData.allocation?.ip}:${serverData.allocation?.port}`;
+    
+    // Check if server is installing
+    if (serverData.status === 'installing') {
+      showInstallingScreen();
+    }
   } catch (e) {
     console.error('Failed to load server:', e);
+  }
+}
+
+function showInstallingScreen() {
+  const content = document.getElementById('tab-content');
+  const sidebar = document.querySelector('.server-sidebar');
+  const tabsEl = document.querySelector('.server-tabs');
+  const powerBtns = document.querySelector('.power-buttons');
+  
+  if (sidebar) sidebar.style.display = 'none';
+  if (tabsEl) tabsEl.style.display = 'none';
+  if (powerBtns) powerBtns.style.display = 'none';
+  
+  content.innerHTML = `
+    <div class="installing-screen">
+      <div class="installing-content">
+        <div class="installing-icon">
+          <span class="material-icons-outlined spinning">settings</span>
+        </div>
+        <h2>Server Installing</h2>
+        <p>Your server is being set up. This may take a few minutes...</p>
+        <div class="installing-progress">
+          <div class="installing-bar"></div>
+        </div>
+        <p class="installing-hint">You can leave this page and come back later.</p>
+      </div>
+    </div>
+  `;
+  
+  // Poll for status changes
+  if (installCheckInterval) clearInterval(installCheckInterval);
+  installCheckInterval = setInterval(checkInstallStatus, 5000);
+}
+
+async function checkInstallStatus() {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${currentServerId}?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.server && data.server.status !== 'installing') {
+      clearInterval(installCheckInterval);
+      installCheckInterval = null;
+      
+      // Reload the page to show full interface
+      serverData = data.server;
+      const tabsEl = document.querySelector('.server-tabs');
+      const sidebar = document.querySelector('.server-sidebar');
+      const powerBtns = document.querySelector('.power-buttons');
+      
+      if (tabsEl) tabsEl.style.display = 'flex';
+      if (sidebar) sidebar.style.display = 'flex';
+      if (powerBtns) powerBtns.style.display = 'flex';
+      
+      switchTab('console');
+    }
+  } catch (e) {
+    console.error('Failed to check install status:', e);
   }
 }
 
@@ -266,6 +331,10 @@ function formatBytes(bytes) {
 
 export function cleanupServerPage() {
   cleanupCurrentTab();
+  if (installCheckInterval) {
+    clearInterval(installCheckInterval);
+    installCheckInterval = null;
+  }
   currentServerId = null;
   serverData = null;
   currentTab = 'console';
