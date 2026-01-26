@@ -159,6 +159,10 @@ input, textarea, select {
   @media (max-width: 768px) {
     padding: 16px;
   }
+  
+  @media (max-width: 480px) {
+    padding: 12px 8px;
+  }
 }
 
 .navbar {

@@ -2,12 +2,24 @@
   max-width: 1200px;
   margin: 0 auto;
   
+  @media (max-width: 768px) {
+    max-width: 100%;
+  }
+  
   .page-header {
     margin-bottom: 24px;
+    
+    @media (max-width: 480px) {
+      margin-bottom: 16px;
+    }
     
     h1 {
       font-size: 28px;
       font-weight: 600;
+      
+      @media (max-width: 480px) {
+        font-size: 22px;
+      }
     }
   }
   
@@ -62,6 +74,11 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: 20px;
+    
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
   }
   
   .server-card {
@@ -161,15 +178,28 @@
   max-width: 1400px;
   margin: 0 auto;
   
+  @media (max-width: 768px) {
+    max-width: 100%;
+  }
+  
   .page-header {
     display: flex;
     align-items: center;
     gap: 16px;
     margin-bottom: 24px;
     
+    @media (max-width: 480px) {
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
     h1 {
       font-size: 24px;
       font-weight: 600;
+      
+      @media (max-width: 480px) {
+        font-size: 18px;
+      }
     }
   }
   

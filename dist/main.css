@@ -147,6 +147,11 @@ input, textarea, select {
     padding: 16px;
   }
 }
+@media (max-width: 480px) {
+  #app {
+    padding: 12px 8px;
+  }
+}
 
 .navbar {
   height: var(--navbar-height);
@@ -1367,12 +1372,27 @@ input, textarea, select {
   max-width: 1200px;
   margin: 0 auto;
 }
+@media (max-width: 768px) {
+  .servers-page {
+    max-width: 100%;
+  }
+}
 .servers-page .page-header {
   margin-bottom: 24px;
+}
+@media (max-width: 480px) {
+  .servers-page .page-header {
+    margin-bottom: 16px;
+  }
 }
 .servers-page .page-header h1 {
   font-size: 28px;
   font-weight: 600;
+}
+@media (max-width: 480px) {
+  .servers-page .page-header h1 {
+    font-size: 22px;
+  }
 }
 .servers-page .resource-limits {
   margin-bottom: 24px;
@@ -1417,6 +1437,12 @@ input, textarea, select {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 20px;
+}
+@media (max-width: 480px) {
+  .servers-page .servers-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 .servers-page .server-card .server-header {
   display: flex;
@@ -1497,15 +1523,31 @@ input, textarea, select {
   max-width: 1400px;
   margin: 0 auto;
 }
+@media (max-width: 768px) {
+  .server-console-page {
+    max-width: 100%;
+  }
+}
 .server-console-page .page-header {
   display: flex;
   align-items: center;
   gap: 16px;
   margin-bottom: 24px;
 }
+@media (max-width: 480px) {
+  .server-console-page .page-header {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+}
 .server-console-page .page-header h1 {
   font-size: 24px;
   font-weight: 600;
+}
+@media (max-width: 480px) {
+  .server-console-page .page-header h1 {
+    font-size: 18px;
+  }
 }
 .server-console-page .console-layout {
   display: grid;
@@ -2385,9 +2427,10 @@ input, textarea, select {
   margin: 0 auto;
   padding: 0 16px;
 }
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .admin-page {
-    padding: 0 12px;
+    max-width: 100%;
+    padding: 0;
   }
 }
 .admin-page .page-header {
