@@ -3108,62 +3108,117 @@ input, textarea, select {
 .pagination {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px;
   margin-top: 24px;
   padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  flex-wrap: wrap;
 }
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .pagination {
-    gap: 8px;
-    padding: 12px;
+    flex-direction: column;
+    gap: 12px;
   }
 }
-.pagination .page-btn {
+.pagination .pagination-left, .pagination .pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 768px) {
+  .pagination .pagination-left, .pagination .pagination-right {
+    width: 100%;
+    justify-content: center;
+  }
+}
+.pagination .pagination-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pagination .page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pagination .page-btn, .pagination .page-num {
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 36px;
   height: 36px;
-  padding: 0 12px;
+  padding: 0 10px;
   border-radius: var(--radius-md);
   background: var(--bg-tertiary);
   color: var(--text-secondary);
   font-weight: 500;
+  font-size: 14px;
   transition: all var(--transition-fast);
 }
 @media (max-width: 480px) {
-  .pagination .page-btn {
+  .pagination .page-btn, .pagination .page-num {
     min-width: 32px;
     height: 32px;
     padding: 0 8px;
     font-size: 13px;
   }
 }
-.pagination .page-btn .material-icons-outlined {
+.pagination .page-btn .material-icons-outlined, .pagination .page-num .material-icons-outlined {
   font-size: 18px;
 }
-.pagination .page-btn:hover:not(:disabled) {
+.pagination .page-btn:hover:not(:disabled), .pagination .page-num:hover:not(:disabled) {
   background: var(--accent);
   color: white;
 }
-.pagination .page-btn.active {
+.pagination .page-btn.active, .pagination .page-num.active {
   background: var(--accent);
   color: white;
 }
-.pagination .page-btn:disabled {
+.pagination .page-btn:disabled, .pagination .page-num:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-.pagination .page-info {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
+.pagination .page-ellipsis {
+  padding: 0 4px;
+  color: var(--text-tertiary);
 }
-@media (max-width: 480px) {
-  .pagination .page-info {
-    font-size: 13px;
-  }
+.pagination .per-page-select {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+}
+.pagination .per-page-select:focus {
+  border-color: var(--accent);
+}
+.pagination .per-page-label, .pagination .goto-label {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.pagination .goto-input {
+  width: 60px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-size: 14px;
+  text-align: center;
+  outline: none;
+}
+.pagination .goto-input:focus {
+  border-color: var(--accent);
+}
+.pagination .goto-input::-webkit-inner-spin-button, .pagination .goto-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .pagination .page-total {
   font-size: 13px;

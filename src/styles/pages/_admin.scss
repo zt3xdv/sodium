@@ -479,27 +479,55 @@
 .pagination {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px;
   margin-top: 24px;
   padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  flex-wrap: wrap;
   
-  @media (max-width: 480px) {
-    gap: 8px;
-    padding: 12px;
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 12px;
   }
   
-  .page-btn {
+  .pagination-left, .pagination-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    @media (max-width: 768px) {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+  
+  .pagination-center {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .page-btn, .page-num {
     display: flex;
     align-items: center;
     justify-content: center;
     min-width: 36px;
     height: 36px;
-    padding: 0 12px;
+    padding: 0 10px;
     border-radius: var(--radius-md);
     background: var(--bg-tertiary);
     color: var(--text-secondary);
     font-weight: 500;
+    font-size: 14px;
     transition: all var(--transition-fast);
     
     @media (max-width: 480px) {
@@ -529,13 +557,50 @@
     }
   }
   
-  .page-info {
-    font-size: 14px;
-    font-weight: 500;
+  .page-ellipsis {
+    padding: 0 4px;
+    color: var(--text-tertiary);
+  }
+  
+  .per-page-select {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
     color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
     
-    @media (max-width: 480px) {
-      font-size: 13px;
+    &:focus {
+      border-color: var(--accent);
+    }
+  }
+  
+  .per-page-label, .goto-label {
+    font-size: 13px;
+    color: var(--text-tertiary);
+  }
+  
+  .goto-input {
+    width: 60px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 8px 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+    
+    &:focus {
+      border-color: var(--accent);
+    }
+    
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
   }
   

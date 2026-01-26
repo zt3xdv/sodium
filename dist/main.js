@@ -2569,31 +2569,67 @@ function cleanupStatus() {
 
 let currentTab = 'nodes';
 let currentPage = { nodes: 1, servers: 1, users: 1 };
-const perPage = 10;
+let itemsPerPage = { nodes: 10, servers: 10, users: 10 };
 
-function renderPagination(meta, onPageChange) {
-  if (meta.total_pages <= 1) return '';
+function renderPagination(meta, tab) {
+  if (meta.total === 0) return '';
   
-  let pages = '';
-  for (let i = 1; i <= meta.total_pages; i++) {
-    pages += `<button class="page-btn ${i === meta.current_page ? 'active' : ''}" data-page="${i}">${i}</button>`;
+  // Generate page numbers
+  let pageNumbers = '';
+  const maxVisible = 5;
+  let startPage = Math.max(1, meta.current_page - Math.floor(maxVisible / 2));
+  let endPage = Math.min(meta.total_pages, startPage + maxVisible - 1);
+  
+  if (endPage - startPage < maxVisible - 1) {
+    startPage = Math.max(1, endPage - maxVisible + 1);
+  }
+  
+  if (startPage > 1) {
+    pageNumbers += `<button class="page-num" data-page="1">1</button>`;
+    if (startPage > 2) pageNumbers += `<span class="page-ellipsis">...</span>`;
+  }
+  
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers += `<button class="page-num ${i === meta.current_page ? 'active' : ''}" data-page="${i}">${i}</button>`;
+  }
+  
+  if (endPage < meta.total_pages) {
+    if (endPage < meta.total_pages - 1) pageNumbers += `<span class="page-ellipsis">...</span>`;
+    pageNumbers += `<button class="page-num" data-page="${meta.total_pages}">${meta.total_pages}</button>`;
   }
   
   return `
     <div class="pagination">
-      <button class="page-btn" data-page="${meta.current_page - 1}" ${meta.current_page <= 1 ? 'disabled' : ''}>
-        <span class="material-icons-outlined">chevron_left</span>
-      </button>
-      <span class="page-info">${meta.current_page} / ${meta.total_pages}</span>
-      <button class="page-btn" data-page="${meta.current_page + 1}" ${meta.current_page >= meta.total_pages ? 'disabled' : ''}>
-        <span class="material-icons-outlined">chevron_right</span>
-      </button>
-      <span class="page-total">(${meta.total} total)</span>
+      <div class="pagination-left">
+        <select class="per-page-select" data-tab="${tab}">
+          <option value="10" ${meta.per_page === 10 ? 'selected' : ''}>10</option>
+          <option value="25" ${meta.per_page === 25 ? 'selected' : ''}>25</option>
+          <option value="50" ${meta.per_page === 50 ? 'selected' : ''}>50</option>
+        </select>
+        <span class="per-page-label">per page</span>
+      </div>
+      
+      <div class="pagination-center">
+        <button class="page-btn" data-page="${meta.current_page - 1}" ${meta.current_page <= 1 ? 'disabled' : ''}>
+          <span class="material-icons-outlined">chevron_left</span>
+        </button>
+        <div class="page-numbers">${pageNumbers}</div>
+        <button class="page-btn" data-page="${meta.current_page + 1}" ${meta.current_page >= meta.total_pages ? 'disabled' : ''}>
+          <span class="material-icons-outlined">chevron_right</span>
+        </button>
+      </div>
+      
+      <div class="pagination-right">
+        <span class="goto-label">Go to</span>
+        <input type="number" class="goto-input" min="1" max="${meta.total_pages}" value="${meta.current_page}" data-tab="${tab}" />
+        <span class="page-total">of ${meta.total_pages} (${meta.total} items)</span>
+      </div>
     </div>
   `;
 }
 
 function setupPaginationListeners(tab) {
+  // Page buttons (prev/next)
   document.querySelectorAll('.pagination .page-btn').forEach(btn => {
     btn.onclick = () => {
       const page = parseInt(btn.dataset.page);
@@ -2603,6 +2639,40 @@ function setupPaginationListeners(tab) {
       }
     };
   });
+  
+  // Page number buttons
+  document.querySelectorAll('.pagination .page-num').forEach(btn => {
+    btn.onclick = () => {
+      const page = parseInt(btn.dataset.page);
+      currentPage[tab] = page;
+      loadTab(tab);
+    };
+  });
+  
+  // Per page selector
+  const perPageSelect = document.querySelector('.per-page-select');
+  if (perPageSelect) {
+    perPageSelect.onchange = (e) => {
+      itemsPerPage[tab] = parseInt(e.target.value);
+      currentPage[tab] = 1;
+      loadTab(tab);
+    };
+  }
+  
+  // Go to page input
+  const gotoInput = document.querySelector('.goto-input');
+  if (gotoInput) {
+    gotoInput.onkeypress = (e) => {
+      if (e.key === 'Enter') {
+        let page = parseInt(gotoInput.value);
+        const max = parseInt(gotoInput.max);
+        if (page < 1) page = 1;
+        if (page > max) page = max;
+        currentPage[tab] = page;
+        loadTab(tab);
+      }
+    };
+  }
 }
 
 async function renderAdmin() {
@@ -2690,7 +2760,7 @@ async function loadTab(tab) {
 
 async function loadNodes(container, username) {
   try {
-    const res = await fetch(`/api/admin/nodes?username=${encodeURIComponent(username)}&page=${currentPage.nodes}&per_page=${perPage}`);
+    const res = await fetch(`/api/admin/nodes?username=${encodeURIComponent(username)}&page=${currentPage.nodes}&per_page=${itemsPerPage.nodes}`);
     const data = await res.json();
     
     container.innerHTML = `
@@ -2817,7 +2887,7 @@ async function loadNodes(container, username) {
           `).join('')}
         </div>
         
-        ${renderPagination(data.meta)}
+        ${renderPagination(data.meta, 'nodes')}
       </div>
     `;
     
@@ -3073,7 +3143,7 @@ window.deleteNode = async function(nodeId) {
 
 async function loadServersTab(container, username) {
   try {
-    const res = await fetch(`/api/admin/servers?username=${encodeURIComponent(username)}&page=${currentPage.servers}&per_page=${perPage}`);
+    const res = await fetch(`/api/admin/servers?username=${encodeURIComponent(username)}&page=${currentPage.servers}&per_page=${itemsPerPage.servers}`);
     const data = await res.json();
     
     container.innerHTML = `
@@ -3163,7 +3233,7 @@ async function loadServersTab(container, username) {
           </table>
         </div>
         
-        ${renderPagination(data.meta)}
+        ${renderPagination(data.meta, 'servers')}
       </div>
     `;
     
@@ -3231,7 +3301,7 @@ window.deleteServer = async function(serverId) {
 
 async function loadUsers(container, username) {
   try {
-    const res = await fetch(`/api/admin/users?username=${encodeURIComponent(username)}&page=${currentPage.users}&per_page=${perPage}`);
+    const res = await fetch(`/api/admin/users?username=${encodeURIComponent(username)}&page=${currentPage.users}&per_page=${itemsPerPage.users}`);
     const data = await res.json();
     
     container.innerHTML = `
@@ -3293,7 +3363,7 @@ async function loadUsers(container, username) {
           `).join('')}
         </div>
         
-        ${renderPagination(data.meta)}
+        ${renderPagination(data.meta, 'users')}
       </div>
     `;
     
