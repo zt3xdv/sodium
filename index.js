@@ -513,7 +513,8 @@ function generateNodeConfig(node) {
         }
       }
     },
-    remote: loadConfig().panel?.url || 'http://localhost:3000'
+    remote: loadConfig().panel?.url || 'http://localhost:3000',
+    allowed_origins: ['*']
   };
 }
 
