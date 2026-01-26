@@ -159,7 +159,8 @@ function handleSocketMessage(message) {
       
     case 'console output':
       if (args && args[0] && terminal) {
-        terminal.write(args[0]);
+        const output = args[0].replace(/\r?\n/g, '\r\n');
+        terminal.write(output);
       }
       break;
       
@@ -177,7 +178,8 @@ function handleSocketMessage(message) {
       
     case 'install output':
       if (args && args[0] && terminal) {
-        terminal.writeln(`\x1b[33m[INSTALL]\x1b[0m ${args[0]}`);
+        const output = args[0].replace(/\r?\n/g, '\r\n');
+        terminal.write(`\x1b[33m${output}\x1b[0m`);
       }
       break;
       
