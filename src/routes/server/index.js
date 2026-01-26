@@ -188,7 +188,7 @@ async function loadServerDetails(serverId) {
     
     document.getElementById('server-name').textContent = serverData.name;
     document.getElementById('server-address').textContent = 
-      `${serverData.allocation?.ip}:${serverData.allocation?.port}`;
+      serverData.node_address || `${serverData.allocation?.ip}:${serverData.allocation?.port}`;
   } catch (e) {
     console.error('Failed to load server:', e);
   }

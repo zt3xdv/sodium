@@ -882,7 +882,10 @@ app.post('/api/admin/servers', async (req, res) => {
         disk_space: newServer.limits.disk
       },
       container: { image: newServer.docker_image },
-      allocations: { default: { ip: newServer.allocation.ip, port: newServer.allocation.port }, mappings: {} }
+      allocations: {
+        default: { ip: newServer.allocation.ip, port: newServer.allocation.port },
+        mappings: { [newServer.allocation.ip]: [newServer.allocation.port] }
+      }
     });
     newServer.status = 'offline';
   } catch (e) {
@@ -925,7 +928,19 @@ app.get('/api/servers', (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found' });
   
   const data = loadServers();
-  const userServers = data.servers.filter(s => s.user_id === user.id);
+  const nodes = loadNodes();
+  
+  const userServers = data.servers
+    .filter(s => s.user_id === user.id)
+    .map(server => {
+      const node = nodes.nodes.find(n => n.id === server.node_id);
+      return {
+        ...server,
+        node_address: node ? `${node.fqdn}:${server.allocation?.port || 25565}` : null,
+        node_name: node?.name || null
+      };
+    });
+  
   res.json({ servers: userServers });
 });
 
@@ -943,7 +958,16 @@ app.get('/api/servers/:id', async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
   
-  res.json({ server });
+  const nodes = loadNodes();
+  const node = nodes.nodes.find(n => n.id === server.node_id);
+  
+  const serverWithNode = {
+    ...server,
+    node_address: node ? `${node.fqdn}:${server.allocation?.port || 25565}` : null,
+    node_name: node?.name || null
+  };
+  
+  res.json({ server: serverWithNode });
 });
 
 app.post('/api/servers/:id/power', async (req, res) => {

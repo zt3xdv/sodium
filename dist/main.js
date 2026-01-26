@@ -1219,7 +1219,7 @@ async function loadServers() {
           </div>
           <div class="info-row">
             <span class="label">Address</span>
-            <span class="value">${server.allocation?.ip}:${server.allocation?.port}</span>
+            <span class="value">${server.node_address || `${server.allocation?.ip}:${server.allocation?.port}`}</span>
           </div>
         </div>
         <div class="server-actions">
@@ -2544,7 +2544,7 @@ async function loadServerDetails(serverId) {
     
     document.getElementById('server-name').textContent = serverData.name;
     document.getElementById('server-address').textContent = 
-      `${serverData.allocation?.ip}:${serverData.allocation?.port}`;
+      serverData.node_address || `${serverData.allocation?.ip}:${serverData.allocation?.port}`;
   } catch (e) {
     console.error('Failed to load server:', e);
   }

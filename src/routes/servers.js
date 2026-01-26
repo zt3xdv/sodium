@@ -118,7 +118,7 @@ async function loadServers() {
           </div>
           <div class="info-row">
             <span class="label">Address</span>
-            <span class="value">${server.allocation?.ip}:${server.allocation?.port}</span>
+            <span class="value">${server.node_address || `${server.allocation?.ip}:${server.allocation?.port}`}</span>
           </div>
         </div>
         <div class="server-actions">
