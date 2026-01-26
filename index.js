@@ -1737,6 +1737,104 @@ app.post('/api/servers', async (req, res) => {
   res.json({ success: true, server: newServer });
 });
 
+// ==================== SERVER SETTINGS ====================
+app.put('/api/servers/:id/details', async (req, res) => {
+  const { username, name, description } = req.body;
+  const result = await getServerAndNode(req.params.id, username);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  
+  const { server, node } = result;
+  
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return res.status(400).json({ error: 'Server name is required' });
+  }
+  
+  if (name.length > 50) {
+    return res.status(400).json({ error: 'Server name must be 50 characters or less' });
+  }
+  
+  const data = loadServers();
+  const serverIndex = data.servers.findIndex(s => s.id === req.params.id);
+  if (serverIndex === -1) return res.status(404).json({ error: 'Server not found' });
+  
+  data.servers[serverIndex].name = sanitizeText(name.trim());
+  data.servers[serverIndex].description = sanitizeText((description || '').slice(0, 200));
+  
+  saveServers(data);
+  
+  try {
+    const eggs = loadEggs();
+    const egg = eggs.eggs.find(e => e.id === server.egg_id) || {};
+    
+    await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/sync`, {
+      uuid: server.uuid,
+      suspended: server.suspended || false,
+      environment: server.environment || {},
+      invocation: server.startup || egg.startup || '',
+      skip_egg_scripts: false,
+      build: {
+        memory_limit: server.limits?.memory || 1024,
+        swap: server.limits?.swap || 0,
+        io_weight: server.limits?.io || 500,
+        cpu_limit: server.limits?.cpu || 100,
+        disk_space: server.limits?.disk || 5120
+      },
+      container: {
+        image: server.docker_image || egg.docker_image || ''
+      }
+    });
+  } catch (e) {
+    console.log('[SETTINGS] Failed to sync with Wings:', e.message);
+  }
+  
+  res.json({ success: true, server: data.servers[serverIndex] });
+});
+
+app.post('/api/servers/:id/reinstall', async (req, res) => {
+  const { username } = req.body;
+  const result = await getServerAndNode(req.params.id, username);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  
+  const { server, node } = result;
+  
+  const data = loadServers();
+  const serverIndex = data.servers.findIndex(s => s.id === req.params.id);
+  if (serverIndex === -1) return res.status(404).json({ error: 'Server not found' });
+  
+  data.servers[serverIndex].status = 'installing';
+  saveServers(data);
+  
+  try {
+    await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/reinstall`);
+    res.json({ success: true });
+  } catch (e) {
+    console.log('[REINSTALL] Failed to reinstall:', e.message);
+    data.servers[serverIndex].status = 'offline';
+    saveServers(data);
+    res.status(500).json({ error: 'Failed to reinstall server: ' + e.message });
+  }
+});
+
+app.delete('/api/servers/:id', async (req, res) => {
+  const { username } = req.body;
+  const result = await getServerAndNode(req.params.id, username);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  
+  const { server, node } = result;
+  
+  try {
+    await wingsRequest(node, 'DELETE', `/api/servers/${server.uuid}`);
+  } catch (e) {
+    console.log('[DELETE] Failed to delete from Wings:', e.message);
+  }
+  
+  const data = loadServers();
+  data.servers = data.servers.filter(s => s.id !== req.params.id);
+  saveServers(data);
+  
+  res.json({ success: true });
+});
+
 // ==================== USER LIMITS ====================
 app.get('/api/user/limits', (req, res) => {
   const { username } = req.query;

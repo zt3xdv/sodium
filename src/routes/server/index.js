@@ -1,6 +1,7 @@
 import { renderConsoleTab, initConsoleTab, cleanupConsoleTab, setConsoleCallbacks } from './console.js';
 import { renderFilesTab, initFilesTab, cleanupFilesTab } from './files.js';
 import { renderStartupTab, initStartupTab, cleanupStartupTab } from './startup.js';
+import { renderSettingsTab, initSettingsTab, cleanupSettingsTab } from './settings.js';
 
 let currentServerId = null;
 let serverLimits = null;
@@ -11,7 +12,7 @@ const tabs = [
   { id: 'console', label: 'Console', icon: 'terminal' },
   { id: 'files', label: 'Files', icon: 'folder' },
   { id: 'startup', label: 'Startup', icon: 'play_circle' },
-  { id: 'settings', label: 'Settings', icon: 'settings', disabled: true }
+  { id: 'settings', label: 'Settings', icon: 'settings' }
 ];
 
 export function renderServerPage(serverId) {
@@ -152,6 +153,10 @@ function switchTab(tabId) {
       content.innerHTML = renderStartupTab();
       initStartupTab(currentServerId);
       break;
+    case 'settings':
+      content.innerHTML = renderSettingsTab();
+      initSettingsTab(currentServerId);
+      break;
     default:
       content.innerHTML = `<div class="card"><p>Coming soon...</p></div>`;
   }
@@ -167,6 +172,9 @@ function cleanupCurrentTab() {
       break;
     case 'startup':
       cleanupStartupTab();
+      break;
+    case 'settings':
+      cleanupSettingsTab();
       break;
   }
 }

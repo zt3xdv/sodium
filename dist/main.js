@@ -301,7 +301,7 @@ function renderDashboard() {
   }, 1000);
 }
 
-function escapeHtml$2(str) {
+function escapeHtml$3(str) {
   if (typeof str !== 'string') return '';
   return str
     .replace(/&/g, '&amp;')
@@ -325,7 +325,7 @@ function escapeUrl(url) {
 
 function sanitizeText(text, maxLength = 1000) {
   if (typeof text !== 'string') return '';
-  return escapeHtml$2(text.slice(0, maxLength).trim());
+  return escapeHtml$3(text.slice(0, maxLength).trim());
 }
 
 function isValidUrl(url) {
@@ -348,9 +348,9 @@ function createSafeElement(tag, attributes = {}, textContent = '') {
     } else if (key === 'class') {
       el.className = value;
     } else if (key.startsWith('data-')) {
-      el.setAttribute(key, escapeHtml$2(value));
+      el.setAttribute(key, escapeHtml$3(value));
     } else {
-      el.setAttribute(key, escapeHtml$2(value));
+      el.setAttribute(key, escapeHtml$3(value));
     }
   }
   
@@ -405,8 +405,8 @@ function renderProfile() {
               <span class="material-icons-outlined">person</span>
             </div>
             <div class="avatar-info">
-              <h3 id="profile-display-name">${escapeHtml$2(displayName)}</h3>
-              <span class="username">@${escapeHtml$2(username)}</span>
+              <h3 id="profile-display-name">${escapeHtml$3(displayName)}</h3>
+              <span class="username">@${escapeHtml$3(username)}</span>
             </div>
           </div>
         </div>
@@ -428,7 +428,7 @@ function renderProfile() {
               <label for="display-name">Display Name</label>
               <div class="input-wrapper">
                 <span class="material-icons-outlined">badge</span>
-                <input type="text" id="display-name" name="displayName" value="${escapeHtml$2(displayName)}" maxlength="50" placeholder="Your display name">
+                <input type="text" id="display-name" name="displayName" value="${escapeHtml$3(displayName)}" maxlength="50" placeholder="Your display name">
               </div>
               <small class="form-hint">This is how others will see you</small>
             </div>
@@ -560,7 +560,7 @@ function renderProfile() {
       const data = await res.json();
       
       if (data.error) {
-        messageEl.textContent = escapeHtml$2(data.error);
+        messageEl.textContent = escapeHtml$3(data.error);
         messageEl.className = 'message error';
       } else {
         messageEl.textContent = 'Profile updated successfully!';
@@ -568,10 +568,10 @@ function renderProfile() {
         localStorage.setItem('displayName', displayName);
         
         const profileDisplayName = document.getElementById('profile-display-name');
-        if (profileDisplayName) profileDisplayName.textContent = escapeHtml$2(displayName);
+        if (profileDisplayName) profileDisplayName.textContent = escapeHtml$3(displayName);
         
         const navDisplayName = document.querySelector('.user-display-name');
-        if (navDisplayName) navDisplayName.textContent = escapeHtml$2(displayName);
+        if (navDisplayName) navDisplayName.textContent = escapeHtml$3(displayName);
       }
     } catch (err) {
       messageEl.textContent = 'Connection error. Please try again.';
@@ -1037,7 +1037,7 @@ async function loadUserProfile(targetUsername) {
                 return `
                   <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="link-item">
                     <span class="material-icons-outlined">${linkIcons[key] || 'link'}</span>
-                    <span>${escapeHtml$2(linkLabels[key] || key)}</span>
+                    <span>${escapeHtml$3(linkLabels[key] || key)}</span>
                     <span class="material-icons-outlined external">open_in_new</span>
                   </a>
                 `;
@@ -1059,8 +1059,8 @@ async function loadUserProfile(targetUsername) {
             ${avatarHtml}
           </div>
           <div class="user-info">
-            <h1>${escapeHtml$2(user.displayName || user.username)}</h1>
-            <span class="user-username">@${escapeHtml$2(user.username)}</span>
+            <h1>${escapeHtml$3(user.displayName || user.username)}</h1>
+            <span class="user-username">@${escapeHtml$3(user.username)}</span>
             ${isPrivate ? '<span class="private-badge"><span class="material-icons-outlined">lock</span> Private Profile</span>' : ''}
           </div>
         </div>
@@ -1068,7 +1068,7 @@ async function loadUserProfile(targetUsername) {
         ${!isPrivate && user.bio ? `
           <div class="user-bio">
             <h3>About</h3>
-            <p>${escapeHtml$2(user.bio)}</p>
+            <p>${escapeHtml$3(user.bio)}</p>
           </div>
         ` : ''}
         
@@ -1207,7 +1207,7 @@ async function loadServers() {
     container.innerHTML = data.servers.map(server => `
       <div class="server-card card" data-id="${server.id}">
         <div class="server-header">
-          <h3>${escapeHtml$2(server.name)}</h3>
+          <h3>${escapeHtml$3(server.name)}</h3>
           <span class="status status-${server.status || 'offline'}">${server.status || 'offline'}</span>
         </div>
         <div class="server-info">
@@ -1311,7 +1311,7 @@ async function showCreateServerModal() {
           <div class="form-group">
             <label>Egg</label>
             <select name="egg_id" required>
-              ${allEggs.map(e => `<option value="${e.id}">${escapeHtml$2(e.name)}</option>`).join('')}
+              ${allEggs.map(e => `<option value="${e.id}">${escapeHtml$3(e.name)}</option>`).join('')}
             </select>
           </div>
           
@@ -1763,7 +1763,7 @@ function cleanupConsoleTab() {
 }
 
 let currentPath = '/';
-let currentServerId$2 = null;
+let currentServerId$3 = null;
 let isEditing = false;
 let editingPath = null;
 
@@ -1818,7 +1818,7 @@ function renderFilesTab() {
 
 function initFilesTab(serverId) {
   currentPath = '/';
-  currentServerId$2 = serverId;
+  currentServerId$3 = serverId;
   isEditing = false;
   editingPath = null;
   loadFiles(serverId, currentPath);
@@ -1905,7 +1905,7 @@ function renderFilesList(files, serverId) {
       </div>
       <div class="file-info">
         <span class="file-name">${file.name}</span>
-        <span class="file-meta">${isDir ? '--' : formatBytes$1(file.size)} • ${formatDate(file.modified_at)}</span>
+        <span class="file-meta">${isDir ? '--' : formatBytes$1(file.size)} • ${formatDate$1(file.modified_at)}</span>
       </div>
       <div class="file-actions">
         ${!isDir && isEditable(file.name) ? `
@@ -1992,7 +1992,7 @@ function formatBytes$1(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-function formatDate(dateStr) {
+function formatDate$1(dateStr) {
   if (!dateStr) return '--';
   const date = new Date(dateStr);
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -2174,7 +2174,7 @@ async function editFile(serverId, path) {
   }
 }
 
-function escapeHtml$1(text) {
+function escapeHtml$2(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
@@ -2255,8 +2255,8 @@ function cleanupFilesTab() {
   currentPath = '/';
 }
 
-let currentServerId$1 = null;
-let serverData$1 = null;
+let currentServerId$2 = null;
+let serverData$2 = null;
 let eggData = null;
 
 function renderStartupTab() {
@@ -2275,7 +2275,7 @@ function renderStartupTab() {
 }
 
 async function initStartupTab(serverId) {
-  currentServerId$1 = serverId;
+  currentServerId$2 = serverId;
   await loadStartupData(serverId);
 }
 
@@ -2297,10 +2297,10 @@ async function loadStartupData(serverId) {
       return;
     }
     
-    serverData$1 = serverJson.server;
+    serverData$2 = serverJson.server;
     eggData = startupJson.egg;
     
-    renderStartupForm(serverData$1, eggData);
+    renderStartupForm(serverData$2, eggData);
   } catch (e) {
     console.error('Failed to load startup data:', e);
     content.innerHTML = '<div class="error">Failed to load startup configuration</div>';
@@ -2317,18 +2317,18 @@ function renderStartupForm(server, egg) {
         <h4>Startup Command</h4>
         <p class="form-hint">This command is executed when the server starts. Use {{VARIABLE}} syntax for variables.</p>
         <div class="form-group">
-          <textarea name="startup" id="startup-command" rows="3" spellcheck="false">${escapeHtml(server.startup || egg?.startup || '')}</textarea>
+          <textarea name="startup" id="startup-command" rows="3" spellcheck="false">${escapeHtml$1(server.startup || egg?.startup || '')}</textarea>
         </div>
         <div class="startup-preview">
           <span class="preview-label">Preview:</span>
-          <code id="startup-preview">${escapeHtml(parseStartupCommand(server.startup || egg?.startup || '', server.environment || {}))}</code>
+          <code id="startup-preview">${escapeHtml$1(parseStartupCommand(server.startup || egg?.startup || '', server.environment || {}))}</code>
         </div>
       </div>
       
       <div class="form-section">
         <h4>Docker Image</h4>
         <div class="form-group">
-          <input type="text" name="docker_image" value="${escapeHtml(server.docker_image || egg?.docker_image || '')}" placeholder="ghcr.io/image:tag" />
+          <input type="text" name="docker_image" value="${escapeHtml$1(server.docker_image || egg?.docker_image || '')}" placeholder="ghcr.io/image:tag" />
         </div>
       </div>
       
@@ -2341,19 +2341,19 @@ function renderStartupForm(server, egg) {
           ${variables.map(v => `
             <div class="variable-item">
               <div class="variable-header">
-                <label for="var-${v.env_variable}">${escapeHtml(v.name)}</label>
-                <code class="variable-key">${escapeHtml(v.env_variable)}</code>
+                <label for="var-${v.env_variable}">${escapeHtml$1(v.name)}</label>
+                <code class="variable-key">${escapeHtml$1(v.env_variable)}</code>
               </div>
-              <p class="variable-description">${escapeHtml(v.description || '')}</p>
+              <p class="variable-description">${escapeHtml$1(v.description || '')}</p>
               <input 
                 type="text" 
                 id="var-${v.env_variable}"
                 name="env_${v.env_variable}" 
-                value="${escapeHtml(server.environment?.[v.env_variable] ?? v.default_value ?? '')}"
-                placeholder="${escapeHtml(v.default_value || '')}"
+                value="${escapeHtml$1(server.environment?.[v.env_variable] ?? v.default_value ?? '')}"
+                placeholder="${escapeHtml$1(v.default_value || '')}"
                 data-var="${v.env_variable}"
               />
-              ${v.rules ? `<span class="variable-rules">${escapeHtml(v.rules)}</span>` : ''}
+              ${v.rules ? `<span class="variable-rules">${escapeHtml$1(v.rules)}</span>` : ''}
             </div>
           `).join('')}
         </div>
@@ -2439,7 +2439,7 @@ async function saveStartup() {
   saveBtn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> Saving...';
   
   try {
-    const res = await fetch(`/api/servers/${currentServerId$1}/startup`, {
+    const res = await fetch(`/api/servers/${currentServerId$2}/startup`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2489,7 +2489,7 @@ async function resetToDefaults() {
     parseStartupCommand(eggData.startup || '', env);
 }
 
-function escapeHtml(text) {
+function escapeHtml$1(text) {
   if (typeof text !== 'string') return '';
   const div = document.createElement('div');
   div.textContent = text;
@@ -2497,9 +2497,350 @@ function escapeHtml(text) {
 }
 
 function cleanupStartupTab() {
+  currentServerId$2 = null;
+  serverData$2 = null;
+  eggData = null;
+}
+
+let currentServerId$1 = null;
+let serverData$1 = null;
+
+function renderSettingsTab() {
+  return `
+    <div class="settings-tab">
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-header">
+            <h3>Server Details</h3>
+          </div>
+          <div class="card-content" id="settings-details">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+        
+        <div class="card danger-zone">
+          <div class="card-header">
+            <h3>Danger Zone</h3>
+          </div>
+          <div class="card-content">
+            <div class="danger-action">
+              <div class="danger-info">
+                <h4>Reinstall Server</h4>
+                <p>This will delete all server files and reinstall the server from scratch.</p>
+              </div>
+              <button class="btn btn-warning" id="btn-reinstall">
+                <span class="material-icons-outlined">refresh</span>
+                Reinstall
+              </button>
+            </div>
+            
+            <div class="danger-action">
+              <div class="danger-info">
+                <h4>Delete Server</h4>
+                <p>This will permanently delete the server and all its data. This action cannot be undone.</p>
+              </div>
+              <button class="btn btn-danger" id="btn-delete">
+                <span class="material-icons-outlined">delete_forever</span>
+                Delete Server
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function initSettingsTab(serverId) {
+  currentServerId$1 = serverId;
+  await loadServerDetails$1(serverId);
+  
+  document.getElementById('btn-reinstall').onclick = () => confirmReinstall();
+  document.getElementById('btn-delete').onclick = () => confirmDelete();
+}
+
+async function loadServerDetails$1(serverId) {
+  const username = localStorage.getItem('username');
+  const content = document.getElementById('settings-details');
+  
+  try {
+    const res = await fetch(`/api/servers/${serverId}?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      content.innerHTML = `<div class="error">${escapeHtml(data.error)}</div>`;
+      return;
+    }
+    
+    serverData$1 = data.server;
+    renderDetailsForm(serverData$1);
+  } catch (e) {
+    console.error('Failed to load server details:', e);
+    content.innerHTML = '<div class="error">Failed to load server details</div>';
+  }
+}
+
+function renderDetailsForm(server) {
+  const content = document.getElementById('settings-details');
+  
+  content.innerHTML = `
+    <form id="details-form" class="settings-form">
+      <div class="form-group">
+        <label for="server-name">Server Name</label>
+        <input type="text" id="server-name" name="name" value="${escapeHtml(server.name)}" maxlength="50" required />
+      </div>
+      
+      <div class="form-group">
+        <label for="server-description">Description</label>
+        <textarea id="server-description" name="description" rows="3" maxlength="200" placeholder="Optional server description...">${escapeHtml(server.description || '')}</textarea>
+      </div>
+      
+      <div class="form-info">
+        <div class="info-row">
+          <span class="info-label">Server ID</span>
+          <code class="info-value">${escapeHtml(server.id)}</code>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Created</span>
+          <span class="info-value">${formatDate(server.created_at)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Address</span>
+          <span class="info-value">${escapeHtml(server.allocation?.ip || '0.0.0.0')}:${server.allocation?.port || 25565}</span>
+        </div>
+      </div>
+      
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="save-details">
+          <span class="material-icons-outlined">save</span>
+          Save Changes
+        </button>
+      </div>
+    </form>
+  `;
+  
+  document.getElementById('details-form').onsubmit = (e) => {
+    e.preventDefault();
+    saveDetails();
+  };
+}
+
+async function saveDetails() {
+  const username = localStorage.getItem('username');
+  const saveBtn = document.getElementById('save-details');
+  
+  const name = document.getElementById('server-name').value.trim();
+  const description = document.getElementById('server-description').value.trim();
+  
+  if (!name) {
+    alert('Server name is required');
+    return;
+  }
+  
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> Saving...';
+  
+  try {
+    const res = await fetch(`/api/servers/${currentServerId$1}/details`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, name, description })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok) {
+      saveBtn.innerHTML = '<span class="material-icons-outlined">check</span> Saved';
+      
+      const serverNameEl = document.getElementById('server-name-header');
+      if (serverNameEl) serverNameEl.textContent = name;
+      
+      const headerNameEl = document.querySelector('.server-title h1');
+      if (headerNameEl) headerNameEl.textContent = name;
+      
+      setTimeout(() => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span class="material-icons-outlined">save</span> Save Changes';
+      }, 1500);
+    } else {
+      alert(data.error || 'Failed to save');
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<span class="material-icons-outlined">save</span> Save Changes';
+    }
+  } catch (e) {
+    console.error('Failed to save details:', e);
+    alert('Failed to save server details');
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<span class="material-icons-outlined">save</span> Save Changes';
+  }
+}
+
+function confirmReinstall() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Reinstall Server</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="warning-box">
+          <span class="material-icons-outlined">warning</span>
+          <p>This will delete all server files and reinstall the server from scratch. This action cannot be undone!</p>
+        </div>
+        <p>Type <strong>REINSTALL</strong> to confirm:</p>
+        <input type="text" id="confirm-reinstall-input" placeholder="REINSTALL" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancel-reinstall">Cancel</button>
+        <button class="btn btn-warning" id="do-reinstall" disabled>Reinstall Server</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const input = document.getElementById('confirm-reinstall-input');
+  const doBtn = document.getElementById('do-reinstall');
+  
+  input.oninput = () => {
+    doBtn.disabled = input.value !== 'REINSTALL';
+  };
+  
+  modal.querySelector('.modal-close').onclick = () => modal.remove();
+  document.getElementById('cancel-reinstall').onclick = () => modal.remove();
+  
+  doBtn.onclick = async () => {
+    doBtn.disabled = true;
+    doBtn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> Reinstalling...';
+    await reinstallServer();
+    modal.remove();
+  };
+  
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.remove();
+  };
+}
+
+async function reinstallServer() {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${currentServerId$1}/reinstall`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok) {
+      alert('Server reinstall initiated. The server will be reinstalled shortly.');
+      window.router.navigateTo('/servers');
+    } else {
+      alert(data.error || 'Failed to reinstall server');
+    }
+  } catch (e) {
+    console.error('Failed to reinstall server:', e);
+    alert('Failed to reinstall server');
+  }
+}
+
+function confirmDelete() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Delete Server</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="warning-box danger">
+          <span class="material-icons-outlined">error</span>
+          <p>This will permanently delete the server and all its data. This action cannot be undone!</p>
+        </div>
+        <p>Type <strong>DELETE</strong> to confirm:</p>
+        <input type="text" id="confirm-delete-input" placeholder="DELETE" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancel-delete">Cancel</button>
+        <button class="btn btn-danger" id="do-delete" disabled>Delete Server</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const input = document.getElementById('confirm-delete-input');
+  const doBtn = document.getElementById('do-delete');
+  
+  input.oninput = () => {
+    doBtn.disabled = input.value !== 'DELETE';
+  };
+  
+  modal.querySelector('.modal-close').onclick = () => modal.remove();
+  document.getElementById('cancel-delete').onclick = () => modal.remove();
+  
+  doBtn.onclick = async () => {
+    doBtn.disabled = true;
+    doBtn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> Deleting...';
+    await deleteServer();
+    modal.remove();
+  };
+  
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.remove();
+  };
+}
+
+async function deleteServer() {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${currentServerId$1}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok) {
+      alert('Server deleted successfully');
+      window.router.navigateTo('/servers');
+    } else {
+      alert(data.error || 'Failed to delete server');
+    }
+  } catch (e) {
+    console.error('Failed to delete server:', e);
+    alert('Failed to delete server');
+  }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return 'Unknown';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function escapeHtml(text) {
+  if (typeof text !== 'string') return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function cleanupSettingsTab() {
   currentServerId$1 = null;
   serverData$1 = null;
-  eggData = null;
 }
 
 let currentServerId = null;
@@ -2511,7 +2852,7 @@ const tabs = [
   { id: 'console', label: 'Console', icon: 'terminal' },
   { id: 'files', label: 'Files', icon: 'folder' },
   { id: 'startup', label: 'Startup', icon: 'play_circle' },
-  { id: 'settings', label: 'Settings', icon: 'settings', disabled: true }
+  { id: 'settings', label: 'Settings', icon: 'settings' }
 ];
 
 function renderServerPage(serverId) {
@@ -2652,6 +2993,10 @@ function switchTab(tabId) {
       content.innerHTML = renderStartupTab();
       initStartupTab(currentServerId);
       break;
+    case 'settings':
+      content.innerHTML = renderSettingsTab();
+      initSettingsTab(currentServerId);
+      break;
     default:
       content.innerHTML = `<div class="card"><p>Coming soon...</p></div>`;
   }
@@ -2667,6 +3012,9 @@ function cleanupCurrentTab() {
       break;
     case 'startup':
       cleanupStartupTab();
+      break;
+    case 'settings':
+      cleanupSettingsTab();
       break;
   }
 }
@@ -2907,7 +3255,7 @@ async function loadStatus() {
           <div class="node-header">
             <div class="node-info">
               <span class="node-indicator ${node.status}"></span>
-              <h3>${escapeHtml$2(node.name)}</h3>
+              <h3>${escapeHtml$3(node.name)}</h3>
             </div>
             <span class="status-badge status-${node.status}">${node.status}</span>
           </div>
@@ -2919,7 +3267,7 @@ async function loadStatus() {
             </span>
             <span class="meta-item">
               <span class="material-icons-outlined">location_on</span>
-              ${escapeHtml$2(node.location || 'Unknown')}
+              ${escapeHtml$3(node.location || 'Unknown')}
             </span>
           </div>
           
@@ -3248,8 +3596,8 @@ async function loadNodes(container, username) {
               ${data.nodes.length === 0 ? '<tr><td colspan="6" class="empty">No nodes</td></tr>' : ''}
               ${data.nodes.map(node => `
                 <tr>
-                  <td>${escapeHtml$2(node.name)}</td>
-                  <td>${escapeHtml$2(node.fqdn)}</td>
+                  <td>${escapeHtml$3(node.name)}</td>
+                  <td>${escapeHtml$3(node.fqdn)}</td>
                   <td>${node.memory} MB</td>
                   <td>${node.disk} MB</td>
                   <td>${node.allocation_start || 25565}-${node.allocation_end || 25665}</td>
@@ -3270,12 +3618,12 @@ async function loadNodes(container, username) {
           ${data.nodes.map(node => `
             <div class="admin-card">
               <div class="card-header">
-                <h4>${escapeHtml$2(node.name)}</h4>
+                <h4>${escapeHtml$3(node.name)}</h4>
               </div>
               <div class="card-info">
                 <div class="info-row">
                   <span class="label">FQDN</span>
-                  <span class="value">${escapeHtml$2(node.fqdn)}</span>
+                  <span class="value">${escapeHtml$3(node.fqdn)}</span>
                 </div>
                 <div class="info-row">
                   <span class="label">Memory</span>
@@ -3313,7 +3661,7 @@ async function loadNodes(container, username) {
     const locRes = await fetch('/api/admin/locations');
     const locData = await locRes.json();
     document.getElementById('node-location').innerHTML = locData.locations.map(l => 
-      `<option value="${l.id}">${escapeHtml$2(l.long)} (${escapeHtml$2(l.short)})</option>`
+      `<option value="${l.id}">${escapeHtml$3(l.long)} (${escapeHtml$3(l.short)})</option>`
     ).join('');
     
     document.getElementById('add-node-btn').onclick = () => {
@@ -3362,16 +3710,16 @@ window.editNode = async function(nodeId) {
         <form id="edit-node-form">
           <div class="form-group">
             <label>Name</label>
-            <input type="text" name="name" value="${escapeHtml$2(node.name)}" required />
+            <input type="text" name="name" value="${escapeHtml$3(node.name)}" required />
           </div>
           <div class="form-group">
             <label>Description</label>
-            <input type="text" name="description" value="${escapeHtml$2(node.description || '')}" />
+            <input type="text" name="description" value="${escapeHtml$3(node.description || '')}" />
           </div>
           <div class="form-row">
             <div class="form-group">
               <label>FQDN</label>
-              <input type="text" name="fqdn" value="${escapeHtml$2(node.fqdn)}" required />
+              <input type="text" name="fqdn" value="${escapeHtml$3(node.fqdn)}" required />
             </div>
             <div class="form-group">
               <label>Scheme</label>
@@ -3409,7 +3757,7 @@ window.editNode = async function(nodeId) {
             <div class="form-group">
               <label>Location</label>
               <select name="location_id">
-                ${locData.locations.map(l => `<option value="${l.id}" ${l.id === node.location_id ? 'selected' : ''}>${escapeHtml$2(l.long)}</option>`).join('')}
+                ${locData.locations.map(l => `<option value="${l.id}" ${l.id === node.location_id ? 'selected' : ''}>${escapeHtml$3(l.long)}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -3479,7 +3827,7 @@ window.showDeployCommand = async function(nodeId) {
       <div class="modal-content">
         <h2>Deploy Command</h2>
         <p>Run this command on your node to configure Wings:</p>
-        <pre class="config-output" style="white-space:pre-wrap;word-break:break-all;">${escapeHtml$2(data.command)}</pre>
+        <pre class="config-output" style="white-space:pre-wrap;word-break:break-all;">${escapeHtml$3(data.command)}</pre>
         <div class="modal-actions">
           <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.modal').querySelector('.config-output').textContent);this.textContent='Copied!'">Copy</button>
           <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Close</button>
@@ -3512,7 +3860,7 @@ window.showNodeConfig = async function(nodeId) {
       <div class="modal-content">
         <h2>Wings Configuration</h2>
         <p>Copy this configuration to <code>/etc/pterodactyl/config.yml</code> on your node:</p>
-        <pre class="config-output">${escapeHtml$2(yamlConfig)}</pre>
+        <pre class="config-output">${escapeHtml$3(yamlConfig)}</pre>
         <div class="modal-actions">
           <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.modal').querySelector('.config-output').textContent);this.textContent='Copied!'">Copy</button>
           <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Close</button>
@@ -3647,7 +3995,7 @@ async function loadServersTab(container, username) {
               ${data.servers.length === 0 ? '<tr><td colspan="5" class="empty">No servers</td></tr>' : ''}
               ${data.servers.map(s => `
                 <tr>
-                  <td>${escapeHtml$2(s.name)}</td>
+                  <td>${escapeHtml$3(s.name)}</td>
                   <td>${s.user_id?.substring(0, 8) || '--'}</td>
                   <td>${s.limits?.memory || 0}MB / ${s.limits?.disk || 0}MB / ${s.limits?.cpu || 0}%</td>
                   <td><span class="status-badge status-${s.status}">${s.status}</span></td>
@@ -3669,19 +4017,19 @@ async function loadServersTab(container, username) {
     const usersRes = await fetch(`/api/admin/users?username=${encodeURIComponent(username)}&per_page=100`);
     const usersData = await usersRes.json();
     document.getElementById('server-user').innerHTML = usersData.users.map(u => 
-      `<option value="${u.id}">${escapeHtml$2(u.username)}</option>`
+      `<option value="${u.id}">${escapeHtml$3(u.username)}</option>`
     ).join('');
     
     const nodesRes = await fetch(`/api/admin/nodes?username=${encodeURIComponent(username)}&per_page=100`);
     const nodesData = await nodesRes.json();
     document.getElementById('server-node').innerHTML = nodesData.nodes.map(n => 
-      `<option value="${n.id}">${escapeHtml$2(n.name)}</option>`
+      `<option value="${n.id}">${escapeHtml$3(n.name)}</option>`
     ).join('');
     
     const eggsRes = await fetch('/api/admin/eggs');
     const eggsData = await eggsRes.json();
     document.getElementById('server-egg').innerHTML = eggsData.eggs.map(e => 
-      `<option value="${e.id}">${escapeHtml$2(e.name)}</option>`
+      `<option value="${e.id}">${escapeHtml$3(e.name)}</option>`
     ).join('');
     
     document.getElementById('add-server-btn').onclick = () => {
@@ -3751,8 +4099,8 @@ async function loadUsers(container, username) {
             <tbody>
               ${data.users.map(u => `
                 <tr>
-                  <td>${escapeHtml$2(u.username)}</td>
-                  <td>${escapeHtml$2(u.displayName || u.username)}</td>
+                  <td>${escapeHtml$3(u.username)}</td>
+                  <td>${escapeHtml$3(u.displayName || u.username)}</td>
                   <td>${u.isAdmin ? '✓' : '✗'}</td>
                   <td>${u.limits ? `${u.limits.servers} servers, ${u.limits.memory}MB` : 'Default'}</td>
                   <td>
@@ -3769,13 +4117,13 @@ async function loadUsers(container, username) {
           ${data.users.map(u => `
             <div class="admin-card">
               <div class="card-header">
-                <h4>${escapeHtml$2(u.username)}</h4>
+                <h4>${escapeHtml$3(u.username)}</h4>
                 <span class="status ${u.isAdmin ? 'status-online' : ''}">${u.isAdmin ? 'Admin' : 'User'}</span>
               </div>
               <div class="card-info">
                 <div class="info-row">
                   <span class="label">Display Name</span>
-                  <span class="value">${escapeHtml$2(u.displayName || u.username)}</span>
+                  <span class="value">${escapeHtml$3(u.displayName || u.username)}</span>
                 </div>
                 <div class="info-row">
                   <span class="label">Limits</span>
@@ -3863,14 +4211,14 @@ async function loadNests(container, username) {
         <div class="nests-grid">
           ${data.nests.map(nest => `
             <div class="nest-card card">
-              <h3>${escapeHtml$2(nest.name)}</h3>
-              <p>${escapeHtml$2(nest.description)}</p>
+              <h3>${escapeHtml$3(nest.name)}</h3>
+              <p>${escapeHtml$3(nest.description)}</p>
               <div class="eggs-list">
                 <h4>Eggs (${nest.eggs?.length || 0})</h4>
                 ${(nest.eggs || []).map(egg => `
                   <div class="egg-item">
-                    <span class="egg-name">${escapeHtml$2(egg.name)}</span>
-                    <span class="egg-image">${escapeHtml$2(egg.docker_image?.split('/').pop() || '')}</span>
+                    <span class="egg-name">${escapeHtml$3(egg.name)}</span>
+                    <span class="egg-image">${escapeHtml$3(egg.docker_image?.split('/').pop() || '')}</span>
                   </div>
                 `).join('') || '<div class="empty">No eggs</div>'}
               </div>
@@ -3949,8 +4297,8 @@ async function loadLocations(container, username) {
               ${data.locations.map(l => `
                 <tr>
                   <td>${l.id}</td>
-                  <td>${escapeHtml$2(l.short)}</td>
-                  <td>${escapeHtml$2(l.long)}</td>
+                  <td>${escapeHtml$3(l.short)}</td>
+                  <td>${escapeHtml$3(l.long)}</td>
                   <td>
                     <button class="btn btn-sm btn-danger" onclick="deleteLocation('${l.id}')">Delete</button>
                   </td>
@@ -3965,12 +4313,12 @@ async function loadLocations(container, username) {
           ${data.locations.map(l => `
             <div class="admin-card">
               <div class="card-header">
-                <h4>${escapeHtml$2(l.short)}</h4>
+                <h4>${escapeHtml$3(l.short)}</h4>
               </div>
               <div class="card-info">
                 <div class="info-row">
                   <span class="label">Full Name</span>
-                  <span class="value">${escapeHtml$2(l.long)}</span>
+                  <span class="value">${escapeHtml$3(l.long)}</span>
                 </div>
                 <div class="info-row">
                   <span class="label">ID</span>
