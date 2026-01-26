@@ -110,6 +110,14 @@ function updateBreadcrumb(path, serverId) {
   });
 }
 
+function isDirectory(file) {
+  if (typeof file.is_file === 'boolean') return !file.is_file;
+  if (typeof file.is_directory === 'boolean') return file.is_directory;
+  if (typeof file.directory === 'boolean') return file.directory;
+  if (file.mime === 'inode/directory') return true;
+  return false;
+}
+
 function renderFilesList(files, serverId) {
   const filesList = document.getElementById('files-list');
   
@@ -119,15 +127,13 @@ function renderFilesList(files, serverId) {
   }
   
   const sorted = [...files].sort((a, b) => {
-    const aIsDir = a.is_directory || a.directory || !a.is_file;
-    const bIsDir = b.is_directory || b.directory || !b.is_file;
-    if (aIsDir && !bIsDir) return -1;
-    if (!aIsDir && bIsDir) return 1;
+    if (isDirectory(a) && !isDirectory(b)) return -1;
+    if (!isDirectory(a) && isDirectory(b)) return 1;
     return a.name.localeCompare(b.name);
   });
   
   filesList.innerHTML = sorted.map(file => {
-    const isDir = file.is_directory || file.directory || !file.is_file;
+    const isDir = isDirectory(file);
     return `
     <div class="file-item ${isDir ? 'directory' : 'file'}" data-name="${file.name}" data-is-dir="${isDir}">
       <div class="file-icon">
