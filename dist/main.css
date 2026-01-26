@@ -2426,6 +2426,9 @@ input, textarea, select {
   display: none;
 }
 .admin-page .admin-tabs .tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 20px;
   border-radius: var(--radius-md);
   font-weight: 500;
@@ -2434,10 +2437,23 @@ input, textarea, select {
   white-space: nowrap;
   flex-shrink: 0;
 }
+.admin-page .admin-tabs .tab-btn .material-icons-outlined {
+  font-size: 20px;
+}
 @media (max-width: 768px) {
   .admin-page .admin-tabs .tab-btn {
-    padding: 8px 14px;
-    font-size: 13px;
+    padding: 10px 14px;
+  }
+  .admin-page .admin-tabs .tab-btn .tab-label {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .admin-page .admin-tabs .tab-btn {
+    padding: 10px 12px;
+  }
+  .admin-page .admin-tabs .tab-btn .material-icons-outlined {
+    font-size: 22px;
   }
 }
 .admin-page .admin-tabs .tab-btn:hover {

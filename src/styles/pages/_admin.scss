@@ -43,6 +43,9 @@
     }
     
     .tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       padding: 10px 20px;
       border-radius: var(--radius-md);
       font-weight: 500;
@@ -51,9 +54,24 @@
       white-space: nowrap;
       flex-shrink: 0;
       
+      .material-icons-outlined {
+        font-size: 20px;
+      }
+      
       @media (max-width: 768px) {
-        padding: 8px 14px;
-        font-size: 13px;
+        padding: 10px 14px;
+        
+        .tab-label {
+          display: none;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        padding: 10px 12px;
+        
+        .material-icons-outlined {
+          font-size: 22px;
+        }
       }
       
       &:hover {

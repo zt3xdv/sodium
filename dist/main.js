@@ -2515,11 +2515,11 @@ async function renderAdmin() {
       </div>
       
       <div class="admin-tabs">
-        <button class="tab-btn active" data-tab="nodes">Nodes</button>
-        <button class="tab-btn" data-tab="servers">Servers</button>
-        <button class="tab-btn" data-tab="users">Users</button>
-        <button class="tab-btn" data-tab="nests">Nests & Eggs</button>
-        <button class="tab-btn" data-tab="locations">Locations</button>
+        <button class="tab-btn active" data-tab="nodes" title="Nodes"><span class="material-icons-outlined">dns</span><span class="tab-label">Nodes</span></button>
+        <button class="tab-btn" data-tab="servers" title="Servers"><span class="material-icons-outlined">storage</span><span class="tab-label">Servers</span></button>
+        <button class="tab-btn" data-tab="users" title="Users"><span class="material-icons-outlined">people</span><span class="tab-label">Users</span></button>
+        <button class="tab-btn" data-tab="nests" title="Nests & Eggs"><span class="material-icons-outlined">egg</span><span class="tab-label">Nests</span></button>
+        <button class="tab-btn" data-tab="locations" title="Locations"><span class="material-icons-outlined">location_on</span><span class="tab-label">Locations</span></button>
       </div>
       
       <div class="admin-content" id="admin-content">
