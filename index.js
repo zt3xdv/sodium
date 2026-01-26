@@ -115,7 +115,17 @@ function saveLocations(data) { fs.writeFileSync(LOCATIONS_FILE, JSON.stringify(d
 
 function loadConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); }
-  catch { return { panel: { name: 'Sodium Panel' }, defaults: {} }; }
+  catch { 
+    return { 
+      panel: { name: 'Sodium Panel', url: 'http://localhost:3000' }, 
+      registration: { enabled: true },
+      defaults: { servers: 2, memory: 2048, disk: 10240, cpu: 200 } 
+    }; 
+  }
+}
+
+function saveConfig(data) {
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(data, null, 2));
 }
 
 function isAdmin(username) {
@@ -200,6 +210,11 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.post('/api/auth/register', async (req, res) => {
   const { username, password } = req.body;
   
+  const config = loadConfig();
+  if (!config.registration?.enabled) {
+    return res.status(403).json({ error: 'Registration is currently disabled' });
+  }
+  
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
@@ -220,6 +235,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
   
   const hashedPassword = await bcrypt.hash(password, 10);
+  const defaults = config.defaults || {};
   const newUser = {
     id: Date.now().toString(),
     username: sanitizeText(username),
@@ -228,6 +244,12 @@ app.post('/api/auth/register', async (req, res) => {
     bio: '',
     avatar: '',
     links: {},
+    limits: {
+      servers: defaults.servers || 2,
+      memory: defaults.memory || 2048,
+      disk: defaults.disk || 10240,
+      cpu: defaults.cpu || 200
+    },
     createdAt: new Date().toISOString(),
     settings: {
       theme: 'dark',
@@ -2215,6 +2237,45 @@ wss.on('connection', (clientWs, req) => {
       wingsWs.close();
     }
   });
+});
+
+// ==================== ADMIN: PANEL SETTINGS ====================
+app.get('/api/admin/settings', (req, res) => {
+  const { username } = req.query;
+  if (!isAdmin(username)) return res.status(403).json({ error: 'Access denied' });
+  
+  const config = loadConfig();
+  res.json({ config });
+});
+
+app.put('/api/admin/settings', (req, res) => {
+  const { username, config: newConfig } = req.body;
+  if (!isAdmin(username)) return res.status(403).json({ error: 'Access denied' });
+  
+  const config = loadConfig();
+  
+  if (newConfig.panel) {
+    config.panel.name = sanitizeText(newConfig.panel.name || config.panel.name);
+    config.panel.url = sanitizeUrl(newConfig.panel.url) || config.panel.url;
+  }
+  
+  if (newConfig.registration !== undefined) {
+    config.registration = {
+      enabled: Boolean(newConfig.registration.enabled)
+    };
+  }
+  
+  if (newConfig.defaults) {
+    config.defaults = {
+      servers: parseInt(newConfig.defaults.servers) || 2,
+      memory: parseInt(newConfig.defaults.memory) || 2048,
+      disk: parseInt(newConfig.defaults.disk) || 10240,
+      cpu: parseInt(newConfig.defaults.cpu) || 200
+    };
+  }
+  
+  saveConfig(config);
+  res.json({ success: true, config });
 });
 
 server.listen(PORT, () => {

@@ -3766,6 +3766,7 @@ async function renderAdmin() {
         <button class="tab-btn" data-tab="users" title="Users"><span class="material-icons-outlined">people</span><span class="tab-label">Users</span></button>
         <button class="tab-btn" data-tab="nests" title="Nests & Eggs"><span class="material-icons-outlined">egg</span><span class="tab-label">Nests</span></button>
         <button class="tab-btn" data-tab="locations" title="Locations"><span class="material-icons-outlined">location_on</span><span class="tab-label">Locations</span></button>
+        <button class="tab-btn" data-tab="settings" title="Panel Settings"><span class="material-icons-outlined">settings</span><span class="tab-label">Settings</span></button>
       </div>
       
       <div class="admin-content" id="admin-content">
@@ -3807,6 +3808,9 @@ async function loadTab(tab) {
       break;
     case 'locations':
       await loadLocations(container, username);
+      break;
+    case 'settings':
+      await loadPanelSettings(container, username);
       break;
   }
 }
@@ -4940,6 +4944,109 @@ window.deleteLocation = async function(locationId) {
   
   loadTab('locations');
 };
+
+async function loadPanelSettings(container, username) {
+  try {
+    const res = await fetch(`/api/admin/settings?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    const config = data.config || {};
+    
+    container.innerHTML = `
+      <div class="admin-section">
+        <div class="section-header">
+          <h2>Panel Settings</h2>
+        </div>
+        
+        <div class="card form-card">
+          <form id="panel-settings-form">
+            <h3>General</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Panel Name</label>
+                <input type="text" name="panel_name" value="${escapeHtml$3(config.panel?.name || 'Sodium Panel')}" />
+              </div>
+              <div class="form-group">
+                <label>Panel URL</label>
+                <input type="url" name="panel_url" value="${escapeHtml$3(config.panel?.url || '')}" placeholder="https://panel.example.com" />
+              </div>
+            </div>
+            
+            <h3>Registration</h3>
+            <div class="form-group">
+              <label class="toggle-label">
+                <input type="checkbox" name="registration_enabled" ${config.registration?.enabled ? 'checked' : ''} />
+                <span>Allow new user registrations</span>
+              </label>
+            </div>
+            
+            <h3>Default User Limits</h3>
+            <p class="form-hint">These limits are applied to new users when they register.</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Max Servers</label>
+                <input type="number" name="default_servers" value="${config.defaults?.servers || 2}" min="0" />
+              </div>
+              <div class="form-group">
+                <label>Memory (MB)</label>
+                <input type="number" name="default_memory" value="${config.defaults?.memory || 2048}" min="0" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Disk (MB)</label>
+                <input type="number" name="default_disk" value="${config.defaults?.disk || 10240}" min="0" />
+              </div>
+              <div class="form-group">
+                <label>CPU (%)</label>
+                <input type="number" name="default_cpu" value="${config.defaults?.cpu || 200}" min="0" />
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Save Settings</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('panel-settings-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      
+      const newConfig = {
+        panel: {
+          name: form.panel_name.value,
+          url: form.panel_url.value
+        },
+        registration: {
+          enabled: form.registration_enabled.checked
+        },
+        defaults: {
+          servers: parseInt(form.default_servers.value) || 2,
+          memory: parseInt(form.default_memory.value) || 2048,
+          disk: parseInt(form.default_disk.value) || 10240,
+          cpu: parseInt(form.default_cpu.value) || 200
+        }
+      };
+      
+      const saveRes = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, config: newConfig })
+      });
+      
+      if (saveRes.ok) {
+        const btn = form.querySelector('button[type="submit"]');
+        btn.textContent = 'Saved!';
+        setTimeout(() => btn.textContent = 'Save Settings', 2000);
+      }
+    };
+  } catch (e) {
+    console.error('Failed to load settings:', e);
+    container.innerHTML = `<div class="error">Failed to load panel settings</div>`;
+  }
+}
 
 function cleanupAdmin() {}
 
