@@ -2404,7 +2404,7 @@ function renderStatus() {
           </div>
         </div>
         <div class="summary-card">
-          <span class="material-icons-outlined card-icon">hard_drive</span>
+          <span class="material-icons-outlined card-icon">save</span>
           <div class="card-content">
             <span class="number" id="uptime">-</span>
             <span class="label">Disk Alloc</span>
