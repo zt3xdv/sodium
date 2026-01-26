@@ -2106,10 +2106,6 @@ let serverData = null;
 const tabs = [
   { id: 'console', label: 'Console', icon: 'terminal' },
   { id: 'files', label: 'Files', icon: 'folder' },
-  { id: 'databases', label: 'Databases', icon: 'storage', disabled: true },
-  { id: 'schedules', label: 'Schedules', icon: 'schedule', disabled: true },
-  { id: 'backups', label: 'Backups', icon: 'backup', disabled: true },
-  { id: 'network', label: 'Network', icon: 'lan', disabled: true },
   { id: 'startup', label: 'Startup', icon: 'play_circle', disabled: true },
   { id: 'settings', label: 'Settings', icon: 'settings', disabled: true }
 ];
