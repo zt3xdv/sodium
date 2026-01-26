@@ -1586,7 +1586,7 @@ function initTerminal() {
   
   window.addEventListener('resize', handleResize);
   
-  terminal.writeln('\x1b[90m[SYSTEM] Connecting to console...\x1b[0m');
+  terminal.writeln('\x1b[90mconnecting to server...\x1b[0m');
 }
 
 function handleResize() {
@@ -1604,7 +1604,7 @@ async function connectWebSocket(serverId) {
   consoleSocket = new WebSocket(wsUrl);
   
   consoleSocket.onopen = () => {
-    writeSystem('Connected to console');
+    writeInfo('connected to console');
   };
   
   consoleSocket.onmessage = (event) => {
@@ -1618,7 +1618,7 @@ async function connectWebSocket(serverId) {
   
   consoleSocket.onclose = () => {
     if (serverIdGetter && serverIdGetter() === serverId) {
-      writeSystem('Connection closed, reconnecting...');
+      writeInfo('connection closed, reconnecting...');
       setTimeout(() => connectWebSocket(serverId), 5000);
     }
   };
@@ -1634,14 +1634,13 @@ function handleSocketMessage(message) {
   
   switch (event) {
     case 'auth success':
-      writeSystem('Authenticated successfully');
       consoleSocket.send(JSON.stringify({ event: 'send logs', args: [null] }));
       consoleSocket.send(JSON.stringify({ event: 'send stats', args: [null] }));
       break;
       
     case 'token expiring':
     case 'token expired':
-      writeSystem('Token expired, reconnecting...');
+      writeInfo('session expired, reconnecting...');
       break;
       
     case 'console output':
@@ -1651,8 +1650,9 @@ function handleSocketMessage(message) {
       break;
       
     case 'status':
-      if (args && args[0] && statusCallback) {
-        statusCallback(args[0]);
+      if (args && args[0]) {
+        writeStatus(args[0]);
+        if (statusCallback) statusCallback(args[0]);
       }
       break;
       
@@ -1669,22 +1669,22 @@ function handleSocketMessage(message) {
       break;
       
     case 'install started':
-      writeSystem('Installation started...');
+      writeInfo('installation started...');
       break;
       
     case 'install completed':
-      writeSystem('Installation completed');
+      writeInfo('installation completed');
       break;
       
     case 'daemon error':
       if (args && args[0]) {
-        writeError(`DAEMON: ${args[0]}`);
+        writeError(args[0]);
       }
       break;
       
     case 'daemon message':
       if (args && args[0]) {
-        writeSystem(`DAEMON: ${args[0]}`);
+        writeInfo(args[0]);
       }
       break;
       
@@ -1693,15 +1693,29 @@ function handleSocketMessage(message) {
   }
 }
 
-function writeSystem(text) {
+function writeInfo(text) {
   if (terminal) {
-    terminal.writeln(`\x1b[90m[SYSTEM] ${text}\x1b[0m`);
+    terminal.writeln(`\x1b[90m${text}\x1b[0m`);
+  }
+}
+
+function writeStatus(status) {
+  if (terminal) {
+    const statusMessages = {
+      'starting': 'marked as starting...',
+      'running': 'server is now running',
+      'stopping': 'marked as stopping...',
+      'offline': 'server is now offline',
+      'killing': 'marked as killing...'
+    };
+    const msg = statusMessages[status] || `server status: ${status}`;
+    terminal.writeln(`\x1b[90m${msg}\x1b[0m`);
   }
 }
 
 function writeError(text) {
   if (terminal) {
-    terminal.writeln(`\x1b[31m[ERROR] ${text}\x1b[0m`);
+    terminal.writeln(`\x1b[31m${text}\x1b[0m`);
   }
 }
 
