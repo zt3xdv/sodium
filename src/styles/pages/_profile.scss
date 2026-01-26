@@ -1,6 +1,12 @@
 .profile-page {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 .profile-container {
@@ -26,12 +32,23 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 24px;
+  
+  @media (max-width: 480px) {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
 }
 
 .avatar-section {
   display: flex;
   align-items: center;
   gap: 20px;
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
   
   .avatar {
     width: 80px;
@@ -43,6 +60,7 @@
     justify-content: center;
     overflow: hidden;
     border: 2px solid var(--border);
+    flex-shrink: 0;
     
     img {
       width: 100%;
@@ -54,6 +72,15 @@
       font-size: 40px;
       color: var(--accent);
     }
+    
+    @media (max-width: 480px) {
+      width: 72px;
+      height: 72px;
+      
+      .material-icons-outlined {
+        font-size: 36px;
+      }
+    }
   }
   
   .avatar-info {
@@ -61,6 +88,10 @@
       font-size: 20px;
       font-weight: 600;
       margin-bottom: 4px;
+      
+      @media (max-width: 480px) {
+        font-size: 18px;
+      }
     }
     
     .username {
@@ -75,8 +106,17 @@
   border-radius: var(--radius-lg);
   padding: 24px;
   
+  @media (max-width: 480px) {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+  
   .form-section {
     margin-bottom: 32px;
+    
+    @media (max-width: 480px) {
+      margin-bottom: 24px;
+    }
     
     h3 {
       font-size: 16px;
@@ -84,6 +124,10 @@
       margin-bottom: 8px;
       padding-bottom: 12px;
       border-bottom: 1px solid var(--border);
+      
+      @media (max-width: 480px) {
+        font-size: 15px;
+      }
     }
     
     .section-description {

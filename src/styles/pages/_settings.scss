@@ -1,6 +1,12 @@
 .settings-page {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 .settings-container {
@@ -14,10 +20,18 @@
     font-size: 24px;
     font-weight: 600;
     margin-bottom: 6px;
+    
+    @media (max-width: 480px) {
+      font-size: 20px;
+    }
   }
   
   p {
     color: var(--text-secondary);
+    
+    @media (max-width: 480px) {
+      font-size: 14px;
+    }
   }
 }
 
@@ -32,6 +46,10 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  
+  @media (max-width: 480px) {
+    border-radius: var(--radius-md);
+  }
   
   &.danger-section {
     border-color: rgba(239, 68, 68, 0.3);
@@ -51,6 +69,11 @@
     border-bottom: 1px solid var(--border);
     background: var(--bg-tertiary);
     
+    @media (max-width: 480px) {
+      padding: 14px 16px;
+      gap: 10px;
+    }
+    
     .material-icons-outlined {
       font-size: 20px;
       color: var(--accent);
@@ -59,6 +82,10 @@
     h3 {
       font-size: 15px;
       font-weight: 600;
+      
+      @media (max-width: 480px) {
+        font-size: 14px;
+      }
     }
   }
 }

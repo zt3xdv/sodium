@@ -1,12 +1,22 @@
 .dashboard-page {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 .dashboard-container {
   display: flex;
   flex-direction: column;
   gap: 32px;
+  
+  @media (max-width: 480px) {
+    gap: 24px;
+  }
 }
 
 .dashboard-header {
@@ -47,6 +57,11 @@
   padding: 20px;
   transition: all var(--transition-fast);
   
+  @media (max-width: 480px) {
+    padding: 16px;
+    gap: 12px;
+  }
+  
   &:hover {
     border-color: var(--border-light);
     transform: translateY(-2px);
@@ -60,26 +75,45 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    
+    @media (max-width: 480px) {
+      width: 42px;
+      height: 42px;
+    }
     
     .material-icons-outlined {
       font-size: 24px;
       color: var(--accent);
+      
+      @media (max-width: 480px) {
+        font-size: 22px;
+      }
     }
   }
   
   .stat-content {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     
     .stat-value {
       font-size: 17px;
       font-weight: 600;
       color: var(--text-primary);
+      
+      @media (max-width: 480px) {
+        font-size: 15px;
+      }
     }
     
     .stat-label {
       font-size: 13px;
       color: var(--text-tertiary);
+      
+      @media (max-width: 480px) {
+        font-size: 12px;
+      }
     }
   }
 }
@@ -109,14 +143,29 @@
   border-radius: var(--radius-lg);
   transition: all var(--transition-fast);
   
+  @media (max-width: 480px) {
+    padding: 18px 14px;
+    gap: 10px;
+  }
+  
   .material-icons-outlined {
     font-size: 28px;
     color: var(--accent);
+    
+    @media (max-width: 480px) {
+      font-size: 24px;
+    }
   }
   
   span:last-child {
     font-weight: 500;
     color: var(--text-primary);
+    text-align: center;
+    font-size: 14px;
+    
+    @media (max-width: 480px) {
+      font-size: 13px;
+    }
   }
   
   &:hover {
@@ -149,23 +198,42 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   
+  @media (max-width: 480px) {
+    padding: 12px;
+    gap: 12px;
+  }
+  
   .material-icons-outlined {
     font-size: 22px;
     color: var(--accent);
+    flex-shrink: 0;
+    
+    @media (max-width: 480px) {
+      font-size: 20px;
+    }
   }
   
   .activity-content {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     
     .activity-title {
       font-weight: 500;
       color: var(--text-primary);
+      
+      @media (max-width: 480px) {
+        font-size: 14px;
+      }
     }
     
     .activity-time {
       font-size: 13px;
       color: var(--text-tertiary);
+      
+      @media (max-width: 480px) {
+        font-size: 12px;
+      }
     }
   }
 }

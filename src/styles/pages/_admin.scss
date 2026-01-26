@@ -2,9 +2,11 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 16px;
+  width: 100%;
   
   @media (max-width: 768px) {
-    max-width: 100%;
+    max-width: 100% !important;
+    width: 100% !important;
     padding: 0;
   }
   

@@ -744,12 +744,24 @@ input, textarea, select {
 .dashboard-page {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .dashboard-page {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 .dashboard-container {
   display: flex;
   flex-direction: column;
   gap: 32px;
+}
+@media (max-width: 480px) {
+  .dashboard-container {
+    gap: 24px;
+  }
 }
 
 .dashboard-header .greeting h1 {
@@ -785,6 +797,12 @@ input, textarea, select {
   padding: 20px;
   transition: all var(--transition-fast);
 }
+@media (max-width: 480px) {
+  .stat-card {
+    padding: 16px;
+    gap: 12px;
+  }
+}
 .stat-card:hover {
   border-color: var(--border-light);
   transform: translateY(-2px);
@@ -797,23 +815,46 @@ input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .stat-card .stat-icon {
+    width: 42px;
+    height: 42px;
+  }
 }
 .stat-card .stat-icon .material-icons-outlined {
   font-size: 24px;
   color: var(--accent);
 }
+@media (max-width: 480px) {
+  .stat-card .stat-icon .material-icons-outlined {
+    font-size: 22px;
+  }
+}
 .stat-card .stat-content {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .stat-card .stat-content .stat-value {
   font-size: 17px;
   font-weight: 600;
   color: var(--text-primary);
 }
+@media (max-width: 480px) {
+  .stat-card .stat-content .stat-value {
+    font-size: 15px;
+  }
+}
 .stat-card .stat-content .stat-label {
   font-size: 13px;
   color: var(--text-tertiary);
+}
+@media (max-width: 480px) {
+  .stat-card .stat-content .stat-label {
+    font-size: 12px;
+  }
 }
 
 .quick-actions h2 {
@@ -839,13 +880,31 @@ input, textarea, select {
   border-radius: var(--radius-lg);
   transition: all var(--transition-fast);
 }
+@media (max-width: 480px) {
+  .action-card {
+    padding: 18px 14px;
+    gap: 10px;
+  }
+}
 .action-card .material-icons-outlined {
   font-size: 28px;
   color: var(--accent);
 }
+@media (max-width: 480px) {
+  .action-card .material-icons-outlined {
+    font-size: 24px;
+  }
+}
 .action-card span:last-child {
   font-weight: 500;
   color: var(--text-primary);
+  text-align: center;
+  font-size: 14px;
+}
+@media (max-width: 480px) {
+  .action-card span:last-child {
+    font-size: 13px;
+  }
 }
 .action-card:hover {
   border-color: var(--accent);
@@ -874,26 +933,56 @@ input, textarea, select {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
 }
+@media (max-width: 480px) {
+  .activity-item {
+    padding: 12px;
+    gap: 12px;
+  }
+}
 .activity-item .material-icons-outlined {
   font-size: 22px;
   color: var(--accent);
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .activity-item .material-icons-outlined {
+    font-size: 20px;
+  }
 }
 .activity-item .activity-content {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .activity-item .activity-content .activity-title {
   font-weight: 500;
   color: var(--text-primary);
 }
+@media (max-width: 480px) {
+  .activity-item .activity-content .activity-title {
+    font-size: 14px;
+  }
+}
 .activity-item .activity-content .activity-time {
   font-size: 13px;
   color: var(--text-tertiary);
+}
+@media (max-width: 480px) {
+  .activity-item .activity-content .activity-time {
+    font-size: 12px;
+  }
 }
 
 .profile-page {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .profile-page {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 .profile-container {
@@ -917,11 +1006,24 @@ input, textarea, select {
   border-radius: var(--radius-lg);
   padding: 24px;
 }
+@media (max-width: 480px) {
+  .profile-card {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+}
 
 .avatar-section {
   display: flex;
   align-items: center;
   gap: 20px;
+}
+@media (max-width: 480px) {
+  .avatar-section {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
 }
 .avatar-section .avatar {
   width: 80px;
@@ -933,6 +1035,7 @@ input, textarea, select {
   justify-content: center;
   overflow: hidden;
   border: 2px solid var(--border);
+  flex-shrink: 0;
 }
 .avatar-section .avatar img {
   width: 100%;
@@ -944,10 +1047,24 @@ input, textarea, select {
   font-size: 40px;
   color: var(--accent);
 }
+@media (max-width: 480px) {
+  .avatar-section .avatar {
+    width: 72px;
+    height: 72px;
+  }
+  .avatar-section .avatar .material-icons-outlined {
+    font-size: 36px;
+  }
+}
 .avatar-section .avatar-info h3 {
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 4px;
+}
+@media (max-width: 480px) {
+  .avatar-section .avatar-info h3 {
+    font-size: 18px;
+  }
 }
 .avatar-section .avatar-info .username {
   color: var(--text-secondary);
@@ -959,8 +1076,19 @@ input, textarea, select {
   border-radius: var(--radius-lg);
   padding: 24px;
 }
+@media (max-width: 480px) {
+  .profile-form {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+}
 .profile-form .form-section {
   margin-bottom: 32px;
+}
+@media (max-width: 480px) {
+  .profile-form .form-section {
+    margin-bottom: 24px;
+  }
 }
 .profile-form .form-section h3 {
   font-size: 16px;
@@ -968,6 +1096,11 @@ input, textarea, select {
   margin-bottom: 8px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
+}
+@media (max-width: 480px) {
+  .profile-form .form-section h3 {
+    font-size: 15px;
+  }
 }
 .profile-form .form-section .section-description {
   color: var(--text-tertiary);
@@ -1001,6 +1134,13 @@ input, textarea, select {
 .settings-page {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .settings-page {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 .settings-container {
@@ -1014,8 +1154,18 @@ input, textarea, select {
   font-weight: 600;
   margin-bottom: 6px;
 }
+@media (max-width: 480px) {
+  .settings-header h1 {
+    font-size: 20px;
+  }
+}
 .settings-header p {
   color: var(--text-secondary);
+}
+@media (max-width: 480px) {
+  .settings-header p {
+    font-size: 14px;
+  }
 }
 
 .settings-content {
@@ -1029,6 +1179,11 @@ input, textarea, select {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+}
+@media (max-width: 480px) {
+  .settings-section {
+    border-radius: var(--radius-md);
+  }
 }
 .settings-section.danger-section {
   border-color: rgba(239, 68, 68, 0.3);
@@ -1044,6 +1199,12 @@ input, textarea, select {
   border-bottom: 1px solid var(--border);
   background: var(--bg-tertiary);
 }
+@media (max-width: 480px) {
+  .settings-section .section-header {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+}
 .settings-section .section-header .material-icons-outlined {
   font-size: 20px;
   color: var(--accent);
@@ -1051,6 +1212,11 @@ input, textarea, select {
 .settings-section .section-header h3 {
   font-size: 15px;
   font-weight: 600;
+}
+@media (max-width: 480px) {
+  .settings-section .section-header h3 {
+    font-size: 14px;
+  }
 }
 
 .setting-item {
@@ -1148,6 +1314,13 @@ input, textarea, select {
 .user-page {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .user-page {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 .user-container {
@@ -1272,6 +1445,11 @@ input, textarea, select {
   padding: 24px 32px;
   border-bottom: 1px solid var(--border);
 }
+@media (max-width: 480px) {
+  .user-bio {
+    padding: 20px 16px;
+  }
+}
 .user-bio h3 {
   font-size: 14px;
   font-weight: 600;
@@ -1306,6 +1484,11 @@ input, textarea, select {
 .user-links {
   padding: 24px 32px;
   border-bottom: 1px solid var(--border);
+}
+@media (max-width: 480px) {
+  .user-links {
+    padding: 20px 16px;
+  }
 }
 .user-links h3 {
   font-size: 14px;
@@ -1363,6 +1546,12 @@ input, textarea, select {
   color: var(--text-tertiary);
   font-size: 14px;
 }
+@media (max-width: 480px) {
+  .user-meta {
+    padding: 16px;
+    font-size: 13px;
+  }
+}
 .user-meta .material-icons-outlined {
   font-size: 18px;
 }
@@ -1374,7 +1563,8 @@ input, textarea, select {
 }
 @media (max-width: 768px) {
   .servers-page {
-    max-width: 100%;
+    max-width: 100% !important;
+    width: 100% !important;
     padding: 0;
   }
 }
@@ -1533,7 +1723,8 @@ input, textarea, select {
 }
 @media (max-width: 768px) {
   .server-console-page {
-    max-width: 100%;
+    max-width: 100% !important;
+    width: 100% !important;
     padding: 0;
   }
 }
@@ -2843,10 +3034,12 @@ input, textarea, select {
 .status-page {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
 }
 @media (max-width: 768px) {
   .status-page {
-    max-width: 100%;
+    max-width: 100% !important;
+    width: 100% !important;
   }
 }
 .status-page .status-header {
@@ -3233,10 +3426,12 @@ input, textarea, select {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 16px;
+  width: 100%;
 }
 @media (max-width: 768px) {
   .admin-page {
-    max-width: 100%;
+    max-width: 100% !important;
+    width: 100% !important;
     padding: 0;
   }
 }
