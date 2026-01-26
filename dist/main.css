@@ -2714,87 +2714,6 @@ input, textarea, select {
   gap: 0.5rem;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9990;
-  padding: 1rem;
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-}
-.modal-header h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-primary);
-}
-.modal-header .modal-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-.modal-header .modal-close:hover {
-  color: var(--text-primary);
-}
-
-.modal-body {
-  padding: 1.25rem;
-}
-.modal-body p {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin: 0 0 1rem;
-}
-.modal-body p strong {
-  color: var(--text-primary);
-  font-family: "JetBrains Mono", monospace;
-}
-.modal-body input[type=text] {
-  width: 100%;
-  padding: 0.75rem;
-  font-size: 0.875rem;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  text-align: center;
-  font-family: "JetBrains Mono", monospace;
-  letter-spacing: 0.1em;
-}
-.modal-body input[type=text]:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
 .warning-box {
   display: flex;
   align-items: flex-start;
@@ -2824,16 +2743,6 @@ input, textarea, select {
   color: var(--danger);
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  border-top: 1px solid var(--border);
-  background: var(--bg-secondary);
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-}
-
 @media (max-width: 768px) {
   .settings-grid {
     gap: 1rem;
@@ -2843,13 +2752,6 @@ input, textarea, select {
     align-items: flex-start;
   }
   .danger-action .btn {
-    width: 100%;
-    justify-content: center;
-  }
-  .modal-actions {
-    flex-direction: column-reverse;
-  }
-  .modal-actions .btn {
     width: 100%;
     justify-content: center;
   }

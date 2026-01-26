@@ -2677,21 +2677,22 @@ async function saveDetails() {
 
 function confirmReinstall() {
   const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
+  modal.className = 'modal';
   modal.innerHTML = `
-    <div class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
       <div class="modal-header">
         <h3>Reinstall Server</h3>
-        <button class="modal-close">&times;</button>
+        <button class="modal-close">
+          <span class="material-icons-outlined">close</span>
+        </button>
       </div>
-      <div class="modal-body">
-        <div class="warning-box">
-          <span class="material-icons-outlined">warning</span>
-          <p>This will delete all server files and reinstall the server from scratch. This action cannot be undone!</p>
-        </div>
-        <p>Type <strong>REINSTALL</strong> to confirm:</p>
-        <input type="text" id="confirm-reinstall-input" placeholder="REINSTALL" />
+      <div class="warning-box">
+        <span class="material-icons-outlined">warning</span>
+        <p>This will delete all server files and reinstall the server from scratch. This action cannot be undone!</p>
       </div>
+      <p style="margin-bottom: 12px; color: var(--text-secondary);">Type <strong style="color: var(--text-primary);">REINSTALL</strong> to confirm:</p>
+      <input type="text" class="text-input" id="confirm-reinstall-input" placeholder="REINSTALL" style="width: 100%; text-align: center;" />
       <div class="modal-actions">
         <button class="btn btn-ghost" id="cancel-reinstall">Cancel</button>
         <button class="btn btn-warning" id="do-reinstall" disabled>Reinstall Server</button>
@@ -2700,26 +2701,29 @@ function confirmReinstall() {
   `;
   
   document.body.appendChild(modal);
+  setTimeout(() => modal.classList.add('active'), 10);
   
   const input = document.getElementById('confirm-reinstall-input');
   const doBtn = document.getElementById('do-reinstall');
+  
+  const closeModal = () => {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 150);
+  };
   
   input.oninput = () => {
     doBtn.disabled = input.value !== 'REINSTALL';
   };
   
-  modal.querySelector('.modal-close').onclick = () => modal.remove();
-  document.getElementById('cancel-reinstall').onclick = () => modal.remove();
+  modal.querySelector('.modal-close').onclick = closeModal;
+  modal.querySelector('.modal-backdrop').onclick = closeModal;
+  document.getElementById('cancel-reinstall').onclick = closeModal;
   
   doBtn.onclick = async () => {
     doBtn.disabled = true;
     doBtn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> Reinstalling...';
     await reinstallServer();
-    modal.remove();
-  };
-  
-  modal.onclick = (e) => {
-    if (e.target === modal) modal.remove();
+    closeModal();
   };
 }
 
@@ -2749,21 +2753,22 @@ async function reinstallServer() {
 
 function confirmDelete() {
   const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
+  modal.className = 'modal';
   modal.innerHTML = `
-    <div class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
       <div class="modal-header">
         <h3>Delete Server</h3>
-        <button class="modal-close">&times;</button>
+        <button class="modal-close">
+          <span class="material-icons-outlined">close</span>
+        </button>
       </div>
-      <div class="modal-body">
-        <div class="warning-box danger">
-          <span class="material-icons-outlined">error</span>
-          <p>This will permanently delete the server and all its data. This action cannot be undone!</p>
-        </div>
-        <p>Type <strong>DELETE</strong> to confirm:</p>
-        <input type="text" id="confirm-delete-input" placeholder="DELETE" />
+      <div class="warning-box danger">
+        <span class="material-icons-outlined">error</span>
+        <p>This will permanently delete the server and all its data. This action cannot be undone!</p>
       </div>
+      <p style="margin-bottom: 12px; color: var(--text-secondary);">Type <strong style="color: var(--text-primary);">DELETE</strong> to confirm:</p>
+      <input type="text" class="text-input" id="confirm-delete-input" placeholder="DELETE" style="width: 100%; text-align: center;" />
       <div class="modal-actions">
         <button class="btn btn-ghost" id="cancel-delete">Cancel</button>
         <button class="btn btn-danger" id="do-delete" disabled>Delete Server</button>
@@ -2772,26 +2777,29 @@ function confirmDelete() {
   `;
   
   document.body.appendChild(modal);
+  setTimeout(() => modal.classList.add('active'), 10);
   
   const input = document.getElementById('confirm-delete-input');
   const doBtn = document.getElementById('do-delete');
+  
+  const closeModal = () => {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 150);
+  };
   
   input.oninput = () => {
     doBtn.disabled = input.value !== 'DELETE';
   };
   
-  modal.querySelector('.modal-close').onclick = () => modal.remove();
-  document.getElementById('cancel-delete').onclick = () => modal.remove();
+  modal.querySelector('.modal-close').onclick = closeModal;
+  modal.querySelector('.modal-backdrop').onclick = closeModal;
+  document.getElementById('cancel-delete').onclick = closeModal;
   
   doBtn.onclick = async () => {
     doBtn.disabled = true;
     doBtn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> Deleting...';
     await deleteServer();
-    modal.remove();
-  };
-  
-  modal.onclick = (e) => {
-    if (e.target === modal) modal.remove();
+    closeModal();
   };
 }
 
