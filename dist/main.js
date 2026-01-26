@@ -1419,10 +1419,8 @@ function initTerminal() {
     cursorBlink: true,
     cursorStyle: 'bar',
     scrollback: 5000,
-    convertEol: false,
-    disableStdin: true,
-    cols: 120,
-    rows: 30
+    convertEol: true,
+    disableStdin: true
   });
   
   fitAddon = new o();
@@ -1504,6 +1502,7 @@ function handleSocketMessage(message) {
       
     case 'console output':
       if (args && args[0] && terminal) {
+        console.log('Console output raw:', JSON.stringify(args[0]));
         terminal.write(args[0]);
       }
       break;
