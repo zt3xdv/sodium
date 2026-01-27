@@ -328,7 +328,6 @@
 .files-breadcrumb {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 0.25rem;
   font-size: 0.875rem;
 }
@@ -776,14 +775,13 @@
     font-size: 0.8125rem;
     flex: 1;
     min-width: 0;
-    overflow-x: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
-    padding-bottom: 0.25rem;
   }
   
   .files-actions {
-    width: 100%;
-    justify-content: flex-end;
+    flex-shrink: 0;
   }
   
   .file-item {
