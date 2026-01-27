@@ -71,6 +71,16 @@ if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify({ users: [] }, null, 2));
 }
 
+const DEFAULT_CONFIG = {
+  panel: { name: 'Sodium Panel', url: 'http://localhost:3000' },
+  registration: { enabled: true },
+  defaults: { servers: 2, memory: 2048, disk: 10240, cpu: 200 }
+};
+
+if (!fs.existsSync(CONFIG_FILE)) {
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG, null, 2));
+}
+
 function loadUsers() {
   try {
     return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
@@ -114,13 +124,18 @@ function loadLocations() {
 function saveLocations(data) { fs.writeFileSync(LOCATIONS_FILE, JSON.stringify(data, null, 2)); }
 
 function loadConfig() {
-  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); }
-  catch { 
-    return { 
-      panel: { name: 'Sodium Panel', url: 'http://localhost:3000' }, 
-      registration: { enabled: true },
-      defaults: { servers: 2, memory: 2048, disk: 10240, cpu: 200 } 
-    }; 
+  try { 
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    // Ensure all required fields exist
+    const merged = {
+      panel: { ...DEFAULT_CONFIG.panel, ...config.panel },
+      registration: { ...DEFAULT_CONFIG.registration, ...config.registration },
+      defaults: { ...DEFAULT_CONFIG.defaults, ...config.defaults }
+    };
+    return merged;
+  } catch { 
+    saveConfig(DEFAULT_CONFIG);
+    return DEFAULT_CONFIG;
   }
 }
 
