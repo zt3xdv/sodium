@@ -734,14 +734,14 @@ router.post('/:id/files/upload', async (req, res) => {
 });
 
 router.post('/:id/files/decompress', async (req, res) => {
-  const { username, path, file } = req.body;
+  const { username, root, file, extractTo } = req.body;
   const result = await getServerAndNode(req.params.id, username);
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
     await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/files/decompress`, {
-      root: path || '/',
-      file: file.replace(/^\//, '')
+      root: extractTo || root || '/',
+      file: (root === '/' ? '' : root.replace(/^\//, '') + '/') + file
     });
     res.json({ success: true });
   } catch (e) {

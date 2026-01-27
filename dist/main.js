@@ -39523,16 +39523,15 @@ function showDecompressDialog(serverId, filename) {
         body: JSON.stringify({ username, path: folderPath })
       });
       
-      await decompressFile(serverId, filename, folderPath);
+      await decompressFile(serverId, filename, currentPath, folderPath);
     } else {
-      await decompressFile(serverId, filename, currentPath);
+      await decompressFile(serverId, filename, currentPath, currentPath);
     }
   };
 }
 
-async function decompressFile(serverId, filename, targetPath) {
+async function decompressFile(serverId, filename, archiveDir, extractTo) {
   const username = localStorage.getItem('username');
-  const filePath = currentPath === '/' ? `/${filename}` : `${currentPath}/${filename}`;
   
   info('Extracting...');
   
@@ -39540,7 +39539,12 @@ async function decompressFile(serverId, filename, targetPath) {
     const res = await fetch(`/api/servers/${serverId}/files/decompress`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, path: targetPath || currentPath, file: filePath })
+      body: JSON.stringify({ 
+        username, 
+        root: archiveDir,
+        file: filename,
+        extractTo: extractTo
+      })
     });
     
     if (res.ok) {
