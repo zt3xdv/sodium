@@ -80,40 +80,61 @@
 
 .server-tabs {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.5rem;
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  border: 1px solid var(--border-color);
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .server-tab {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
+  gap: 8px;
+  padding: 10px 20px;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
+  border-radius: var(--radius-md);
   font-weight: 500;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   white-space: nowrap;
+  flex-shrink: 0;
   
   .material-icons-outlined {
-    font-size: 1.125rem;
+    font-size: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 10px 14px;
+    
+    span:not(.material-icons-outlined) {
+      display: none;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    padding: 10px 12px;
+    
+    .material-icons-outlined {
+      font-size: 22px;
+    }
   }
   
   &:hover:not(.disabled) {
-    background: var(--bg-secondary);
-    color: var(--text);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
   }
   
   &.active {
-    background: var(--primary);
+    background: var(--accent);
     color: white;
   }
   
