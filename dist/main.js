@@ -2735,42 +2735,43 @@ let serverData$1 = null;
 function renderSettingsTab() {
   return `
     <div class="settings-tab">
-      <div class="settings-grid">
-        <div class="card">
-          <div class="card-header">
+      <div class="settings-content">
+        <div class="settings-section">
+          <div class="section-header">
+            <span class="material-icons-outlined">dns</span>
             <h3>Server Details</h3>
           </div>
-          <div class="card-content" id="settings-details">
+          <div id="settings-details">
             <div class="loading-spinner"></div>
           </div>
         </div>
         
-        <div class="card danger-zone">
-          <div class="card-header">
+        <div class="settings-section danger-section">
+          <div class="section-header">
+            <span class="material-icons-outlined">warning</span>
             <h3>Danger Zone</h3>
           </div>
-          <div class="card-content">
-            <div class="danger-action">
-              <div class="danger-info">
-                <h4>Reinstall Server</h4>
-                <p>This will delete all server files and reinstall the server from scratch.</p>
-              </div>
-              <button class="btn btn-warning" id="btn-reinstall">
-                <span class="material-icons-outlined">refresh</span>
-                Reinstall
-              </button>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">Reinstall Server</span>
+              <span class="setting-description">Delete all server files and reinstall from scratch</span>
             </div>
-            
-            <div class="danger-action">
-              <div class="danger-info">
-                <h4>Delete Server</h4>
-                <p>This will permanently delete the server and all its data. This action cannot be undone.</p>
-              </div>
-              <button class="btn btn-danger" id="btn-delete">
-                <span class="material-icons-outlined">delete_forever</span>
-                Delete Server
-              </button>
+            <button class="btn btn-warning" id="btn-reinstall">
+              <span class="material-icons-outlined">refresh</span>
+              <span>Reinstall</span>
+            </button>
+          </div>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">Delete Server</span>
+              <span class="setting-description">Permanently delete this server and all its data</span>
             </div>
+            <button class="btn btn-danger" id="btn-delete">
+              <span class="material-icons-outlined">delete_forever</span>
+              <span>Delete</span>
+            </button>
           </div>
         </div>
       </div>
