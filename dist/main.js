@@ -1930,6 +1930,13 @@ const EDITABLE_EXTENSIONS = [
   'dockerfile', 'makefile', 'gitignore', 'htaccess'
 ];
 
+const ARCHIVE_EXTENSIONS = ['zip', 'tar', 'tar.gz', 'tgz', 'gz', 'rar', '7z'];
+
+function isArchive(filename) {
+  const name = filename.toLowerCase();
+  return ARCHIVE_EXTENSIONS.some(ext => name.endsWith('.' + ext));
+}
+
 function isEditable(filename) {
   const ext = filename.split('.').pop().toLowerCase();
   const name = filename.toLowerCase();
@@ -2066,6 +2073,11 @@ function renderFilesList(files, serverId) {
             <span class="material-icons-outlined">edit</span>
           </button>
         ` : ''}
+        ${!isDir && isArchive(file.name) ? `
+          <button class="btn btn-sm btn-ghost btn-decompress" title="Extract">
+            <span class="material-icons-outlined">unarchive</span>
+          </button>
+        ` : ''}
         ${!isDir ? `
           <button class="btn btn-sm btn-ghost btn-download" title="Download">
             <span class="material-icons-outlined">download</span>
@@ -2118,6 +2130,14 @@ function renderFilesList(files, serverId) {
       e.stopPropagation();
       const name = btn.closest('.file-item').dataset.name;
       downloadFile(serverId, currentPath === '/' ? `/${name}` : `${currentPath}/${name}`);
+    };
+  });
+  
+  filesList.querySelectorAll('.file-item .btn-decompress').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const name = btn.closest('.file-item').dataset.name;
+      decompressFile(serverId, name);
     };
   });
 }
@@ -2380,28 +2400,67 @@ async function uploadFile(serverId) {
     if (!file) return;
     
     const username = localStorage.getItem('username');
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('username', username);
-    formData.append('path', currentPath);
     
     try {
       const res = await fetch(`/api/servers/${serverId}/files/upload`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, path: currentPath })
+      });
+      
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        error(data.error || 'Failed to get upload URL');
+        return;
+      }
+      
+      const uploadPath = currentPath === '/' ? '' : currentPath.replace(/^\//, '');
+      const uploadUrl = `${data.url}&directory=${encodeURIComponent(uploadPath)}`;
+      
+      const formData = new FormData();
+      formData.append('files', file);
+      
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
         body: formData
       });
       
-      if (res.ok) {
+      if (uploadRes.ok) {
+        success('File uploaded');
         loadFiles(serverId, currentPath);
       } else {
-        const data = await res.json();
-        error(data.error || 'Failed to upload');
+        error('Failed to upload file');
       }
     } catch (e) {
       error('Failed to upload');
     }
   };
   input.click();
+}
+
+async function decompressFile(serverId, filename) {
+  const username = localStorage.getItem('username');
+  const filePath = currentPath === '/' ? `/${filename}` : `${currentPath}/${filename}`;
+  
+  info('Extracting...');
+  
+  try {
+    const res = await fetch(`/api/servers/${serverId}/files/decompress`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, path: currentPath, file: filePath })
+    });
+    
+    if (res.ok) {
+      success('Extracted successfully');
+      loadFiles(serverId, currentPath);
+    } else {
+      const data = await res.json();
+      error(data.error || 'Failed to extract');
+    }
+  } catch (e) {
+    error('Failed to extract');
+  }
 }
 
 function cleanupFilesTab() {

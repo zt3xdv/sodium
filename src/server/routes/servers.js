@@ -674,6 +674,35 @@ router.get('/:id/files/download', async (req, res) => {
   }
 });
 
+router.post('/:id/files/upload', async (req, res) => {
+  const { username, path } = req.body;
+  const result = await getServerAndNode(req.params.id, username);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  try {
+    const uploadUrl = await wingsRequest(node, 'GET', `/api/servers/${server.uuid}/files/upload`);
+    res.json({ url: uploadUrl.url, path });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/:id/files/decompress', async (req, res) => {
+  const { username, path, file } = req.body;
+  const result = await getServerAndNode(req.params.id, username);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  try {
+    await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/files/decompress`, {
+      root: path || '/',
+      file: file.replace(/^\//, '')
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Allocations
 async function syncAllocationsWithWings(node, server) {
   const allocations = server.allocations || [];
