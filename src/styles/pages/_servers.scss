@@ -91,6 +91,9 @@
   }
   
   .server-card {
+    display: flex;
+    flex-direction: column;
+    
     .server-header {
       display: flex;
       justify-content: space-between;
@@ -136,6 +139,15 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 12px;
       margin-bottom: 16px;
+      order: 1;
+      
+      @media (max-width: 480px) {
+        order: 2;
+        margin-bottom: 0;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
       
       .info-row {
         display: flex;
@@ -158,6 +170,11 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      order: 2;
+      
+      @media (max-width: 480px) {
+        order: 1;
+      }
     }
   }
   

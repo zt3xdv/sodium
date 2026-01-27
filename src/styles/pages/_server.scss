@@ -530,7 +530,11 @@
   }
   
   .server-sidebar {
-    order: -1;
+    order: 1;
+  }
+  
+  .server-main {
+    order: 0;
   }
   
   .server-header {

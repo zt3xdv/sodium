@@ -1657,6 +1657,10 @@ input, textarea, select {
     gap: 16px;
   }
 }
+.servers-page .server-card {
+  display: flex;
+  flex-direction: column;
+}
 .servers-page .server-card .server-header {
   display: flex;
   justify-content: space-between;
@@ -1695,6 +1699,16 @@ input, textarea, select {
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 16px;
+  order: 1;
+}
+@media (max-width: 480px) {
+  .servers-page .server-card .server-info {
+    order: 2;
+    margin-bottom: 0;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
 }
 .servers-page .server-card .server-info .info-row {
   display: flex;
@@ -1713,6 +1727,12 @@ input, textarea, select {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  order: 2;
+}
+@media (max-width: 480px) {
+  .servers-page .server-card .server-actions {
+    order: 1;
+  }
 }
 .servers-page .empty-state {
   grid-column: 1/-1;
@@ -2423,7 +2443,10 @@ input, textarea, select {
     grid-template-columns: 1fr;
   }
   .server-sidebar {
-    order: -1;
+    order: 1;
+  }
+  .server-main {
+    order: 0;
   }
   .server-header {
     flex-direction: column;
