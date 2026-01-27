@@ -801,83 +801,23 @@ input, textarea, select {
   justify-content: flex-end;
   margin-top: 24px;
 }
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  z-index: 9999;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-.modal-overlay.show {
-  opacity: 1;
-}
-.modal-overlay.show .modal {
-  transform: translateY(0) scale(1);
-}
-.modal-overlay .modal {
-  position: relative;
-  width: 90%;
-  max-width: 400px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-20px) scale(0.95);
-  transition: transform 0.15s ease;
-  opacity: 1;
-  visibility: visible;
-}
-.modal-overlay .modal-header {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-}
-.modal-overlay .modal-header h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-}
-.modal-overlay .modal-body {
-  padding: 1.5rem;
-}
-.modal-overlay .modal-body p {
-  margin: 0 0 1rem 0;
+.modal .modal-body p {
+  margin: 0 0 16px 0;
   color: var(--text-secondary);
   line-height: 1.5;
 }
-.modal-overlay .modal-body p:last-child {
-  margin-bottom: 0;
-}
-.modal-overlay .modal-body .input {
+.modal .modal-body .input {
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: 10px 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 0.875rem;
+  font-size: 14px;
 }
-.modal-overlay .modal-body .input:focus {
+.modal .modal-body .input:focus {
   outline: none;
   border-color: var(--accent);
-}
-.modal-overlay .modal-footer {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border);
-  background: var(--bg-secondary);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-
-.modal-prompt .modal-body p {
-  margin-bottom: 1rem !important;
 }
 
 #toast-container {

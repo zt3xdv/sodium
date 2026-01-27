@@ -38791,16 +38791,17 @@ function confirm$1(message, options = {}) {
     const { title = 'Confirm', confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = options;
     
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
+    modal.className = 'modal';
     modal.innerHTML = `
-      <div class="modal modal-confirm">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
         <div class="modal-header">
           <h3>${title}</h3>
         </div>
         <div class="modal-body">
           <p>${message}</p>
         </div>
-        <div class="modal-footer">
+        <div class="modal-actions">
           <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
           <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="modal-confirm">${confirmText}</button>
         </div>
@@ -38808,27 +38809,28 @@ function confirm$1(message, options = {}) {
     `;
     
     document.body.appendChild(modal);
-    requestAnimationFrame(() => modal.classList.add('show'));
+    requestAnimationFrame(() => modal.classList.add('active'));
     
     const close = (result) => {
-      modal.classList.remove('show');
+      modal.classList.remove('active');
       setTimeout(() => modal.remove(), 150);
       resolve(result);
     };
     
     modal.querySelector('#modal-cancel').onclick = () => close(false);
     modal.querySelector('#modal-confirm').onclick = () => close(true);
-    modal.onclick = (e) => { if (e.target === modal) close(false); };
+    modal.querySelector('.modal-backdrop').onclick = () => close(false);
     
-    document.addEventListener('keydown', function handler(e) {
+    const handleKey = (e) => {
       if (e.key === 'Escape') {
         close(false);
-        document.removeEventListener('keydown', handler);
+        document.removeEventListener('keydown', handleKey);
       } else if (e.key === 'Enter') {
         close(true);
-        document.removeEventListener('keydown', handler);
+        document.removeEventListener('keydown', handleKey);
       }
-    });
+    };
+    document.addEventListener('keydown', handleKey);
     
     modal.querySelector('#modal-confirm').focus();
   });
@@ -38839,9 +38841,10 @@ function prompt$1(message, options = {}) {
     const { title = 'Input', placeholder = '', defaultValue = '', confirmText = 'OK', cancelText = 'Cancel' } = options;
     
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
+    modal.className = 'modal';
     modal.innerHTML = `
-      <div class="modal modal-prompt">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
         <div class="modal-header">
           <h3>${title}</h3>
         </div>
@@ -38849,7 +38852,7 @@ function prompt$1(message, options = {}) {
           <p>${message}</p>
           <input type="text" class="input" id="modal-input" placeholder="${placeholder}" value="${defaultValue}">
         </div>
-        <div class="modal-footer">
+        <div class="modal-actions">
           <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
           <button class="btn btn-primary" id="modal-confirm">${confirmText}</button>
         </div>
@@ -38857,21 +38860,23 @@ function prompt$1(message, options = {}) {
     `;
     
     document.body.appendChild(modal);
-    requestAnimationFrame(() => modal.classList.add('show'));
+    requestAnimationFrame(() => modal.classList.add('active'));
     
     const input = modal.querySelector('#modal-input');
-    input.focus();
-    input.select();
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 50);
     
     const close = (result) => {
-      modal.classList.remove('show');
+      modal.classList.remove('active');
       setTimeout(() => modal.remove(), 150);
       resolve(result);
     };
     
     modal.querySelector('#modal-cancel').onclick = () => close(null);
     modal.querySelector('#modal-confirm').onclick = () => close(input.value);
-    modal.onclick = (e) => { if (e.target === modal) close(null); };
+    modal.querySelector('.modal-backdrop').onclick = () => close(null);
     
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -38889,39 +38894,41 @@ function alert(message, options = {}) {
     const { title = 'Alert', confirmText = 'OK' } = options;
     
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
+    modal.className = 'modal';
     modal.innerHTML = `
-      <div class="modal modal-alert">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
         <div class="modal-header">
           <h3>${title}</h3>
         </div>
         <div class="modal-body">
           <p>${message}</p>
         </div>
-        <div class="modal-footer">
+        <div class="modal-actions">
           <button class="btn btn-primary" id="modal-confirm">${confirmText}</button>
         </div>
       </div>
     `;
     
     document.body.appendChild(modal);
-    requestAnimationFrame(() => modal.classList.add('show'));
+    requestAnimationFrame(() => modal.classList.add('active'));
     
     const close = () => {
-      modal.classList.remove('show');
+      modal.classList.remove('active');
       setTimeout(() => modal.remove(), 150);
       resolve();
     };
     
     modal.querySelector('#modal-confirm').onclick = close;
-    modal.onclick = (e) => { if (e.target === modal) close(); };
+    modal.querySelector('.modal-backdrop').onclick = close;
     
-    document.addEventListener('keydown', function handler(e) {
+    const handleKey = (e) => {
       if (e.key === 'Escape' || e.key === 'Enter') {
         close();
-        document.removeEventListener('keydown', handler);
+        document.removeEventListener('keydown', handleKey);
       }
-    });
+    };
+    document.addEventListener('keydown', handleKey);
     
     modal.querySelector('#modal-confirm').focus();
   });
