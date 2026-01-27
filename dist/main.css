@@ -2561,45 +2561,62 @@ input, textarea, select {
   letter-spacing: 0.05em;
 }
 
-.resource-bars {
+.resource-sparklines {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
-.resource-bar-item {
+.resource-spark-item {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.25rem;
 }
 
-.resource-bar-header {
+.resource-spark-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+.resource-spark-label {
   font-size: 0.75rem;
   color: var(--text-tertiary);
+  font-weight: 500;
 }
 
-.resource-bar {
-  height: 6px;
-  background: var(--bg-secondary);
-  border-radius: 3px;
+.resource-spark-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: monospace;
+  color: var(--text-primary);
+}
+
+.resource-spark-chart {
+  height: 24px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
-
-.resource-bar-fill {
+.resource-spark-chart svg {
+  width: 100%;
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s ease;
 }
-.resource-bar-fill.cpu {
-  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+
+.spark-line {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.resource-bar-fill.memory {
-  background: linear-gradient(90deg, var(--success), #059669);
+.spark-line.cpu {
+  stroke: var(--accent);
 }
-.resource-bar-fill.disk {
-  background: linear-gradient(90deg, var(--warning), #d97706);
+.spark-line.memory {
+  stroke: var(--success);
+}
+.spark-line.disk {
+  stroke: var(--warning);
 }
 
 .resource-stats {

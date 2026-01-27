@@ -11,6 +11,13 @@ let currentTab = 'console';
 let serverData = null;
 let installCheckInterval = null;
 
+const SPARK_POINTS = 30;
+const sparkHistory = {
+  cpu: [],
+  mem: [],
+  disk: []
+};
+
 const tabs = [
   { id: 'console', label: 'Console', icon: 'terminal' },
   { id: 'files', label: 'Files', icon: 'folder' },
@@ -79,32 +86,38 @@ export function renderServerPage(serverId) {
           </div>
           <div class="card resources-card">
             <h4>Resources</h4>
-            <div class="resource-bars">
-              <div class="resource-bar-item">
-                <div class="resource-bar-header">
-                  <span>CPU</span>
-                  <span id="res-cpu-text">0%</span>
+            <div class="resource-sparklines">
+              <div class="resource-spark-item">
+                <div class="resource-spark-header">
+                  <span class="resource-spark-label">CPU</span>
+                  <span class="resource-spark-value" id="res-cpu-text">0%</span>
                 </div>
-                <div class="resource-bar">
-                  <div class="resource-bar-fill cpu" id="res-cpu-bar" style="width: 0%"></div>
-                </div>
-              </div>
-              <div class="resource-bar-item">
-                <div class="resource-bar-header">
-                  <span>Memory</span>
-                  <span id="res-mem-text">0 MB</span>
-                </div>
-                <div class="resource-bar">
-                  <div class="resource-bar-fill memory" id="res-mem-bar" style="width: 0%"></div>
+                <div class="resource-spark-chart">
+                  <svg id="spark-cpu" viewBox="0 0 100 24" preserveAspectRatio="none">
+                    <polyline class="spark-line cpu" points="0,24 100,24" />
+                  </svg>
                 </div>
               </div>
-              <div class="resource-bar-item">
-                <div class="resource-bar-header">
-                  <span>Disk</span>
-                  <span id="res-disk-text">0 MB</span>
+              <div class="resource-spark-item">
+                <div class="resource-spark-header">
+                  <span class="resource-spark-label">Memory</span>
+                  <span class="resource-spark-value" id="res-mem-text">0 MB</span>
                 </div>
-                <div class="resource-bar">
-                  <div class="resource-bar-fill disk" id="res-disk-bar" style="width: 0%"></div>
+                <div class="resource-spark-chart">
+                  <svg id="spark-mem" viewBox="0 0 100 24" preserveAspectRatio="none">
+                    <polyline class="spark-line memory" points="0,24 100,24" />
+                  </svg>
+                </div>
+              </div>
+              <div class="resource-spark-item">
+                <div class="resource-spark-header">
+                  <span class="resource-spark-label">Disk</span>
+                  <span class="resource-spark-value" id="res-disk-text">0 MB</span>
+                </div>
+                <div class="resource-spark-chart">
+                  <svg id="spark-disk" viewBox="0 0 100 24" preserveAspectRatio="none">
+                    <polyline class="spark-line disk" points="0,24 100,24" />
+                  </svg>
                 </div>
               </div>
             </div>
@@ -331,13 +344,17 @@ export function updateServerResources(stats) {
   const memPercent = limits?.memory ? Math.min(100, ((stats.memory_bytes || 0) / (limits.memory * 1024 * 1024)) * 100) : 0;
   const diskPercent = limits?.disk ? Math.min(100, ((stats.disk_bytes || 0) / (limits.disk * 1024 * 1024)) * 100) : 0;
   
-  const cpuBar = document.getElementById('res-cpu-bar');
-  const memBar = document.getElementById('res-mem-bar');
-  const diskBar = document.getElementById('res-disk-bar');
+  sparkHistory.cpu.push(cpuPercent);
+  sparkHistory.mem.push(memPercent);
+  sparkHistory.disk.push(diskPercent);
   
-  if (cpuBar) cpuBar.style.width = `${cpuPercent}%`;
-  if (memBar) memBar.style.width = `${memPercent}%`;
-  if (diskBar) diskBar.style.width = `${diskPercent}%`;
+  if (sparkHistory.cpu.length > SPARK_POINTS) sparkHistory.cpu.shift();
+  if (sparkHistory.mem.length > SPARK_POINTS) sparkHistory.mem.shift();
+  if (sparkHistory.disk.length > SPARK_POINTS) sparkHistory.disk.shift();
+  
+  updateSparkline('spark-cpu', sparkHistory.cpu);
+  updateSparkline('spark-mem', sparkHistory.mem);
+  updateSparkline('spark-disk', sparkHistory.disk);
   
   const cpuText = document.getElementById('res-cpu-text');
   const memText = document.getElementById('res-mem-text');
@@ -350,6 +367,27 @@ export function updateServerResources(stats) {
   if (diskText) diskText.textContent = formatBytes(stats.disk_bytes || 0);
   if (netTx) netTx.textContent = formatBytes(stats.network?.tx_bytes || 0);
   if (netRx) netRx.textContent = formatBytes(stats.network?.rx_bytes || 0);
+}
+
+function updateSparkline(svgId, data) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  
+  const polyline = svg.querySelector('polyline');
+  if (!polyline) return;
+  
+  if (data.length < 2) {
+    polyline.setAttribute('points', '0,24 100,24');
+    return;
+  }
+  
+  const points = data.map((value, index) => {
+    const x = (index / (SPARK_POINTS - 1)) * 100;
+    const y = 24 - (value / 100) * 22;
+    return `${x},${y}`;
+  }).join(' ');
+  
+  polyline.setAttribute('points', points);
 }
 
 function formatBytes(bytes) {
@@ -369,6 +407,9 @@ export function cleanupServerPage() {
   currentServerId = null;
   serverData = null;
   currentTab = 'console';
+  sparkHistory.cpu = [];
+  sparkHistory.mem = [];
+  sparkHistory.disk = [];
 }
 
 export function getServerId() {
