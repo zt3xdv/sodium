@@ -172,6 +172,7 @@ function handleSocketMessage(message) {
       
     case 'stats':
       if (args && args[0] && resourcesCallback) {
+        writeInfo(`cpu=${args[0].cpu_absolute} mem=${args[0].memory_bytes}/${args[0].memory_limit_bytes}`);
         resourcesCallback(args[0]);
       }
       break;
