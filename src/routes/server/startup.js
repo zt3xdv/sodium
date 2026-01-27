@@ -155,12 +155,15 @@ function validateVariable(value, rulesString) {
 export function renderStartupTab() {
   return `
     <div class="startup-tab">
-      <div class="card">
-        <div class="card-header">
-          <h3>Startup Configuration</h3>
-        </div>
-        <div class="startup-content" id="startup-content">
-          <div class="loading-spinner"></div>
+      <div class="settings-content">
+        <div class="settings-section">
+          <div class="section-header">
+            <span class="material-icons-outlined">terminal</span>
+            <h3>Startup Configuration</h3>
+          </div>
+          <div class="startup-content" id="startup-content">
+            <div class="loading-spinner"></div>
+          </div>
         </div>
       </div>
     </div>
