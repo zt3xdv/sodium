@@ -2661,12 +2661,45 @@ input, textarea, select {
 .file-select {
   width: 20px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.file-select .file-checkbox {
+
+.file-checkbox {
+  -moz-appearance: none;
+       appearance: none;
+  -webkit-appearance: none;
   width: 16px;
   height: 16px;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
   cursor: pointer;
-  accent-color: var(--accent);
+  position: relative;
+  transition: all 0.15s ease;
+}
+.file-checkbox:hover {
+  border-color: var(--accent);
+}
+.file-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.file-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.file-checkbox:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.3);
 }
 
 .file-item {
