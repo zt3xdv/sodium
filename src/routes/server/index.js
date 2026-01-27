@@ -138,7 +138,7 @@ export function renderServerPage(serverId) {
               <div class="resource-spark-item">
                 <div class="resource-spark-header">
                   <div class="resource-spark-label">
-                    <span class="material-icons-outlined">hard_drive</span>
+                    <span class="material-icons-outlined">save</span>
                     <span>Disk</span>
                   </div>
                   <span class="resource-spark-value" id="res-disk-text">0 MB</span>
