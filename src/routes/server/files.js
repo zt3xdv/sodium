@@ -655,7 +655,7 @@ async function editFile(serverId, path) {
       }
       isEditing = false;
       editingPath = null;
-      initFilesTab(serverId);
+      restoreFilesList(serverId);
     };
     
     document.getElementById('btn-save').onclick = () => saveFile(serverId, path);
@@ -803,7 +803,69 @@ function showUploadIndicator(filename) {
   };
 }
 
+function restoreFilesList(serverId) {
+  const container = document.querySelector('.files-tab .card');
+  container.innerHTML = `
+    <div class="files-toolbar">
+      <div class="files-breadcrumb" id="files-breadcrumb">
+        <span class="breadcrumb-item" data-path="/">/</span>
+      </div>
+      <div class="files-actions">
+        <button class="btn btn-sm btn-ghost" id="btn-refresh" title="Refresh">
+          <span class="material-icons-outlined">refresh</span>
+        </button>
+        <button class="btn btn-sm btn-ghost" id="btn-new-folder" title="New Folder">
+          <span class="material-icons-outlined">create_new_folder</span>
+        </button>
+        <button class="btn btn-sm btn-ghost" id="btn-new-file" title="New File">
+          <span class="material-icons-outlined">note_add</span>
+        </button>
+        <button class="btn btn-sm btn-ghost" id="btn-upload" title="Upload">
+          <span class="material-icons-outlined">upload</span>
+        </button>
+      </div>
+    </div>
+    <div class="files-selection-bar" id="files-selection-bar" style="display: none;">
+      <div class="selection-info">
+        <span id="selection-count">0</span> selected
+      </div>
+      <div class="selection-actions">
+        <button class="btn btn-sm btn-ghost" id="btn-move" title="Move">
+          <span class="material-icons-outlined">drive_file_move</span>
+        </button>
+        <button class="btn btn-sm btn-ghost" id="btn-compress" title="Compress">
+          <span class="material-icons-outlined">archive</span>
+        </button>
+        <button class="btn btn-sm btn-ghost" id="btn-delete-selected" title="Delete">
+          <span class="material-icons-outlined">delete</span>
+        </button>
+        <button class="btn btn-sm btn-ghost" id="btn-clear-selection" title="Clear">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+    </div>
+    <div class="files-list" id="files-list">
+      <div class="files-loading">Loading files...</div>
+    </div>
+  `;
+  
+  document.getElementById('btn-refresh').onclick = () => loadFiles(serverId, currentPath);
+  document.getElementById('btn-new-folder').onclick = () => createNewFolder(serverId);
+  document.getElementById('btn-new-file').onclick = () => createNewFile(serverId);
+  document.getElementById('btn-upload').onclick = () => uploadFile(serverId);
+  document.getElementById('btn-move').onclick = () => moveSelectedFiles(serverId);
+  document.getElementById('btn-compress').onclick = () => compressSelectedFiles(serverId);
+  document.getElementById('btn-delete-selected').onclick = () => deleteSelectedFiles(serverId);
+  document.getElementById('btn-clear-selection').onclick = () => clearSelection();
+  
+  loadFiles(serverId, currentPath);
+}
+
 export function cleanupFilesTab() {
   currentPath = '/';
   selectedFiles.clear();
+  if (editorInstance) {
+    editorInstance.destroy();
+    editorInstance = null;
+  }
 }
