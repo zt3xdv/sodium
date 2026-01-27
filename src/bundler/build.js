@@ -1,4 +1,4 @@
-import { watch, rollup } from '../hawk/src/bundler/rollup.js';
+import { watch, rollup } from './rollup.js';
 import { cacheBuild } from 'rollup-cache';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
@@ -7,7 +7,7 @@ import { terser } from 'rollup-plugin-terser';
 import progress from 'rollup-plugin-progress';
 import postcss from 'rollup-plugin-postcss';
 import autoprefixer from 'autoprefixer';
-import htmlPlugin from '../hawk/src/bundler/html-plugin.js';
+import htmlPlugin from './html-plugin.js';
 import path from 'path';
 
 const args = process.argv.slice(2).map(a => a.toLowerCase());

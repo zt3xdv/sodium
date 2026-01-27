@@ -126,7 +126,7 @@ function saveLocations(data) { fs.writeFileSync(LOCATIONS_FILE, JSON.stringify(d
 function loadConfig() {
   try { 
     const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-    // Ensure all required fields exist
+    
     const merged = {
       panel: { ...DEFAULT_CONFIG.panel, ...config.panel },
       registration: { ...DEFAULT_CONFIG.registration, ...config.registration },
@@ -167,7 +167,6 @@ function generateToken() {
 
 async function wingsRequest(node, method, endpoint, data = null, rawContent = false) {
   const url = `${node.scheme}://${node.fqdn}:${node.daemon_port}${endpoint}`;
-  console.log(`[WINGS OUT] ${method} ${url}`);
   
   const headers = {
     'Authorization': `Bearer ${node.daemon_token}`,
@@ -187,7 +186,6 @@ async function wingsRequest(node, method, endpoint, data = null, rawContent = fa
   
   try {
     const response = await fetch(url, options);
-    console.log(`[WINGS OUT] Response: ${response.status}`);
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.error || `HTTP ${response.status}`);
@@ -214,13 +212,8 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    console.log(`[API] ${req.method} ${req.path}`);
-  }
-  next();
-});
 app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, 'assets')));
 
 app.post('/api/auth/register', async (req, res) => {
   const { username, password } = req.body;
@@ -1675,15 +1668,12 @@ app.post('/api/remote/servers/:uuid/install', (req, res) => {
   const node = authenticateNode(req);
   if (!node) return res.status(401).json({ error: 'Invalid token' });
   
-  console.log('Install status received:', req.body);
-  
   const data = loadServers();
   const serverIndex = data.servers.findIndex(s => s.uuid === req.params.uuid && s.node_id === node.id);
   if (serverIndex === -1) return res.status(404).json({ error: 'Server not found' });
   
   const successful = req.body.successful === true || req.body.successful === 'true';
   data.servers[serverIndex].status = successful ? 'offline' : 'install_failed';
-  console.log('Server status set to:', data.servers[serverIndex].status);
   saveServers(data);
   res.json({ success: true });
 });
@@ -2000,8 +1990,6 @@ app.post('/api/servers', async (req, res) => {
     servers.servers.push(newServer);
     saveServers(servers);
     
-    console.log('[SERVER CREATE] Sending to Wings:', JSON.stringify(wingsPayload, null, 2));
-    
     await wingsRequest(node, 'POST', '/api/servers', wingsPayload);
     
     // Update status after successful Wings call
@@ -2233,8 +2221,6 @@ wss.on('connection', (clientWs, req) => {
   const wsScheme = node.scheme === 'https' ? 'wss' : 'ws';
   const wingsWsUrl = `${wsScheme}://${node.fqdn}:${node.daemon_port}/api/servers/${serverData.uuid}/ws`;
   
-  console.log(`[WS PROXY] Connecting to Wings: ${wingsWsUrl}`);
-  
   const wsToken = jwt.sign({
     server_uuid: serverData.uuid,
     permissions: ['*'],
@@ -2250,7 +2236,6 @@ wss.on('connection', (clientWs, req) => {
   const wingsWs = new WebSocket(wingsWsUrl);
   
   wingsWs.on('open', () => {
-    console.log('[WS PROXY] Connected to Wings, sending auth...');
     wingsWs.send(JSON.stringify({
       event: 'auth',
       args: [wsToken]
@@ -2266,7 +2251,6 @@ wss.on('connection', (clientWs, req) => {
   });
   
   wingsWs.on('close', () => {
-    console.log('[WS PROXY] Wings connection closed');
     if (clientWs.readyState === WebSocket.OPEN) {
       clientWs.close();
     }

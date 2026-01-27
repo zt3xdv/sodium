@@ -4,10 +4,10 @@
   "module": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "build": "node app.build.js",
-    "fast-build": "node app.build.js fast",
-    "watch": "node app.build.js dev"
+    "start": "node src/server/index.js",
+    "build": "node src/bundler/build.js",
+    "fast-build": "node src/bundler/build.js fast",
+    "watch": "node src/bundler/build.js dev"
   },
   "keywords": [
     "game-server",
@@ -16,9 +16,9 @@
     "server-panel",
     "hosting"
   ],
-  "author": "sodium_dev",
+  "author": "tsumugi_dev",
   "license": "MIT",
-  "description": "Modern game server management panel with Pterodactyl Wings support.",
+  "description": "Modern game server management panel.",
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-web-links": "^0.12.0",
@@ -45,7 +45,7 @@
   "manifest": {
     "name": "Sodium Panel",
     "short_name": "Sodium",
-    "description": "Modern game server management panel with Pterodactyl Wings support.",
+    "description": "Modern game server management panel.",
     "start_url": "/",
     "url": "https://sodium.app/",
     "display": "standalone",

@@ -175,7 +175,7 @@ async function showCreateServerModal() {
   
   try {
     const [nestsRes, limitsRes] = await Promise.all([
-      fetch('/api/admin/nests'),
+      fetch('/api/servers/nests'),
       fetch(`/api/user/limits?username=${encodeURIComponent(username)}`)
     ]);
     
