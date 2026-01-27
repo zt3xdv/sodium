@@ -3758,9 +3758,6 @@ function renderServerPage(serverId) {
     <div class="server-page">
       <div class="server-header">
         <div class="server-header-left">
-          <a href="/servers" class="btn btn-ghost btn-sm">
-            <span class="material-icons-outlined">arrow_back</span>
-          </a>
           <div class="server-title">
             <h1 id="server-name">Loading...</h1>
             <span class="server-status" id="server-status">--</span>

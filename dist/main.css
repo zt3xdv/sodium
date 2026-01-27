@@ -2371,7 +2371,7 @@ input, textarea, select {
   gap: 8px;
   margin: 0 0 24px 0;
   border-bottom: 1px solid var(--border);
-  padding: 4px 0 16px 0;
+  padding: 4px 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
