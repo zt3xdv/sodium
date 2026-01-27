@@ -678,10 +678,21 @@ router.post('/:id/files/upload', async (req, res) => {
   const { username, path } = req.body;
   const result = await getServerAndNode(req.params.id, username);
   if (result.error) return res.status(result.status).json({ error: result.error });
-  const { server, node } = result;
+  const { server, node, user } = result;
+  
   try {
-    const uploadUrl = await wingsRequest(node, 'GET', `/api/servers/${server.uuid}/files/upload`);
-    res.json({ url: uploadUrl.url, path });
+    const jwt = await import('jsonwebtoken');
+    const uniqueId = generateUUID();
+    
+    const token = jwt.default.sign({
+      server_uuid: server.uuid,
+      user_uuid: user.id,
+      unique_id: uniqueId,
+      exp: Math.floor(Date.now() / 1000) + 300
+    }, node.daemon_token);
+    
+    const uploadUrl = `${node.scheme}://${node.fqdn}:${node.daemon_port}/upload/file?token=${encodeURIComponent(token)}`;
+    res.json({ url: uploadUrl, path });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
