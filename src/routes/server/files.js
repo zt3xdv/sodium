@@ -486,6 +486,8 @@ async function uploadFile(serverId) {
     
     const username = localStorage.getItem('username');
     
+    const indicator = showUploadIndicator(file.name);
+    
     try {
       const res = await fetch(`/api/servers/${serverId}/files/upload`, {
         method: 'POST',
@@ -495,6 +497,7 @@ async function uploadFile(serverId) {
       
       const data = await res.json();
       if (!res.ok || !data.url) {
+        indicator.remove();
         toast.error(data.error || 'Failed to get upload URL');
         return;
       }
@@ -505,22 +508,69 @@ async function uploadFile(serverId) {
       const formData = new FormData();
       formData.append('files', file);
       
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData
-      });
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', uploadUrl);
       
-      if (uploadRes.ok) {
-        toast.success('File uploaded');
-        loadFiles(serverId, currentPath);
-      } else {
-        toast.error('Failed to upload file');
-      }
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          indicator.update(percent);
+        }
+      };
+      
+      xhr.onload = () => {
+        indicator.remove();
+        if (xhr.status >= 200 && xhr.status < 300) {
+          toast.success('File uploaded');
+          loadFiles(serverId, currentPath);
+        } else {
+          toast.error('Failed to upload file');
+        }
+      };
+      
+      xhr.onerror = () => {
+        indicator.remove();
+        toast.error('Failed to upload');
+      };
+      
+      xhr.send(formData);
     } catch (e) {
+      indicator.remove();
       toast.error('Failed to upload');
     }
   };
   input.click();
+}
+
+function showUploadIndicator(filename) {
+  const filesList = document.getElementById('files-list');
+  
+  const el = document.createElement('div');
+  el.className = 'file-item upload-indicator';
+  el.innerHTML = `
+    <div class="file-icon">
+      <span class="material-icons-outlined rotating">sync</span>
+    </div>
+    <div class="file-info">
+      <span class="file-name">${filename}</span>
+      <div class="upload-progress">
+        <div class="upload-progress-bar" style="width: 0%"></div>
+      </div>
+      <span class="file-meta upload-percent">Uploading... 0%</span>
+    </div>
+  `;
+  
+  filesList.insertBefore(el, filesList.firstChild);
+  
+  return {
+    update: (percent) => {
+      const bar = el.querySelector('.upload-progress-bar');
+      const text = el.querySelector('.upload-percent');
+      if (bar) bar.style.width = `${percent}%`;
+      if (text) text.textContent = `Uploading... ${percent}%`;
+    },
+    remove: () => el.remove()
+  };
 }
 
 async function decompressFile(serverId, filename) {

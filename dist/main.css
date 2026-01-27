@@ -2700,6 +2700,42 @@ input, textarea, select {
   transition: opacity 0.15s ease;
 }
 
+.upload-indicator {
+  background: rgba(var(--primary-rgb), 0.05);
+}
+.upload-indicator .file-icon {
+  background: rgba(var(--primary-rgb), 0.15);
+  color: var(--accent);
+}
+
+.upload-progress {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.15s ease;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
 .file-editor {
   display: flex;
   flex-direction: column;
