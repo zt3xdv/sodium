@@ -408,6 +408,11 @@
       background: rgba(239, 68, 68, 0.15);
       color: var(--danger);
     }
+    
+    &.status-suspended {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
   }
   
   .nests-grid {

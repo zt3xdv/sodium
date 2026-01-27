@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import jwt from 'jsonwebtoken';
 import { loadUsers, loadServers, loadNodes } from './db.js';
 import { generateUUID } from './utils/helpers.js';
+import { hasPermission } from './utils/permissions.js';
 
 export function setupWebSocket(server) {
   const wss = new WebSocketServer({ server, path: '/ws/console' });
@@ -30,7 +31,22 @@ export function setupWebSocket(server) {
       return;
     }
     
-    if (serverData.user_id !== user.id && !user.isAdmin) {
+    // Check if server is suspended
+    if (serverData.suspended) {
+      clientWs.close(4007, 'Server is suspended');
+      return;
+    }
+    
+    // Check access: admin, owner, or subuser with console permission
+    let hasAccess = user.isAdmin || serverData.user_id === user.id;
+    if (!hasAccess) {
+      const subuser = (serverData.subusers || []).find(s => s.user_id === user.id);
+      if (subuser && hasPermission(subuser, 'control.console')) {
+        hasAccess = true;
+      }
+    }
+    
+    if (!hasAccess) {
       clientWs.close(4004, 'Forbidden');
       return;
     }

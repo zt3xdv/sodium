@@ -3401,6 +3401,209 @@ input, textarea, select {
     margin-left: 100%;
   }
 }
+.network-tab .network-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.network-tab .network-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.allocations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.allocations-list .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--text-muted);
+}
+.allocations-list .empty-state .material-icons-outlined {
+  font-size: 48px;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+.allocations-list .empty-state p {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+.allocations-list .error {
+  padding: 1rem;
+  background: rgba(var(--danger-rgb), 0.1);
+  border: 1px solid rgba(var(--danger-rgb), 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+.allocation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+.allocation-item.primary {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+.allocation-item .allocation-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.allocation-item .allocation-address {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+.allocation-item .badge.primary {
+  background: var(--accent);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.allocation-item .allocation-actions {
+  display: flex;
+  gap: 4px;
+}
+.allocation-item .btn-danger-hover:hover {
+  color: var(--danger);
+}
+
+.users-tab .users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.users-tab .users-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.subusers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.subusers-list .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--text-muted);
+}
+.subusers-list .empty-state .material-icons-outlined {
+  font-size: 48px;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+.subusers-list .empty-state p {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+.subusers-list .error-message {
+  padding: 1rem;
+  background: rgba(var(--danger-rgb), 0.1);
+  border: 1px solid rgba(var(--danger-rgb), 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+.subuser-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+.subuser-item .subuser-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.subuser-item .subuser-name {
+  font-weight: 500;
+}
+.subuser-item .subuser-perms {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.subuser-item .subuser-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.modal-lg .modal-content {
+  max-width: 600px;
+}
+
+.permissions-editor {
+  margin-top: 16px;
+}
+.permissions-editor h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.permissions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.permission-group {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.permission-group .permission-group-header {
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
+}
+.permission-group .permission-group-header .checkbox-label {
+  font-weight: 500;
+}
+.permission-group .permission-items {
+  padding: 10px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.checkbox-label input[type=checkbox] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
 .status-page {
   max-width: 1200px;
   margin: 0 auto;
@@ -4171,6 +4374,10 @@ input, textarea, select {
 .admin-page .status-badge.status-install_failed, .admin-page .status.status-install_failed {
   background: rgba(239, 68, 68, 0.15);
   color: var(--danger);
+}
+.admin-page .status-badge.status-suspended, .admin-page .status.status-suspended {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
 }
 .admin-page .nests-grid {
   display: grid;

@@ -10,7 +10,12 @@ export function getNodeAvailableResources(nodeId) {
   
   const usedMemory = nodeServers.reduce((sum, s) => sum + (s.limits?.memory || 0), 0);
   const usedDisk = nodeServers.reduce((sum, s) => sum + (s.limits?.disk || 0), 0);
-  const usedPorts = nodeServers.map(s => s.allocation?.port).filter(p => p);
+  const usedPorts = nodeServers.flatMap(s => {
+    if (s.allocations && s.allocations.length > 0) {
+      return s.allocations.map(a => a.port);
+    }
+    return s.allocation?.port ? [s.allocation.port] : [];
+  });
   
   const allocationStart = node.allocation_start || 25565;
   const allocationEnd = node.allocation_end || 25665;

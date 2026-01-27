@@ -1,6 +1,8 @@
 import { renderConsoleTab, initConsoleTab, cleanupConsoleTab, setConsoleCallbacks } from './console.js';
 import { renderFilesTab, initFilesTab, cleanupFilesTab } from './files.js';
 import { renderStartupTab, initStartupTab, cleanupStartupTab } from './startup.js';
+import { renderNetworkTab, initNetworkTab, cleanupNetworkTab } from './network.js';
+import { renderUsersTab, initUsersTab, cleanupUsersTab } from './users.js';
 import { renderSettingsTab, initSettingsTab, cleanupSettingsTab } from './settings.js';
 
 let currentServerId = null;
@@ -13,6 +15,8 @@ const tabs = [
   { id: 'console', label: 'Console', icon: 'terminal' },
   { id: 'files', label: 'Files', icon: 'folder' },
   { id: 'startup', label: 'Startup', icon: 'play_circle' },
+  { id: 'network', label: 'Network', icon: 'lan' },
+  { id: 'users', label: 'Users', icon: 'group' },
   { id: 'settings', label: 'Settings', icon: 'settings' }
 ];
 
@@ -154,6 +158,14 @@ function switchTab(tabId) {
       content.innerHTML = renderStartupTab();
       initStartupTab(currentServerId);
       break;
+    case 'network':
+      content.innerHTML = renderNetworkTab();
+      initNetworkTab(currentServerId);
+      break;
+    case 'users':
+      content.innerHTML = renderUsersTab();
+      initUsersTab(currentServerId);
+      break;
     case 'settings':
       content.innerHTML = renderSettingsTab();
       initSettingsTab(currentServerId);
@@ -173,6 +185,12 @@ function cleanupCurrentTab() {
       break;
     case 'startup':
       cleanupStartupTab();
+      break;
+    case 'network':
+      cleanupNetworkTab();
+      break;
+    case 'users':
+      cleanupUsersTab();
       break;
     case 'settings':
       cleanupSettingsTab();

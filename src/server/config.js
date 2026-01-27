@@ -12,5 +12,6 @@ export const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 export const DEFAULT_CONFIG = {
   panel: { name: 'Sodium Panel', url: 'http://localhost:3000' },
   registration: { enabled: true },
-  defaults: { servers: 2, memory: 2048, disk: 10240, cpu: 200 }
+  defaults: { servers: 2, memory: 2048, disk: 10240, cpu: 200, allocations: 5 },
+  features: { subusers: true }
 };

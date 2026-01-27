@@ -301,7 +301,7 @@ function renderDashboard() {
   }, 1000);
 }
 
-function escapeHtml$3(str) {
+function escapeHtml$4(str) {
   if (typeof str !== 'string') return '';
   return str
     .replace(/&/g, '&amp;')
@@ -325,7 +325,7 @@ function escapeUrl(url) {
 
 function sanitizeText(text, maxLength = 1000) {
   if (typeof text !== 'string') return '';
-  return escapeHtml$3(text.slice(0, maxLength).trim());
+  return escapeHtml$4(text.slice(0, maxLength).trim());
 }
 
 function isValidUrl(url) {
@@ -348,9 +348,9 @@ function createSafeElement(tag, attributes = {}, textContent = '') {
     } else if (key === 'class') {
       el.className = value;
     } else if (key.startsWith('data-')) {
-      el.setAttribute(key, escapeHtml$3(value));
+      el.setAttribute(key, escapeHtml$4(value));
     } else {
-      el.setAttribute(key, escapeHtml$3(value));
+      el.setAttribute(key, escapeHtml$4(value));
     }
   }
   
@@ -405,8 +405,8 @@ function renderProfile() {
               <span class="material-icons-outlined">person</span>
             </div>
             <div class="avatar-info">
-              <h3 id="profile-display-name">${escapeHtml$3(displayName)}</h3>
-              <span class="username">@${escapeHtml$3(username)}</span>
+              <h3 id="profile-display-name">${escapeHtml$4(displayName)}</h3>
+              <span class="username">@${escapeHtml$4(username)}</span>
             </div>
           </div>
         </div>
@@ -428,7 +428,7 @@ function renderProfile() {
               <label for="display-name">Display Name</label>
               <div class="input-wrapper">
                 <span class="material-icons-outlined">badge</span>
-                <input type="text" id="display-name" name="displayName" value="${escapeHtml$3(displayName)}" maxlength="50" placeholder="Your display name">
+                <input type="text" id="display-name" name="displayName" value="${escapeHtml$4(displayName)}" maxlength="50" placeholder="Your display name">
               </div>
               <small class="form-hint">This is how others will see you</small>
             </div>
@@ -560,7 +560,7 @@ function renderProfile() {
       const data = await res.json();
       
       if (data.error) {
-        messageEl.textContent = escapeHtml$3(data.error);
+        messageEl.textContent = escapeHtml$4(data.error);
         messageEl.className = 'message error';
       } else {
         messageEl.textContent = 'Profile updated successfully!';
@@ -568,10 +568,10 @@ function renderProfile() {
         localStorage.setItem('displayName', displayName);
         
         const profileDisplayName = document.getElementById('profile-display-name');
-        if (profileDisplayName) profileDisplayName.textContent = escapeHtml$3(displayName);
+        if (profileDisplayName) profileDisplayName.textContent = escapeHtml$4(displayName);
         
         const navDisplayName = document.querySelector('.user-display-name');
-        if (navDisplayName) navDisplayName.textContent = escapeHtml$3(displayName);
+        if (navDisplayName) navDisplayName.textContent = escapeHtml$4(displayName);
       }
     } catch (err) {
       messageEl.textContent = 'Connection error. Please try again.';
@@ -1087,7 +1087,7 @@ async function loadUserProfile(targetUsername) {
                 return `
                   <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="link-item">
                     <span class="material-icons-outlined">${linkIcons[key] || 'link'}</span>
-                    <span>${escapeHtml$3(linkLabels[key] || key)}</span>
+                    <span>${escapeHtml$4(linkLabels[key] || key)}</span>
                     <span class="material-icons-outlined external">open_in_new</span>
                   </a>
                 `;
@@ -1109,8 +1109,8 @@ async function loadUserProfile(targetUsername) {
             ${avatarHtml}
           </div>
           <div class="user-info">
-            <h1>${escapeHtml$3(user.displayName || user.username)}</h1>
-            <span class="user-username">@${escapeHtml$3(user.username)}</span>
+            <h1>${escapeHtml$4(user.displayName || user.username)}</h1>
+            <span class="user-username">@${escapeHtml$4(user.username)}</span>
             ${isPrivate ? '<span class="private-badge"><span class="material-icons-outlined">lock</span> Private Profile</span>' : ''}
           </div>
         </div>
@@ -1118,7 +1118,7 @@ async function loadUserProfile(targetUsername) {
         ${!isPrivate && user.bio ? `
           <div class="user-bio">
             <h3>About</h3>
-            <p>${escapeHtml$3(user.bio)}</p>
+            <p>${escapeHtml$4(user.bio)}</p>
           </div>
         ` : ''}
         
@@ -1263,7 +1263,7 @@ async function loadServers() {
       <div class="settings-section server-card" data-id="${server.id}">
         <div class="section-header">
           <span class="material-icons-outlined">dns</span>
-          <h3>${escapeHtml$3(server.name)}</h3>
+          <h3>${escapeHtml$4(server.name)}</h3>
           <span class="status status-${server.status || 'offline'}">${server.status || 'offline'}</span>
         </div>
         <div class="server-card-content">
@@ -1377,7 +1377,7 @@ async function showCreateServerModal() {
           <div class="form-group">
             <label>Egg</label>
             <select name="egg_id" required>
-              ${allEggs.map(e => `<option value="${e.id}">${escapeHtml$3(e.name)}</option>`).join('')}
+              ${allEggs.map(e => `<option value="${e.id}">${escapeHtml$4(e.name)}</option>`).join('')}
             </select>
           </div>
           
@@ -1843,7 +1843,7 @@ function cleanupConsoleTab() {
 }
 
 let currentPath = '/';
-let currentServerId$3 = null;
+let currentServerId$5 = null;
 let isEditing = false;
 let editingPath = null;
 
@@ -1898,7 +1898,7 @@ function renderFilesTab() {
 
 function initFilesTab(serverId) {
   currentPath = '/';
-  currentServerId$3 = serverId;
+  currentServerId$5 = serverId;
   isEditing = false;
   editingPath = null;
   loadFiles(serverId, currentPath);
@@ -2254,7 +2254,7 @@ async function editFile(serverId, path) {
   }
 }
 
-function escapeHtml$2(text) {
+function escapeHtml$3(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
@@ -2335,7 +2335,7 @@ function cleanupFilesTab() {
   currentPath = '/';
 }
 
-let currentServerId$2 = null;
+let currentServerId$4 = null;
 let serverData$2 = null;
 let eggData = null;
 
@@ -2372,9 +2372,9 @@ function parseRules(rulesString) {
 
 function renderVariableInput(variable, currentValue, rules) {
   const id = `var-${variable.env_variable}`;
-  const dataAttr = `data-var="${variable.env_variable}" data-rules="${escapeHtml$1(variable.rules || '')}"`;
-  const placeholder = escapeHtml$1(variable.default_value || '');
-  const value = escapeHtml$1(currentValue);
+  const dataAttr = `data-var="${variable.env_variable}" data-rules="${escapeHtml$2(variable.rules || '')}"`;
+  const placeholder = escapeHtml$2(variable.default_value || '');
+  const value = escapeHtml$2(currentValue);
   
   // Boolean type - render as toggle/select
   if (rules.type === 'boolean') {
@@ -2392,7 +2392,7 @@ function renderVariableInput(variable, currentValue, rules) {
     return `
       <select id="${id}" name="env_${variable.env_variable}" class="select-input" ${dataAttr}>
         ${rules.in.map(opt => `
-          <option value="${escapeHtml$1(opt)}" ${currentValue === opt ? 'selected' : ''}>${escapeHtml$1(opt)}</option>
+          <option value="${escapeHtml$2(opt)}" ${currentValue === opt ? 'selected' : ''}>${escapeHtml$2(opt)}</option>
         `).join('')}
       </select>
     `;
@@ -2509,7 +2509,7 @@ function renderStartupTab() {
 }
 
 async function initStartupTab(serverId) {
-  currentServerId$2 = serverId;
+  currentServerId$4 = serverId;
   await loadStartupData(serverId);
 }
 
@@ -2551,13 +2551,13 @@ function renderStartupForm(server, egg) {
     <div class="form-group">
       <label>Startup Command</label>
       <div class="textarea-wrapper">
-        <textarea name="startup" id="startup-command" rows="3" spellcheck="false" placeholder="java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar">${escapeHtml$1(server.startup || egg?.startup || '')}</textarea>
+        <textarea name="startup" id="startup-command" rows="3" spellcheck="false" placeholder="java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar">${escapeHtml$2(server.startup || egg?.startup || '')}</textarea>
       </div>
       <small class="form-hint">Use {{VARIABLE}} syntax for variables</small>
     </div>
     <div class="startup-preview">
       <span class="preview-label">Preview:</span>
-      <code id="startup-preview">${escapeHtml$1(parseStartupCommand(server.startup || egg?.startup || '', server.environment || {}))}</code>
+      <code id="startup-preview">${escapeHtml$2(parseStartupCommand(server.startup || egg?.startup || '', server.environment || {}))}</code>
     </div>
     
     <div class="form-group" style="margin-top: 20px;">
@@ -2587,16 +2587,16 @@ function renderStartupForm(server, egg) {
             <div class="variable-item">
               <div class="variable-header">
                 <label for="var-${v.env_variable}">
-                  ${escapeHtml$1(v.name)}
+                  ${escapeHtml$2(v.name)}
                   ${rules.required ? '<span class="required">*</span>' : ''}
                 </label>
-                <code class="variable-key">${escapeHtml$1(v.env_variable)}</code>
+                <code class="variable-key">${escapeHtml$2(v.env_variable)}</code>
               </div>
-              <p class="variable-description">${escapeHtml$1(v.description || '')}</p>
+              <p class="variable-description">${escapeHtml$2(v.description || '')}</p>
               ${renderVariableInput(v, currentValue, rules)}
               <div class="variable-meta">
                 ${rules.required ? '<span class="rule-badge required">Required</span>' : '<span class="rule-badge optional">Optional</span>'}
-                ${rules.type ? `<span class="rule-badge type">${escapeHtml$1(rules.type)}</span>` : ''}
+                ${rules.type ? `<span class="rule-badge type">${escapeHtml$2(rules.type)}</span>` : ''}
                 ${rules.min !== null ? `<span class="rule-badge">Min: ${rules.min}</span>` : ''}
                 ${rules.max !== null ? `<span class="rule-badge">Max: ${rules.max}</span>` : ''}
                 ${rules.in.length > 0 ? `<span class="rule-badge">Options: ${rules.in.join(', ')}</span>` : ''}
@@ -2656,14 +2656,14 @@ function getDockerImagesOptions(server, egg) {
   
   if (images.length === 0) {
     if (currentImage) {
-      return `<option value="${escapeHtml$1(currentImage)}" selected>${escapeHtml$1(currentImage)}</option>`;
+      return `<option value="${escapeHtml$2(currentImage)}" selected>${escapeHtml$2(currentImage)}</option>`;
     }
     return '<option value="">No images available</option>';
   }
   
   return images.map(([label, value]) => `
-    <option value="${escapeHtml$1(value)}" ${currentImage === value ? 'selected' : ''}>
-      ${escapeHtml$1(label)}
+    <option value="${escapeHtml$2(value)}" ${currentImage === value ? 'selected' : ''}>
+      ${escapeHtml$2(label)}
     </option>
   `).join('');
 }
@@ -2737,7 +2737,7 @@ async function saveStartup() {
   saveBtn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> Saving...';
   
   try {
-    const res = await fetch(`/api/servers/${currentServerId$2}/startup`, {
+    const res = await fetch(`/api/servers/${currentServerId$4}/startup`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2791,7 +2791,7 @@ async function resetToDefaults() {
     parseStartupCommand(eggData.startup || '', env);
 }
 
-function escapeHtml$1(text) {
+function escapeHtml$2(text) {
   if (typeof text !== 'string') return '';
   const div = document.createElement('div');
   div.textContent = text;
@@ -2799,9 +2799,500 @@ function escapeHtml$1(text) {
 }
 
 function cleanupStartupTab() {
-  currentServerId$2 = null;
+  currentServerId$4 = null;
   serverData$2 = null;
   eggData = null;
+}
+
+let currentServerId$3 = null;
+let allocations = [];
+
+function renderNetworkTab() {
+  return `
+    <div class="network-tab">
+      <div class="network-header">
+        <h3>Network Allocations</h3>
+        <button class="btn btn-primary btn-sm" id="btn-add-allocation">
+          <span class="material-icons-outlined">add</span>
+          Add Allocation
+        </button>
+      </div>
+      <div class="allocations-list" id="allocations-list">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  `;
+}
+
+async function initNetworkTab(serverId) {
+  currentServerId$3 = serverId;
+  await loadAllocations();
+  
+  document.getElementById('btn-add-allocation').onclick = addAllocation;
+}
+
+async function loadAllocations() {
+  const username = localStorage.getItem('username');
+  const list = document.getElementById('allocations-list');
+  
+  try {
+    const res = await fetch(`/api/servers/${currentServerId$3}/allocations?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      list.innerHTML = `<div class="error">${data.error}</div>`;
+      return;
+    }
+    
+    allocations = data.allocations || [];
+    renderAllocations();
+  } catch (e) {
+    list.innerHTML = '<div class="error">Failed to load allocations</div>';
+  }
+}
+
+function renderAllocations() {
+  const list = document.getElementById('allocations-list');
+  
+  if (allocations.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <span class="material-icons-outlined">lan</span>
+        <p>No allocations configured</p>
+      </div>
+    `;
+    return;
+  }
+  
+  list.innerHTML = allocations.map(alloc => `
+    <div class="allocation-item ${alloc.primary ? 'primary' : ''}">
+      <div class="allocation-info">
+        <span class="allocation-address">${alloc.ip}:${alloc.port}</span>
+        ${alloc.primary ? '<span class="badge primary">Primary</span>' : ''}
+      </div>
+      <div class="allocation-actions">
+        ${!alloc.primary ? `
+          <button class="btn btn-ghost btn-sm" onclick="window.setAllocationPrimary('${alloc.id}')" title="Make Primary">
+            <span class="material-icons-outlined">star</span>
+          </button>
+          <button class="btn btn-ghost btn-sm btn-danger-hover" onclick="window.deleteAllocation('${alloc.id}')" title="Delete">
+            <span class="material-icons-outlined">delete</span>
+          </button>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addAllocation() {
+  const username = localStorage.getItem('username');
+  const btn = document.getElementById('btn-add-allocation');
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+  
+  try {
+    const res = await fetch(`/api/servers/${currentServerId$3}/allocations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    
+    const data = await res.json();
+    
+    if (data.error) {
+      alert(data.error);
+    } else {
+      await loadAllocations();
+    }
+  } catch (e) {
+    alert('Failed to add allocation');
+  }
+  
+  btn.disabled = false;
+  btn.innerHTML = '<span class="material-icons-outlined">add</span> Add Allocation';
+}
+
+window.setAllocationPrimary = async (allocId) => {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${currentServerId$3}/allocations/${allocId}/primary`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    
+    if (res.ok) {
+      await loadAllocations();
+    } else {
+      const data = await res.json();
+      alert(data.error);
+    }
+  } catch (e) {
+    alert('Failed to set primary');
+  }
+};
+
+window.deleteAllocation = async (allocId) => {
+  if (!confirm('Delete this allocation?')) return;
+  
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${currentServerId$3}/allocations/${allocId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    
+    if (res.ok) {
+      await loadAllocations();
+    } else {
+      const data = await res.json();
+      alert(data.error);
+    }
+  } catch (e) {
+    alert('Failed to delete allocation');
+  }
+};
+
+function cleanupNetworkTab() {
+  currentServerId$3 = null;
+  allocations = [];
+}
+
+const PERMISSIONS = {
+  'control.console': 'Send commands',
+  'control.start': 'Start server',
+  'control.stop': 'Stop server',
+  'control.restart': 'Restart server',
+  'user.create': 'Add subusers',
+  'user.read': 'View subusers',
+  'user.update': 'Edit subusers',
+  'user.delete': 'Remove subusers',
+  'file.read': 'View files',
+  'file.create': 'Create files',
+  'file.update': 'Edit files',
+  'file.delete': 'Delete files',
+  'file.archive': 'Archive files',
+  'file.sftp': 'SFTP access',
+  'backup.create': 'Create backups',
+  'backup.read': 'View backups',
+  'backup.delete': 'Delete backups',
+  'backup.restore': 'Restore backups',
+  'allocation.read': 'View allocations',
+  'allocation.create': 'Add allocations',
+  'allocation.update': 'Edit allocations',
+  'allocation.delete': 'Remove allocations',
+  'startup.read': 'View startup',
+  'startup.update': 'Edit startup',
+  'settings.rename': 'Rename server',
+  'settings.reinstall': 'Reinstall server',
+  'activity.read': 'View activity'
+};
+
+const PERMISSION_GROUPS = {
+  'Control': ['control.console', 'control.start', 'control.stop', 'control.restart'],
+  'Subusers': ['user.create', 'user.read', 'user.update', 'user.delete'],
+  'Files': ['file.read', 'file.create', 'file.update', 'file.delete', 'file.archive', 'file.sftp'],
+  'Backups': ['backup.create', 'backup.read', 'backup.delete', 'backup.restore'],
+  'Allocations': ['allocation.read', 'allocation.create', 'allocation.update', 'allocation.delete'],
+  'Startup': ['startup.read', 'startup.update'],
+  'Settings': ['settings.rename', 'settings.reinstall'],
+  'Activity': ['activity.read']
+};
+
+function hasPermission(permissions, permission) {
+  if (!permissions) return false;
+  if (permissions.includes('*')) return true;
+  return permissions.includes(permission);
+}
+
+function hasAnyPermission(permissions, perms) {
+  return perms.some(p => hasPermission(permissions, p));
+}
+
+let currentServerId$2 = null;
+let subusers = [];
+
+function renderUsersTab() {
+  return `
+    <div class="users-tab">
+      <div class="users-header">
+        <h3>Subusers</h3>
+        <button class="btn btn-primary btn-sm" id="btn-add-subuser">
+          <span class="material-icons-outlined">person_add</span>
+          Add User
+        </button>
+      </div>
+      <div class="subusers-list" id="subusers-list">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    
+    <div class="modal" id="subuser-modal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3 id="modal-title">Add Subuser</h3>
+          <button class="modal-close">
+            <span class="material-icons-outlined">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group" id="username-group">
+            <label>Username</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">person</span>
+              <input type="text" id="subuser-username" placeholder="Enter username" />
+            </div>
+          </div>
+          <div class="permissions-editor">
+            <h4>Permissions</h4>
+            <div class="permissions-grid" id="permissions-grid"></div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="cancel-subuser">Cancel</button>
+          <button class="btn btn-primary" id="save-subuser">Save</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function initUsersTab(serverId) {
+  currentServerId$2 = serverId;
+  await loadSubusers();
+  
+  document.getElementById('btn-add-subuser').onclick = () => openModal();
+  
+  const modal = document.getElementById('subuser-modal');
+  modal.querySelector('.modal-close').onclick = closeModal;
+  modal.querySelector('.modal-backdrop').onclick = closeModal;
+  document.getElementById('cancel-subuser').onclick = closeModal;
+}
+
+async function loadSubusers() {
+  const username = localStorage.getItem('username');
+  const list = document.getElementById('subusers-list');
+  
+  try {
+    const res = await fetch(`/api/servers/${currentServerId$2}/subusers?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      list.innerHTML = `<div class="error-message">${escapeHtml$1(data.error)}</div>`;
+      return;
+    }
+    
+    subusers = data.subusers || [];
+    renderSubusers();
+  } catch (e) {
+    list.innerHTML = '<div class="error-message">Failed to load subusers</div>';
+  }
+}
+
+function renderSubusers() {
+  const list = document.getElementById('subusers-list');
+  
+  if (subusers.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <span class="material-icons-outlined">group</span>
+        <p>No subusers added yet</p>
+      </div>
+    `;
+    return;
+  }
+  
+  list.innerHTML = subusers.map(sub => `
+    <div class="subuser-item">
+      <div class="subuser-info">
+        <span class="subuser-name">${escapeHtml$1(sub.username)}</span>
+        <span class="subuser-perms">${sub.permissions.length} permissions</span>
+      </div>
+      <div class="subuser-actions">
+        <button class="btn btn-ghost btn-sm" data-edit="${sub.id}" title="Edit">
+          <span class="material-icons-outlined">edit</span>
+        </button>
+        <button class="btn btn-ghost btn-sm btn-danger-hover" data-delete="${sub.id}" title="Remove">
+          <span class="material-icons-outlined">person_remove</span>
+        </button>
+      </div>
+    </div>
+  `).join('');
+  
+  list.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.onclick = () => openModal(btn.dataset.edit);
+  });
+  
+  list.querySelectorAll('[data-delete]').forEach(btn => {
+    btn.onclick = () => deleteSubuser(btn.dataset.delete);
+  });
+}
+
+function openModal(editId = null) {
+  const modal = document.getElementById('subuser-modal');
+  const title = document.getElementById('modal-title');
+  const usernameGroup = document.getElementById('username-group');
+  const usernameInput = document.getElementById('subuser-username');
+  const saveBtn = document.getElementById('save-subuser');
+  
+  let editingSubuser = null;
+  
+  if (editId) {
+    editingSubuser = subusers.find(s => s.id === editId);
+    title.textContent = 'Edit Subuser';
+    usernameGroup.style.display = 'none';
+  } else {
+    title.textContent = 'Add Subuser';
+    usernameGroup.style.display = 'block';
+    usernameInput.value = '';
+  }
+  
+  renderPermissionsGrid(editingSubuser?.permissions || []);
+  
+  saveBtn.onclick = () => saveSubuser(editId);
+  
+  modal.classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('subuser-modal').classList.remove('active');
+}
+
+function renderPermissionsGrid(selectedPerms = []) {
+  const grid = document.getElementById('permissions-grid');
+  
+  grid.innerHTML = Object.entries(PERMISSION_GROUPS).map(([group, perms]) => `
+    <div class="permission-group">
+      <div class="permission-group-header">
+        <label class="checkbox-label">
+          <input type="checkbox" class="group-checkbox" data-group="${group}" 
+            ${perms.every(p => selectedPerms.includes(p)) ? 'checked' : ''} />
+          <span>${group}</span>
+        </label>
+      </div>
+      <div class="permission-items">
+        ${perms.map(p => `
+          <label class="checkbox-label">
+            <input type="checkbox" class="perm-checkbox" value="${p}" 
+              ${selectedPerms.includes(p) ? 'checked' : ''} />
+            <span>${PERMISSIONS[p] || p}</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+  
+  grid.querySelectorAll('.group-checkbox').forEach(cb => {
+    cb.onchange = () => {
+      const group = cb.dataset.group;
+      const perms = PERMISSION_GROUPS[group];
+      perms.forEach(p => {
+        const permCb = grid.querySelector(`input[value="${p}"]`);
+        if (permCb) permCb.checked = cb.checked;
+      });
+    };
+  });
+  
+  grid.querySelectorAll('.perm-checkbox').forEach(cb => {
+    cb.onchange = () => updateGroupCheckbox(grid);
+  });
+}
+
+function updateGroupCheckbox(grid) {
+  Object.entries(PERMISSION_GROUPS).forEach(([group, perms]) => {
+    const groupCb = grid.querySelector(`[data-group="${group}"]`);
+    if (groupCb) {
+      const allChecked = perms.every(p => {
+        const cb = grid.querySelector(`input[value="${p}"]`);
+        return cb?.checked;
+      });
+      groupCb.checked = allChecked;
+    }
+  });
+}
+
+function getSelectedPermissions() {
+  const checkboxes = document.querySelectorAll('.perm-checkbox:checked');
+  return Array.from(checkboxes).map(cb => cb.value);
+}
+
+async function saveSubuser(editId) {
+  const username = localStorage.getItem('username');
+  const permissions = getSelectedPermissions();
+  const saveBtn = document.getElementById('save-subuser');
+  
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+  
+  try {
+    if (editId) {
+      const res = await fetch(`/api/servers/${currentServerId$2}/subusers/${editId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, permissions })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+    } else {
+      const targetUsername = document.getElementById('subuser-username').value.trim();
+      if (!targetUsername) throw new Error('Username required');
+      
+      const res = await fetch(`/api/servers/${currentServerId$2}/subusers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, target_username: targetUsername, permissions })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+    }
+    
+    closeModal();
+    await loadSubusers();
+  } catch (e) {
+    alert(e.message);
+  }
+  
+  saveBtn.disabled = false;
+  saveBtn.innerHTML = 'Save';
+}
+
+async function deleteSubuser(id) {
+  if (!confirm('Remove this subuser?')) return;
+  
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${currentServerId$2}/subusers/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    
+    if (res.ok) {
+      await loadSubusers();
+    } else {
+      const data = await res.json();
+      alert(data.error);
+    }
+  } catch (e) {
+    alert('Failed to remove subuser');
+  }
+}
+
+function escapeHtml$1(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function cleanupUsersTab() {
+  currentServerId$2 = null;
+  subusers = [];
 }
 
 let currentServerId$1 = null;
@@ -3169,6 +3660,8 @@ const tabs = [
   { id: 'console', label: 'Console', icon: 'terminal' },
   { id: 'files', label: 'Files', icon: 'folder' },
   { id: 'startup', label: 'Startup', icon: 'play_circle' },
+  { id: 'network', label: 'Network', icon: 'lan' },
+  { id: 'users', label: 'Users', icon: 'group' },
   { id: 'settings', label: 'Settings', icon: 'settings' }
 ];
 
@@ -3310,6 +3803,14 @@ function switchTab(tabId) {
       content.innerHTML = renderStartupTab();
       initStartupTab(currentServerId);
       break;
+    case 'network':
+      content.innerHTML = renderNetworkTab();
+      initNetworkTab(currentServerId);
+      break;
+    case 'users':
+      content.innerHTML = renderUsersTab();
+      initUsersTab(currentServerId);
+      break;
     case 'settings':
       content.innerHTML = renderSettingsTab();
       initSettingsTab(currentServerId);
@@ -3329,6 +3830,12 @@ function cleanupCurrentTab() {
       break;
     case 'startup':
       cleanupStartupTab();
+      break;
+    case 'network':
+      cleanupNetworkTab();
+      break;
+    case 'users':
+      cleanupUsersTab();
       break;
     case 'settings':
       cleanupSettingsTab();
@@ -3640,7 +4147,7 @@ async function loadStatus() {
           <div class="node-header">
             <div class="node-info">
               <span class="node-indicator ${node.status}"></span>
-              <h3>${escapeHtml$3(node.name)}</h3>
+              <h3>${escapeHtml$4(node.name)}</h3>
             </div>
             <span class="status-badge status-${node.status}">${node.status}</span>
           </div>
@@ -3652,7 +4159,7 @@ async function loadStatus() {
             </span>
             <span class="meta-item">
               <span class="material-icons-outlined">location_on</span>
-              ${escapeHtml$3(node.location || 'Unknown')}
+              ${escapeHtml$4(node.location || 'Unknown')}
             </span>
           </div>
           
@@ -3985,8 +4492,8 @@ async function loadNodes(container, username) {
               ${data.nodes.length === 0 ? '<tr><td colspan="6" class="empty">No nodes</td></tr>' : ''}
               ${data.nodes.map(node => `
                 <tr>
-                  <td>${escapeHtml$3(node.name)}</td>
-                  <td>${escapeHtml$3(node.fqdn)}</td>
+                  <td>${escapeHtml$4(node.name)}</td>
+                  <td>${escapeHtml$4(node.fqdn)}</td>
                   <td>${node.memory} MB</td>
                   <td>${node.disk} MB</td>
                   <td>${node.allocation_start || 25565}-${node.allocation_end || 25665}</td>
@@ -4007,12 +4514,12 @@ async function loadNodes(container, username) {
           ${data.nodes.map(node => `
             <div class="admin-card">
               <div class="card-header">
-                <h4>${escapeHtml$3(node.name)}</h4>
+                <h4>${escapeHtml$4(node.name)}</h4>
               </div>
               <div class="card-info">
                 <div class="info-row">
                   <span class="label">FQDN</span>
-                  <span class="value">${escapeHtml$3(node.fqdn)}</span>
+                  <span class="value">${escapeHtml$4(node.fqdn)}</span>
                 </div>
                 <div class="info-row">
                   <span class="label">Memory</span>
@@ -4050,7 +4557,7 @@ async function loadNodes(container, username) {
     const locRes = await fetch('/api/admin/locations');
     const locData = await locRes.json();
     document.getElementById('node-location').innerHTML = locData.locations.map(l => 
-      `<option value="${l.id}">${escapeHtml$3(l.long)} (${escapeHtml$3(l.short)})</option>`
+      `<option value="${l.id}">${escapeHtml$4(l.long)} (${escapeHtml$4(l.short)})</option>`
     ).join('');
     
     document.getElementById('add-node-btn').onclick = () => {
@@ -4099,16 +4606,16 @@ window.editNode = async function(nodeId) {
         <form id="edit-node-form">
           <div class="form-group">
             <label>Name</label>
-            <input type="text" name="name" value="${escapeHtml$3(node.name)}" required />
+            <input type="text" name="name" value="${escapeHtml$4(node.name)}" required />
           </div>
           <div class="form-group">
             <label>Description</label>
-            <input type="text" name="description" value="${escapeHtml$3(node.description || '')}" />
+            <input type="text" name="description" value="${escapeHtml$4(node.description || '')}" />
           </div>
           <div class="form-row">
             <div class="form-group">
               <label>FQDN</label>
-              <input type="text" name="fqdn" value="${escapeHtml$3(node.fqdn)}" required />
+              <input type="text" name="fqdn" value="${escapeHtml$4(node.fqdn)}" required />
             </div>
             <div class="form-group">
               <label>Scheme</label>
@@ -4146,7 +4653,7 @@ window.editNode = async function(nodeId) {
             <div class="form-group">
               <label>Location</label>
               <select name="location_id">
-                ${locData.locations.map(l => `<option value="${l.id}" ${l.id === node.location_id ? 'selected' : ''}>${escapeHtml$3(l.long)}</option>`).join('')}
+                ${locData.locations.map(l => `<option value="${l.id}" ${l.id === node.location_id ? 'selected' : ''}>${escapeHtml$4(l.long)}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -4216,7 +4723,7 @@ window.showDeployCommand = async function(nodeId) {
       <div class="modal-content">
         <h2>Deploy Command</h2>
         <p>Run this command on your node to configure Wings:</p>
-        <pre class="config-output" style="white-space:pre-wrap;word-break:break-all;">${escapeHtml$3(data.command)}</pre>
+        <pre class="config-output" style="white-space:pre-wrap;word-break:break-all;">${escapeHtml$4(data.command)}</pre>
         <div class="modal-actions">
           <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.modal').querySelector('.config-output').textContent);this.textContent='Copied!'">Copy</button>
           <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Close</button>
@@ -4249,7 +4756,7 @@ window.showNodeConfig = async function(nodeId) {
       <div class="modal-content">
         <h2>Wings Configuration</h2>
         <p>Copy this configuration to <code>/etc/pterodactyl/config.yml</code> on your node:</p>
-        <pre class="config-output">${escapeHtml$3(yamlConfig)}</pre>
+        <pre class="config-output">${escapeHtml$4(yamlConfig)}</pre>
         <div class="modal-actions">
           <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.modal').querySelector('.config-output').textContent);this.textContent='Copied!'">Copy</button>
           <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Close</button>
@@ -4384,11 +4891,14 @@ async function loadServersTab(container, username) {
               ${data.servers.length === 0 ? '<tr><td colspan="5" class="empty">No servers</td></tr>' : ''}
               ${data.servers.map(s => `
                 <tr>
-                  <td>${escapeHtml$3(s.name)}</td>
+                  <td>${escapeHtml$4(s.name)}${s.suspended ? ' <span class="status-badge status-suspended">Suspended</span>' : ''}</td>
                   <td>${s.user_id?.substring(0, 8) || '--'}</td>
                   <td>${s.limits?.memory || 0}MB / ${s.limits?.disk || 0}MB / ${s.limits?.cpu || 0}%</td>
                   <td><span class="status-badge status-${s.status}">${s.status}</span></td>
                   <td>
+                    ${s.suspended 
+                      ? `<button class="btn btn-sm btn-success" onclick="unsuspendServer('${s.id}')">Unsuspend</button>` 
+                      : `<button class="btn btn-sm btn-warning" onclick="suspendServer('${s.id}')">Suspend</button>`}
                     <button class="btn btn-sm btn-danger" onclick="deleteServer('${s.id}')">Delete</button>
                   </td>
                 </tr>
@@ -4406,19 +4916,19 @@ async function loadServersTab(container, username) {
     const usersRes = await fetch(`/api/admin/users?username=${encodeURIComponent(username)}&per_page=100`);
     const usersData = await usersRes.json();
     document.getElementById('server-user').innerHTML = usersData.users.map(u => 
-      `<option value="${u.id}">${escapeHtml$3(u.username)}</option>`
+      `<option value="${u.id}">${escapeHtml$4(u.username)}</option>`
     ).join('');
     
     const nodesRes = await fetch(`/api/admin/nodes?username=${encodeURIComponent(username)}&per_page=100`);
     const nodesData = await nodesRes.json();
     document.getElementById('server-node').innerHTML = nodesData.nodes.map(n => 
-      `<option value="${n.id}">${escapeHtml$3(n.name)}</option>`
+      `<option value="${n.id}">${escapeHtml$4(n.name)}</option>`
     ).join('');
     
     const eggsRes = await fetch('/api/admin/eggs');
     const eggsData = await eggsRes.json();
     document.getElementById('server-egg').innerHTML = eggsData.eggs.map(e => 
-      `<option value="${e.id}">${escapeHtml$3(e.name)}</option>`
+      `<option value="${e.id}">${escapeHtml$4(e.name)}</option>`
     ).join('');
     
     document.getElementById('add-server-btn').onclick = () => {
@@ -4463,6 +4973,46 @@ window.deleteServer = async function(serverId) {
   }
 };
 
+window.suspendServer = async function(serverId) {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${serverId}/suspend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    if (res.ok) {
+      loadTab('servers');
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Failed to suspend server');
+    }
+  } catch (e) {
+    alert('Failed to suspend server');
+  }
+};
+
+window.unsuspendServer = async function(serverId) {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${serverId}/unsuspend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    if (res.ok) {
+      loadTab('servers');
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Failed to unsuspend server');
+    }
+  } catch (e) {
+    alert('Failed to unsuspend server');
+  }
+};
+
 async function loadUsers(container, username) {
   try {
     const res = await fetch(`/api/admin/users?username=${encodeURIComponent(username)}&page=${currentPage.users}&per_page=${itemsPerPage.users}`);
@@ -4488,13 +5038,14 @@ async function loadUsers(container, username) {
             <tbody>
               ${data.users.map(u => `
                 <tr>
-                  <td>${escapeHtml$3(u.username)}</td>
-                  <td>${escapeHtml$3(u.displayName || u.username)}</td>
+                  <td>${escapeHtml$4(u.username)}</td>
+                  <td>${escapeHtml$4(u.displayName || u.username)}</td>
                   <td>${u.isAdmin ? '✓' : '✗'}</td>
                   <td>${u.limits ? `${u.limits.servers} servers, ${u.limits.memory}MB` : 'Default'}</td>
                   <td>
                     <button class="btn btn-sm btn-ghost" onclick="toggleAdmin('${u.id}', ${!u.isAdmin})">${u.isAdmin ? 'Remove Admin' : 'Make Admin'}</button>
                     <button class="btn btn-sm btn-ghost" onclick="editUserLimits('${u.id}')">Edit Limits</button>
+                    <button class="btn btn-sm btn-ghost" onclick="toggleSubusers('${u.id}', ${u.allowSubusers === false})">${u.allowSubusers === false ? 'Enable Subusers' : 'Disable Subusers'}</button>
                   </td>
                 </tr>
               `).join('')}
@@ -4506,13 +5057,13 @@ async function loadUsers(container, username) {
           ${data.users.map(u => `
             <div class="admin-card">
               <div class="card-header">
-                <h4>${escapeHtml$3(u.username)}</h4>
+                <h4>${escapeHtml$4(u.username)}</h4>
                 <span class="status ${u.isAdmin ? 'status-online' : ''}">${u.isAdmin ? 'Admin' : 'User'}</span>
               </div>
               <div class="card-info">
                 <div class="info-row">
                   <span class="label">Display Name</span>
-                  <span class="value">${escapeHtml$3(u.displayName || u.username)}</span>
+                  <span class="value">${escapeHtml$4(u.displayName || u.username)}</span>
                 </div>
                 <div class="info-row">
                   <span class="label">Limits</span>
@@ -4568,6 +5119,18 @@ window.editUserLimits = async function(userId) {
   loadTab('users');
 };
 
+window.toggleSubusers = async function(userId, allow) {
+  const username = localStorage.getItem('username');
+  
+  await fetch(`/api/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, updates: { allowSubusers: allow } })
+  });
+  
+  loadTab('users');
+};
+
 async function loadNests(container, username) {
   try {
     const res = await fetch('/api/admin/nests');
@@ -4610,7 +5173,7 @@ async function loadNests(container, username) {
             <div class="form-group">
               <label>Target Nest</label>
               <select name="nest_id" id="import-nest-select" required>
-                ${nests.map(n => `<option value="${n.id}">${escapeHtml$3(n.name)}</option>`).join('')}
+                ${nests.map(n => `<option value="${n.id}">${escapeHtml$4(n.name)}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -4636,7 +5199,7 @@ async function loadNests(container, username) {
               <div class="form-group">
                 <label>Nest</label>
                 <select name="nest_id" id="egg-nest-select" required>
-                  ${nests.map(n => `<option value="${n.id}">${escapeHtml$3(n.name)}</option>`).join('')}
+                  ${nests.map(n => `<option value="${n.id}">${escapeHtml$4(n.name)}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -4679,21 +5242,21 @@ async function loadNests(container, username) {
             ${nests.map(nest => `
               <div class="nest-card card">
                 <div class="nest-header">
-                  <h3>${escapeHtml$3(nest.name)}</h3>
+                  <h3>${escapeHtml$4(nest.name)}</h3>
                   <div class="nest-actions">
                     <button class="btn btn-sm btn-ghost" onclick="editNest('${nest.id}')"><span class="material-icons-outlined">edit</span></button>
                     <button class="btn btn-sm btn-ghost" onclick="addEggToNest('${nest.id}')"><span class="material-icons-outlined">add</span></button>
                     <button class="btn btn-sm btn-danger" onclick="deleteNest('${nest.id}')"><span class="material-icons-outlined">delete</span></button>
                   </div>
                 </div>
-                <p class="nest-description">${escapeHtml$3(nest.description || '')}</p>
+                <p class="nest-description">${escapeHtml$4(nest.description || '')}</p>
                 <div class="eggs-list">
                   <h4>Eggs (${nest.eggs?.length || 0})</h4>
                   ${(nest.eggs || []).length === 0 ? '<div class="empty">No eggs in this nest</div>' : ''}
                   ${(nest.eggs || []).map(egg => `
                     <div class="egg-item">
                       <div class="egg-info">
-                        <span class="egg-name">${escapeHtml$3(egg.name)}</span>
+                        <span class="egg-name">${escapeHtml$4(egg.name)}</span>
                         <span class="egg-images">${formatDockerImages(egg.docker_images, egg.docker_image)}</span>
                       </div>
                       <div class="egg-actions">
@@ -4839,11 +5402,11 @@ function formatDockerImages(dockerImages, fallbackImage) {
   if (dockerImages && typeof dockerImages === 'object') {
     const keys = Object.keys(dockerImages);
     if (keys.length > 0) {
-      return keys.length === 1 ? escapeHtml$3(keys[0]) : `${keys.length} images`;
+      return keys.length === 1 ? escapeHtml$4(keys[0]) : `${keys.length} images`;
     }
   }
   if (fallbackImage) {
-    return escapeHtml$3(fallbackImage.split('/').pop() || fallbackImage);
+    return escapeHtml$4(fallbackImage.split('/').pop() || fallbackImage);
   }
   return 'No image';
 }
@@ -4958,8 +5521,8 @@ async function loadLocations(container, username) {
               ${data.locations.map(l => `
                 <tr>
                   <td>${l.id}</td>
-                  <td>${escapeHtml$3(l.short)}</td>
-                  <td>${escapeHtml$3(l.long)}</td>
+                  <td>${escapeHtml$4(l.short)}</td>
+                  <td>${escapeHtml$4(l.long)}</td>
                   <td>
                     <button class="btn btn-sm btn-danger" onclick="deleteLocation('${l.id}')">Delete</button>
                   </td>
@@ -4974,12 +5537,12 @@ async function loadLocations(container, username) {
           ${data.locations.map(l => `
             <div class="admin-card">
               <div class="card-header">
-                <h4>${escapeHtml$3(l.short)}</h4>
+                <h4>${escapeHtml$4(l.short)}</h4>
               </div>
               <div class="card-info">
                 <div class="info-row">
                   <span class="label">Full Name</span>
-                  <span class="value">${escapeHtml$3(l.long)}</span>
+                  <span class="value">${escapeHtml$4(l.long)}</span>
                 </div>
                 <div class="info-row">
                   <span class="label">ID</span>
@@ -5044,11 +5607,11 @@ async function loadPanelSettings(container, username) {
             <div class="form-row">
               <div class="form-group">
                 <label>Panel Name</label>
-                <input type="text" name="panel_name" value="${escapeHtml$3(config.panel?.name || 'Sodium Panel')}" />
+                <input type="text" name="panel_name" value="${escapeHtml$4(config.panel?.name || 'Sodium Panel')}" />
               </div>
               <div class="form-group">
                 <label>Panel URL</label>
-                <input type="url" name="panel_url" value="${escapeHtml$3(config.panel?.url || '')}" placeholder="https://panel.example.com" />
+                <input type="url" name="panel_url" value="${escapeHtml$4(config.panel?.url || '')}" placeholder="https://panel.example.com" />
               </div>
             </div>
             
@@ -5057,6 +5620,14 @@ async function loadPanelSettings(container, username) {
               <label class="toggle-label">
                 <input type="checkbox" name="registration_enabled" ${config.registration?.enabled ? 'checked' : ''} />
                 <span>Allow new user registrations</span>
+              </label>
+            </div>
+            
+            <h3>Features</h3>
+            <div class="form-group">
+              <label class="toggle-label">
+                <input type="checkbox" name="subusers_enabled" ${config.features?.subusers !== false ? 'checked' : ''} />
+                <span>Allow subusers (users can share server access)</span>
               </label>
             </div>
             
@@ -5102,6 +5673,9 @@ async function loadPanelSettings(container, username) {
         },
         registration: {
           enabled: form.registration_enabled.checked
+        },
+        features: {
+          subusers: form.subusers_enabled.checked
         },
         defaults: {
           servers: parseInt(form.default_servers.value) || 2,

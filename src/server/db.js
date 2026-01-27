@@ -144,7 +144,8 @@ export function loadConfig() {
     return {
       panel: { ...DEFAULT_CONFIG.panel, ...config.panel },
       registration: { ...DEFAULT_CONFIG.registration, ...config.registration },
-      defaults: { ...DEFAULT_CONFIG.defaults, ...config.defaults }
+      defaults: { ...DEFAULT_CONFIG.defaults, ...config.defaults },
+      features: { ...DEFAULT_CONFIG.features, ...config.features }
     };
   } catch {
     saveConfig(DEFAULT_CONFIG);

@@ -178,7 +178,8 @@ router.put('/users/:id', (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'User not found' });
   
   if (updates.isAdmin !== undefined) data.users[idx].isAdmin = updates.isAdmin;
-  if (updates.limits) data.users[idx].limits = updates.limits;
+  if (updates.limits) data.users[idx].limits = { ...data.users[idx].limits, ...updates.limits };
+  if (updates.allowSubusers !== undefined) data.users[idx].allowSubusers = updates.allowSubusers;
   
   saveUsers(data);
   const { password, ...user } = data.users[idx];
@@ -470,6 +471,13 @@ router.put('/settings', (req, res) => {
       memory: parseInt(newConfig.defaults.memory) || 2048,
       disk: parseInt(newConfig.defaults.disk) || 10240,
       cpu: parseInt(newConfig.defaults.cpu) || 200
+    };
+  }
+  
+  if (newConfig.features !== undefined) {
+    config.features = {
+      ...config.features,
+      subusers: newConfig.features.subusers !== undefined ? Boolean(newConfig.features.subusers) : config.features?.subusers
     };
   }
   

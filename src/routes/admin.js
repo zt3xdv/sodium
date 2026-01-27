@@ -683,11 +683,14 @@ async function loadServersTab(container, username) {
               ${data.servers.length === 0 ? '<tr><td colspan="5" class="empty">No servers</td></tr>' : ''}
               ${data.servers.map(s => `
                 <tr>
-                  <td>${escapeHtml(s.name)}</td>
+                  <td>${escapeHtml(s.name)}${s.suspended ? ' <span class="status-badge status-suspended">Suspended</span>' : ''}</td>
                   <td>${s.user_id?.substring(0, 8) || '--'}</td>
                   <td>${s.limits?.memory || 0}MB / ${s.limits?.disk || 0}MB / ${s.limits?.cpu || 0}%</td>
                   <td><span class="status-badge status-${s.status}">${s.status}</span></td>
                   <td>
+                    ${s.suspended 
+                      ? `<button class="btn btn-sm btn-success" onclick="unsuspendServer('${s.id}')">Unsuspend</button>` 
+                      : `<button class="btn btn-sm btn-warning" onclick="suspendServer('${s.id}')">Suspend</button>`}
                     <button class="btn btn-sm btn-danger" onclick="deleteServer('${s.id}')">Delete</button>
                   </td>
                 </tr>
@@ -762,6 +765,46 @@ window.deleteServer = async function(serverId) {
   }
 };
 
+window.suspendServer = async function(serverId) {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${serverId}/suspend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    if (res.ok) {
+      loadTab('servers');
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Failed to suspend server');
+    }
+  } catch (e) {
+    alert('Failed to suspend server');
+  }
+};
+
+window.unsuspendServer = async function(serverId) {
+  const username = localStorage.getItem('username');
+  
+  try {
+    const res = await fetch(`/api/servers/${serverId}/unsuspend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    if (res.ok) {
+      loadTab('servers');
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Failed to unsuspend server');
+    }
+  } catch (e) {
+    alert('Failed to unsuspend server');
+  }
+};
+
 async function loadUsers(container, username) {
   try {
     const res = await fetch(`/api/admin/users?username=${encodeURIComponent(username)}&page=${currentPage.users}&per_page=${itemsPerPage.users}`);
@@ -794,6 +837,7 @@ async function loadUsers(container, username) {
                   <td>
                     <button class="btn btn-sm btn-ghost" onclick="toggleAdmin('${u.id}', ${!u.isAdmin})">${u.isAdmin ? 'Remove Admin' : 'Make Admin'}</button>
                     <button class="btn btn-sm btn-ghost" onclick="editUserLimits('${u.id}')">Edit Limits</button>
+                    <button class="btn btn-sm btn-ghost" onclick="toggleSubusers('${u.id}', ${u.allowSubusers === false})">${u.allowSubusers === false ? 'Enable Subusers' : 'Disable Subusers'}</button>
                   </td>
                 </tr>
               `).join('')}
@@ -862,6 +906,18 @@ window.editUserLimits = async function(userId) {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, updates: { limits } })
+  });
+  
+  loadTab('users');
+};
+
+window.toggleSubusers = async function(userId, allow) {
+  const username = localStorage.getItem('username');
+  
+  await fetch(`/api/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, updates: { allowSubusers: allow } })
   });
   
   loadTab('users');
@@ -1359,6 +1415,14 @@ async function loadPanelSettings(container, username) {
               </label>
             </div>
             
+            <h3>Features</h3>
+            <div class="form-group">
+              <label class="toggle-label">
+                <input type="checkbox" name="subusers_enabled" ${config.features?.subusers !== false ? 'checked' : ''} />
+                <span>Allow subusers (users can share server access)</span>
+              </label>
+            </div>
+            
             <h3>Default User Limits</h3>
             <p class="form-hint">These limits are applied to new users when they register.</p>
             <div class="form-row">
@@ -1401,6 +1465,9 @@ async function loadPanelSettings(container, username) {
         },
         registration: {
           enabled: form.registration_enabled.checked
+        },
+        features: {
+          subusers: form.subusers_enabled.checked
         },
         defaults: {
           servers: parseInt(form.default_servers.value) || 2,

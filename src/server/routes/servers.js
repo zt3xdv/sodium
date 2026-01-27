@@ -1,7 +1,8 @@
 import express from 'express';
-import { loadUsers, loadServers, saveServers, loadNodes, loadEggs, loadNests } from '../db.js';
+import { loadUsers, loadServers, saveServers, loadNodes, loadEggs, loadNests, loadConfig } from '../db.js';
 import { wingsRequest, sanitizeText, generateUUID, validateVariableValue } from '../utils/helpers.js';
 import { getNodeAvailableResources } from '../utils/node-resources.js';
+import { hasPermission } from '../utils/permissions.js';
 
 const router = express.Router();
 
@@ -16,22 +17,39 @@ router.get('/nests', (req, res) => {
 });
 
 // Helper privado para este router
-async function getServerAndNode(serverId, username) {
+async function getServerAndNode(serverId, username, requiredPermission = null) {
   const data = loadServers();
   const server = data.servers.find(s => s.id === serverId);
   if (!server) return { error: 'Server not found', status: 404 };
   
+  if (server.suspended) {
+    return { error: 'Server is suspended', status: 403 };
+  }
+  
   const users = loadUsers();
   const user = users.users.find(u => u.username.toLowerCase() === username?.toLowerCase());
-  if (!user || (server.user_id !== user.id && !user.isAdmin)) {
-    return { error: 'Forbidden', status: 403 };
-  }
+  if (!user) return { error: 'User not found', status: 404 };
   
   const nodes = loadNodes();
   const node = nodes.nodes.find(n => n.id === server.node_id);
-  if (!node) return { error: 'Node not available', status: 400 };
   
-  return { server, node, user };
+  // Admin or owner has full access
+  if (user.isAdmin || server.user_id === user.id) {
+    if (!node) return { error: 'Node not available', status: 400 };
+    return { server, node, user, isOwner: true };
+  }
+  
+  // Check if subuser
+  const subuser = (server.subusers || []).find(s => s.user_id === user.id);
+  if (!subuser) return { error: 'Forbidden', status: 403 };
+  
+  // Verify specific permission if required
+  if (requiredPermission && !hasPermission(subuser, requiredPermission)) {
+    return { error: 'Permission denied', status: 403 };
+  }
+  
+  if (!node) return { error: 'Node not available', status: 400 };
+  return { server, node, user, isOwner: false, subuser };
 }
 
 // Lista de servidores del usuario
@@ -46,18 +64,37 @@ router.get('/', (req, res) => {
   const data = loadServers();
   const nodes = loadNodes();
   
-  const userServers = data.servers
+  // Servers owned by user
+  const ownedServers = data.servers
     .filter(s => s.user_id === user.id)
     .map(server => {
       const node = nodes.nodes.find(n => n.id === server.node_id);
+      const primary = (server.allocations || []).find(a => a.primary) || server.allocation;
       return {
         ...server,
-        node_address: node ? `${node.fqdn}:${server.allocation?.port || 25565}` : null,
-        node_name: node?.name || null
+        node_address: node && primary ? `${node.fqdn}:${primary.port}` : null,
+        node_name: node?.name || null,
+        is_owner: true
       };
     });
   
-  res.json({ servers: userServers });
+  // Servers where user is subuser
+  const subuserServers = data.servers
+    .filter(s => (s.subusers || []).some(sub => sub.user_id === user.id))
+    .map(server => {
+      const node = nodes.nodes.find(n => n.id === server.node_id);
+      const primary = (server.allocations || []).find(a => a.primary) || server.allocation;
+      const subuser = server.subusers.find(s => s.user_id === user.id);
+      return {
+        ...server,
+        node_address: node && primary ? `${node.fqdn}:${primary.port}` : null,
+        node_name: node?.name || null,
+        is_owner: false,
+        permissions: subuser?.permissions || []
+      };
+    });
+  
+  res.json({ servers: [...ownedServers, ...subuserServers] });
 });
 
 // Crear Servidor (Usuario)
@@ -134,7 +171,19 @@ router.post('/', async (req, res) => {
   }
   
   const availablePorts = bestNodeResources.available_ports;
-  const randomPort = availablePorts[Math.floor(Math.random() * availablePorts.length)];
+  
+  let allocations = [];
+  let allocation = null;
+  if (availablePorts.length > 0) {
+    const randomPort = availablePorts[Math.floor(Math.random() * availablePorts.length)];
+    allocations = [{
+      id: generateUUID(),
+      ip: '0.0.0.0',
+      port: randomPort,
+      primary: true
+    }];
+    allocation = { ip: '0.0.0.0', port: randomPort };
+  }
   
   const uuid = generateUUID();
   const newServer = {
@@ -157,10 +206,11 @@ router.post('/', async (req, res) => {
     feature_limits: {
       databases: 0,
       backups: 0,
-      allocations: 1
+      allocations: 5
     },
     environment: {},
-    allocation: { ip: '0.0.0.0', port: randomPort },
+    allocations,
+    allocation,
     status: 'installing',
     suspended: false,
     created_at: new Date().toISOString()
@@ -215,7 +265,7 @@ router.post('/', async (req, res) => {
       container: { 
         image: newServer.docker_image 
       },
-      allocations: {
+      allocations: newServer.allocation ? {
         default: { 
           ip: newServer.allocation.ip, 
           port: newServer.allocation.port 
@@ -223,7 +273,7 @@ router.post('/', async (req, res) => {
         mappings: { 
           [newServer.allocation.ip]: [newServer.allocation.port] 
         }
-      },
+      } : { default: { ip: '0.0.0.0', port: 25565 }, mappings: {} },
       mounts: [],
       egg: {
         id: egg.id || '',
@@ -622,6 +672,359 @@ router.get('/:id/files/download', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// Allocations
+async function syncAllocationsWithWings(node, server) {
+  const allocations = server.allocations || [];
+  const primary = allocations.find(a => a.primary) || allocations[0];
+  
+  const mappings = {};
+  allocations.forEach(a => {
+    if (!mappings[a.ip]) mappings[a.ip] = [];
+    mappings[a.ip].push(a.port);
+  });
+  
+  const eggs = loadEggs();
+  const egg = eggs.eggs.find(e => e.id === server.egg_id) || {};
+  
+  await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/sync`, {
+    uuid: server.uuid,
+    suspended: server.suspended || false,
+    environment: server.environment || {},
+    invocation: server.startup || egg.startup || '',
+    build: {
+      memory_limit: server.limits?.memory || 1024,
+      swap: server.limits?.swap || 0,
+      io_weight: server.limits?.io || 500,
+      cpu_limit: server.limits?.cpu || 100,
+      disk_space: server.limits?.disk || 5120
+    },
+    allocations: {
+      default: { ip: primary?.ip || '0.0.0.0', port: primary?.port || 25565 },
+      mappings
+    },
+    container: {
+      image: server.docker_image || egg.docker_image || ''
+    }
+  });
+}
+
+router.get('/:id/allocations', async (req, res) => {
+  const { username } = req.query;
+  const result = await getServerAndNode(req.params.id, username);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server } = result;
+  res.json({ allocations: server.allocations || [] });
+});
+
+router.post('/:id/allocations', async (req, res) => {
+  const { username } = req.body;
+  const result = await getServerAndNode(req.params.id, username);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node, user } = result;
+  
+  const servers = loadServers();
+  const userServers = servers.servers.filter(s => s.user_id === user.id);
+  const totalAllocations = userServers.reduce((sum, s) => sum + (s.allocations?.length || 1), 0);
+  const allocationLimit = user.limits?.allocations || 5;
+  
+  if (totalAllocations >= allocationLimit) {
+    return res.status(400).json({ error: 'Allocation limit reached' });
+  }
+  
+  const serverAllocationLimit = server.feature_limits?.allocations || 5;
+  if ((server.allocations?.length || 1) >= serverAllocationLimit) {
+    return res.status(400).json({ error: 'Server allocation limit reached' });
+  }
+  
+  const resources = getNodeAvailableResources(node.id);
+  if (!resources || resources.available_ports.length === 0) {
+    return res.status(400).json({ error: 'No available ports' });
+  }
+  
+  const randomPort = resources.available_ports[Math.floor(Math.random() * resources.available_ports.length)];
+  
+  const newAllocation = {
+    id: generateUUID(),
+    ip: '0.0.0.0',
+    port: randomPort,
+    primary: false
+  };
+  
+  const data = loadServers();
+  const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+  
+  if (!data.servers[serverIdx].allocations) {
+    const oldAlloc = data.servers[serverIdx].allocation;
+    data.servers[serverIdx].allocations = [{
+      id: generateUUID(),
+      ip: oldAlloc?.ip || '0.0.0.0',
+      port: oldAlloc?.port || 25565,
+      primary: true
+    }];
+  }
+  
+  data.servers[serverIdx].allocations.push(newAllocation);
+  saveServers(data);
+  
+  try {
+    await syncAllocationsWithWings(node, data.servers[serverIdx]);
+  } catch (e) {
+    console.log('[ALLOCATIONS] Failed to sync:', e.message);
+  }
+  
+  res.json({ success: true, allocation: newAllocation });
+});
+
+router.put('/:id/allocations/:allocId/primary', async (req, res) => {
+  const { username } = req.body;
+  const result = await getServerAndNode(req.params.id, username);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  
+  const data = loadServers();
+  const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+  const allocations = data.servers[serverIdx].allocations || [];
+  
+  const allocIdx = allocations.findIndex(a => a.id === req.params.allocId);
+  if (allocIdx === -1) return res.status(404).json({ error: 'Allocation not found' });
+  
+  allocations.forEach(a => a.primary = false);
+  allocations[allocIdx].primary = true;
+  
+  data.servers[serverIdx].allocation = {
+    ip: allocations[allocIdx].ip,
+    port: allocations[allocIdx].port
+  };
+  
+  saveServers(data);
+  
+  try {
+    await syncAllocationsWithWings(node, data.servers[serverIdx]);
+  } catch (e) {
+    console.log('[ALLOCATIONS] Failed to sync:', e.message);
+  }
+  
+  res.json({ success: true });
+});
+
+router.delete('/:id/allocations/:allocId', async (req, res) => {
+  const { username } = req.body;
+  const result = await getServerAndNode(req.params.id, username);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  
+  const data = loadServers();
+  const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+  const allocations = data.servers[serverIdx].allocations || [];
+  
+  const allocIdx = allocations.findIndex(a => a.id === req.params.allocId);
+  if (allocIdx === -1) return res.status(404).json({ error: 'Allocation not found' });
+  
+  if (allocations[allocIdx].primary) {
+    return res.status(400).json({ error: 'Cannot delete primary allocation' });
+  }
+  
+  allocations.splice(allocIdx, 1);
+  data.servers[serverIdx].allocations = allocations;
+  saveServers(data);
+  
+  try {
+    await syncAllocationsWithWings(node, data.servers[serverIdx]);
+  } catch (e) {
+    console.log('[ALLOCATIONS] Failed to sync:', e.message);
+  }
+  
+  res.json({ success: true });
+});
+
+// ==================== SUBUSERS ====================
+
+// GET /:id/subusers - List subusers
+router.get('/:id/subusers', async (req, res) => {
+  const { username } = req.query;
+  const result = await getServerAndNode(req.params.id, username, 'user.read');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  
+  const { server, isOwner } = result;
+  if (!isOwner && !hasPermission(result.subuser, 'user.read')) {
+    return res.status(403).json({ error: 'Permission denied' });
+  }
+  
+  const users = loadUsers();
+  const subusers = (server.subusers || []).map(s => {
+    const u = users.users.find(user => user.id === s.user_id);
+    return {
+      id: s.id,
+      user_id: s.user_id,
+      username: u?.username || 'Unknown',
+      email: u?.email || '',
+      permissions: s.permissions,
+      created_at: s.created_at
+    };
+  });
+  
+  res.json({ subusers });
+});
+
+// POST /:id/subusers - Create subuser
+router.post('/:id/subusers', async (req, res) => {
+  const { username, target_username, permissions } = req.body;
+  const result = await getServerAndNode(req.params.id, username, 'user.create');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  
+  const { server } = result;
+  
+  // Verify global config
+  const config = loadConfig();
+  if (!config.features?.subusers) {
+    return res.status(400).json({ error: 'Subusers are disabled' });
+  }
+  
+  // Verify owner can use subusers
+  const users = loadUsers();
+  const owner = users.users.find(u => u.id === server.user_id);
+  if (owner && owner.allowSubusers === false) {
+    return res.status(400).json({ error: 'Subusers not allowed for this account' });
+  }
+  
+  // Find target user
+  const targetUser = users.users.find(u => u.username.toLowerCase() === target_username?.toLowerCase());
+  if (!targetUser) return res.status(404).json({ error: 'User not found' });
+  
+  if (targetUser.id === server.user_id) {
+    return res.status(400).json({ error: 'Cannot add owner as subuser' });
+  }
+  
+  const data = loadServers();
+  const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+  
+  if (!data.servers[serverIdx].subusers) {
+    data.servers[serverIdx].subusers = [];
+  }
+  
+  // Check if already exists
+  if (data.servers[serverIdx].subusers.some(s => s.user_id === targetUser.id)) {
+    return res.status(400).json({ error: 'User is already a subuser' });
+  }
+  
+  const newSubuser = {
+    id: generateUUID(),
+    user_id: targetUser.id,
+    permissions: permissions || [],
+    created_at: new Date().toISOString()
+  };
+  
+  data.servers[serverIdx].subusers.push(newSubuser);
+  saveServers(data);
+  
+  res.json({ 
+    success: true, 
+    subuser: {
+      ...newSubuser,
+      username: targetUser.username
+    }
+  });
+});
+
+// PUT /:id/subusers/:subId - Update permissions
+router.put('/:id/subusers/:subId', async (req, res) => {
+  const { username, permissions } = req.body;
+  const result = await getServerAndNode(req.params.id, username, 'user.update');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  
+  const data = loadServers();
+  const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+  const subusers = data.servers[serverIdx].subusers || [];
+  
+  const subIdx = subusers.findIndex(s => s.id === req.params.subId);
+  if (subIdx === -1) return res.status(404).json({ error: 'Subuser not found' });
+  
+  data.servers[serverIdx].subusers[subIdx].permissions = permissions || [];
+  saveServers(data);
+  
+  res.json({ success: true });
+});
+
+// DELETE /:id/subusers/:subId - Delete subuser
+router.delete('/:id/subusers/:subId', async (req, res) => {
+  const { username } = req.body;
+  const result = await getServerAndNode(req.params.id, username, 'user.delete');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  
+  const data = loadServers();
+  const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+  
+  data.servers[serverIdx].subusers = (data.servers[serverIdx].subusers || [])
+    .filter(s => s.id !== req.params.subId);
+  saveServers(data);
+  
+  res.json({ success: true });
+});
+
+// ==================== SUSPEND ====================
+
+// POST /:id/suspend - Suspend server
+router.post('/:id/suspend', async (req, res) => {
+  const { username } = req.body;
+  const users = loadUsers();
+  const user = users.users.find(u => u.username.toLowerCase() === username?.toLowerCase());
+  
+  if (!user?.isAdmin) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  
+  const data = loadServers();
+  const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+  if (serverIdx === -1) return res.status(404).json({ error: 'Server not found' });
+  
+  data.servers[serverIdx].suspended = true;
+  saveServers(data);
+  
+  // Notify Wings
+  const nodes = loadNodes();
+  const node = nodes.nodes.find(n => n.id === data.servers[serverIdx].node_id);
+  if (node) {
+    try {
+      await wingsRequest(node, 'POST', `/api/servers/${data.servers[serverIdx].uuid}/suspend`);
+    } catch (e) {
+      console.log('[SUSPEND] Wings error:', e.message);
+    }
+  }
+  
+  res.json({ success: true });
+});
+
+// POST /:id/unsuspend - Unsuspend server
+router.post('/:id/unsuspend', async (req, res) => {
+  const { username } = req.body;
+  const users = loadUsers();
+  const user = users.users.find(u => u.username.toLowerCase() === username?.toLowerCase());
+  
+  if (!user?.isAdmin) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  
+  const data = loadServers();
+  const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+  if (serverIdx === -1) return res.status(404).json({ error: 'Server not found' });
+  
+  data.servers[serverIdx].suspended = false;
+  saveServers(data);
+  
+  // Notify Wings
+  const nodes = loadNodes();
+  const node = nodes.nodes.find(n => n.id === data.servers[serverIdx].node_id);
+  if (node) {
+    try {
+      await wingsRequest(node, 'POST', `/api/servers/${data.servers[serverIdx].uuid}/unsuspend`);
+    } catch (e) {
+      console.log('[UNSUSPEND] Wings error:', e.message);
+    }
+  }
+  
+  res.json({ success: true });
 });
 
 export default router;
