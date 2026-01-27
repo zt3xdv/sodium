@@ -20,6 +20,8 @@ export function renderServers() {
         <div class="loading-spinner"></div>
       </div>
       
+      <div class="section-divider"></div>
+      
       <div class="settings-section resource-limits">
         <div class="section-header">
           <span class="material-icons-outlined">analytics</span>
@@ -115,10 +117,18 @@ async function loadServers() {
         </div>
         <div class="server-card-content">
           <div class="server-actions">
-            <button class="btn btn-success btn-sm" onclick="serverPower('${server.id}', 'start')">Start</button>
-            <button class="btn btn-warning btn-sm" onclick="serverPower('${server.id}', 'restart')">Restart</button>
-            <button class="btn btn-danger btn-sm" onclick="serverPower('${server.id}', 'stop')">Stop</button>
-            <a href="/server/${server.id}" class="btn btn-primary btn-sm">Console</a>
+            <button class="btn btn-success btn-sm btn-icon" onclick="serverPower('${server.id}', 'start')" title="Start">
+              <span class="material-icons-outlined">play_arrow</span>
+            </button>
+            <button class="btn btn-warning btn-sm btn-icon" onclick="serverPower('${server.id}', 'restart')" title="Restart">
+              <span class="material-icons-outlined">refresh</span>
+            </button>
+            <button class="btn btn-danger btn-sm btn-icon" onclick="serverPower('${server.id}', 'stop')" title="Stop">
+              <span class="material-icons-outlined">stop</span>
+            </button>
+            <a href="/server/${server.id}" class="btn btn-primary btn-sm btn-icon" title="Console">
+              <span class="material-icons-outlined">terminal</span>
+            </a>
           </div>
           <div class="server-info">
             <div class="info-row">

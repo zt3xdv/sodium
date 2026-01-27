@@ -1572,6 +1572,24 @@ input, textarea, select {
   font-size: 18px;
 }
 
+.section-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 32px 0;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+.btn-icon .material-icons-outlined {
+  font-size: 20px;
+}
+
 .servers-page {
   max-width: 1200px;
   margin: 0 auto;
