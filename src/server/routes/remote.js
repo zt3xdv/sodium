@@ -168,9 +168,10 @@ router.get('/servers/:uuid/install', (req, res) => {
   const eggs = loadEggs();
   const egg = eggs.eggs.find(e => e.id === server.egg_id) || {};
   
+  // Return install script info in Pterodactyl/Wings format
   res.json({
-    container_image: server.docker_image || egg.docker_image || '',
-    entrypoint: 'bash',
+    container_image: egg.install_container || 'alpine:3.18',
+    entrypoint: egg.install_entrypoint || 'bash',
     script: egg.install_script || '#!/bin/bash\necho "No install script"'
   });
 });

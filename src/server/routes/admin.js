@@ -230,6 +230,9 @@ router.post('/eggs', (req, res) => {
     docker_image: egg.docker_image || Object.values(egg.docker_images || {})[0] || '',
     startup: egg.startup,
     config: egg.config || {},
+    install_script: egg.install_script || '#!/bin/bash\necho "No install script"',
+    install_container: egg.install_container || 'alpine:3.18',
+    install_entrypoint: egg.install_entrypoint || 'bash',
     variables: egg.variables || []
   };
   data.eggs.push(newEgg);
@@ -254,6 +257,22 @@ router.post('/eggs/import', (req, res) => {
       docker_images = { 'Default': imported.docker_image };
     }
     
+    // Extract install script info (Pterodactyl format)
+    let install_script = '#!/bin/bash\necho "No install script"';
+    let install_container = 'alpine:3.18';
+    let install_entrypoint = 'bash';
+    
+    if (imported.scripts?.installation) {
+      install_script = imported.scripts.installation.script || install_script;
+      install_container = imported.scripts.installation.container || install_container;
+      install_entrypoint = imported.scripts.installation.entrypoint || install_entrypoint;
+    } else if (imported.script) {
+      // Alternative format
+      install_script = imported.script.install || install_script;
+      install_container = imported.script.container || install_container;
+      install_entrypoint = imported.script.entry || install_entrypoint;
+    }
+    
     const newEgg = {
       id: generateUUID(),
       nest_id: nest_id || imported.nest_id || '1',
@@ -264,6 +283,9 @@ router.post('/eggs/import', (req, res) => {
       docker_image,
       startup: imported.startup,
       config: imported.config || {},
+      install_script,
+      install_container,
+      install_entrypoint,
       variables: (imported.variables || []).map(v => ({
         name: v.name,
         description: v.description,
@@ -321,7 +343,10 @@ router.put('/eggs/:id', (req, res) => {
     docker_images: egg.docker_images || data.eggs[idx].docker_images || {},
     docker_image: egg.docker_image || Object.values(egg.docker_images || {})[0] || data.eggs[idx].docker_image,
     startup: egg.startup || data.eggs[idx].startup,
-    config: egg.config || data.eggs[idx].config
+    config: egg.config || data.eggs[idx].config,
+    install_script: egg.install_script !== undefined ? egg.install_script : data.eggs[idx].install_script,
+    install_container: egg.install_container || data.eggs[idx].install_container || 'alpine:3.18',
+    install_entrypoint: egg.install_entrypoint || data.eggs[idx].install_entrypoint || 'bash'
   };
   
   saveEggs(data);
