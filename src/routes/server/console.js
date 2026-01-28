@@ -108,12 +108,12 @@ function safeFit() {
   if (!fitAddon || !terminal) return;
   
   const dims = fitAddon.proposeDimensions();
-  if (!dims) return;
+  if (!dims || dims.cols <= 0 || dims.rows <= 0) return;
   
   if (dims.cols === lastDimensions.cols && dims.rows === lastDimensions.rows) return;
   
   lastDimensions = { cols: dims.cols, rows: dims.rows };
-  fitAddon.fit();
+  terminal.resize(dims.cols, dims.rows);
 }
 
 function debouncedFit() {
