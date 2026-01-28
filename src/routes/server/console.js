@@ -107,12 +107,14 @@ function initTerminal() {
 function safeFit() {
   if (!fitAddon || !terminal) return;
   
-  const dims = fitAddon.proposeDimensions();
-  if (!dims || dims.cols <= 0 || dims.rows <= 0) return;
+  const container = document.getElementById('console-terminal');
+  if (!container) return;
   
-  if (dims.cols !== terminal.cols || dims.rows !== terminal.rows) {
-    terminal.resize(dims.cols, dims.rows);
-  }
+  container.style.opacity = '0';
+  fitAddon.fit();
+  requestAnimationFrame(() => {
+    container.style.opacity = '1';
+  });
 }
 
 function debouncedFit() {
