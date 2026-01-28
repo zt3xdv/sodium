@@ -4,6 +4,7 @@ import { loadUsers, loadServers, loadNodes } from './db.js';
 import { generateUUID } from './utils/helpers.js';
 import { hasPermission } from './utils/permissions.js';
 import { JWT_SECRET } from './utils/auth.js';
+import logger from './utils/logger.js';
 
 export function setupWebSocket(server) {
   const wss = new WebSocketServer({ server, path: '/ws/console' });
@@ -102,7 +103,7 @@ export function setupWebSocket(server) {
     });
     
     wingsWs.on('error', (err) => {
-      console.error('[WS PROXY] Wings error:', err.message);
+      logger.error(`Wings WebSocket error: ${err.message}`);
       if (clientWs.readyState === WebSocket.OPEN) {
         clientWs.close(4006, 'Wings connection error');
       }
@@ -115,7 +116,6 @@ export function setupWebSocket(server) {
     });
     
     clientWs.on('close', () => {
-      console.log('[WS PROXY] Client disconnected');
       if (wingsWs.readyState === WebSocket.OPEN) {
         wingsWs.close();
       }

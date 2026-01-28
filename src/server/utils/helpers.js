@@ -85,7 +85,7 @@ export async function wingsRequest(node, method, endpoint, data = null, rawConte
     }
     return response.json().catch(() => ({}));
   } catch (error) {
-    console.log(`[WINGS OUT] Error: ${error.message}`);
+
     throw error;
   }
 }

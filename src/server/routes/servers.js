@@ -4,6 +4,7 @@ import { wingsRequest, sanitizeText, generateUUID, validateVariableValue } from 
 import { getNodeAvailableResources } from '../utils/node-resources.js';
 import { hasPermission } from '../utils/permissions.js';
 import { authenticateUser } from '../utils/auth.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -232,7 +233,7 @@ router.post('/', authenticateUser, async (req, res) => {
       }
     }
   } catch (e) {
-    console.log('[SERVER CREATE] Error parsing egg config:', e.message);
+    logger.debug(`Error parsing egg config: ${e.message}`);
   }
   
   const defaultEnv = {};
@@ -301,7 +302,7 @@ router.post('/', authenticateUser, async (req, res) => {
     
     res.json({ success: true, server: newServer });
   } catch (e) {
-    console.error('[SERVER CREATE] Wings error:', e.message);
+    logger.error(`Server create Wings error: ${e.message}`);
     const updatedServers = loadServers();
     const idx = updatedServers.servers.findIndex(s => s.id === newServer.id);
     if (idx !== -1) {
@@ -423,7 +424,7 @@ router.put('/:id/details', authenticateUser, async (req, res) => {
       }
     });
   } catch (e) {
-    console.log('[SETTINGS] Failed to sync with Wings:', e.message);
+    logger.warn(`Settings sync failed: ${e.message}`);
   }
   res.json({ success: true, server: data.servers[serverIndex] });
 });
@@ -443,7 +444,7 @@ router.post('/:id/reinstall', authenticateUser, async (req, res) => {
     await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/reinstall`);
     res.json({ success: true });
   } catch (e) {
-    console.log('[REINSTALL] Failed to reinstall:', e.message);
+    logger.error(`Reinstall failed: ${e.message}`);
     data.servers[serverIndex].status = 'offline';
     saveServers(data);
     res.status(500).json({ error: 'Failed to reinstall server: ' + e.message });
@@ -458,7 +459,7 @@ router.delete('/:id', authenticateUser, async (req, res) => {
   try {
     await wingsRequest(node, 'DELETE', `/api/servers/${server.uuid}`);
   } catch (e) {
-    console.log('[DELETE] Failed to delete from Wings:', e.message);
+    logger.warn(`Delete from Wings failed: ${e.message}`);
   }
   const data = loadServers();
   data.servers = data.servers.filter(s => s.id !== req.params.id);
@@ -549,7 +550,7 @@ router.put('/:id/startup', authenticateUser, async (req, res) => {
       }
     });
   } catch (e) {
-    console.log('[STARTUP] Failed to sync with Wings:', e.message);
+    logger.warn(`Startup sync failed: ${e.message}`);
   }
   res.json({ success: true, server: data.servers[serverIndex] });
 });
@@ -838,7 +839,7 @@ router.post('/:id/allocations', authenticateUser, async (req, res) => {
   try {
     await syncAllocationsWithWings(node, data.servers[serverIdx]);
   } catch (e) {
-    console.log('[ALLOCATIONS] Failed to sync:', e.message);
+    logger.warn(`Allocations sync failed: ${e.message}`);
   }
   
   res.json({ success: true, allocation: newAllocation });
@@ -870,7 +871,7 @@ router.put('/:id/allocations/:allocId/primary', authenticateUser, async (req, re
   try {
     await syncAllocationsWithWings(node, data.servers[serverIdx]);
   } catch (e) {
-    console.log('[ALLOCATIONS] Failed to sync:', e.message);
+    logger.warn(`Allocations sync failed: ${e.message}`);
   }
   
   res.json({ success: true });
@@ -900,7 +901,7 @@ router.delete('/:id/allocations/:allocId', authenticateUser, async (req, res) =>
   try {
     await syncAllocationsWithWings(node, data.servers[serverIdx]);
   } catch (e) {
-    console.log('[ALLOCATIONS] Failed to sync:', e.message);
+    logger.warn(`Allocations sync failed: ${e.message}`);
   }
   
   res.json({ success: true });
@@ -1054,7 +1055,7 @@ router.post('/:id/suspend', authenticateUser, async (req, res) => {
     try {
       await wingsRequest(node, 'POST', `/api/servers/${data.servers[serverIdx].uuid}/suspend`);
     } catch (e) {
-      console.log('[SUSPEND] Wings error:', e.message);
+      logger.warn(`Suspend Wings error: ${e.message}`);
     }
   }
   
@@ -1083,7 +1084,7 @@ router.post('/:id/unsuspend', authenticateUser, async (req, res) => {
     try {
       await wingsRequest(node, 'POST', `/api/servers/${data.servers[serverIdx].uuid}/unsuspend`);
     } catch (e) {
-      console.log('[UNSUSPEND] Wings error:', e.message);
+      logger.warn(`Unsuspend Wings error: ${e.message}`);
     }
   }
   

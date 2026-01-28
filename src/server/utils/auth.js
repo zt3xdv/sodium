@@ -1,9 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { loadUsers } from '../db.js';
+import logger from './logger.js';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'sodium-default-secret-change-in-production';
 if (!process.env.JWT_SECRET) {
-  console.warn('[AUTH] WARNING: Using default JWT_SECRET. Set JWT_SECRET env var in production!');
+  logger.warn('Using default JWT_SECRET. Set JWT_SECRET env var in production!');
 }
 
 export function authenticateUser(req, res, next) {

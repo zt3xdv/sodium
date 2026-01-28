@@ -10,6 +10,7 @@ import {
   wingsRequest, generateNodeConfig, configToYaml, sanitizeUrl
 } from '../utils/helpers.js';
 import { authenticateUser, requireAdmin } from '../utils/auth.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -275,7 +276,7 @@ router.post('/eggs/import', (req, res) => {
     saveEggs(data);
     res.json({ success: true, egg: newEgg });
   } catch (e) {
-    console.error('[EGG IMPORT] Error:', e.message);
+    logger.error(`Egg import failed: ${e.message}`);
     res.status(400).json({ error: 'Invalid egg JSON: ' + e.message });
   }
 });
