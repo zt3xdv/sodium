@@ -1646,11 +1646,6 @@ function renderCreateForm(remaining) {
               </div>
             </div>
             
-            <div class="form-section variables-section" id="variables-section" style="display: none;">
-              <h4>Startup Variables</h4>
-              <div id="variables-container"></div>
-            </div>
-            
             <div id="create-server-error" class="error-message" style="display: none;"></div>
             
             <div class="form-actions">
@@ -1699,7 +1694,6 @@ function renderCreateForm(remaining) {
   
   setupEventListeners(remaining);
   updateDockerImages();
-  updateVariables();
 }
 
 function renderEggsGrid(nest) {
@@ -1772,7 +1766,6 @@ function setupEventListeners(remaining) {
       
       setupEggCardListeners();
       updateDockerImages();
-      updateVariables();
     };
   });
   
@@ -1796,7 +1789,6 @@ function setupEggCardListeners() {
       
       document.getElementById('selected-egg-preview').innerHTML = renderEggPreview(selectedEgg);
       updateDockerImages();
-      updateVariables();
     };
   });
 }
@@ -1814,36 +1806,6 @@ function updateDockerImages() {
   select.innerHTML = Object.entries(selectedEgg.docker_images).map(([label, image]) => 
     `<option value="${escapeHtml$4(image)}">${escapeHtml$4(label)}</option>`
   ).join('');
-}
-
-function updateVariables() {
-  const section = document.getElementById('variables-section');
-  const container = document.getElementById('variables-container');
-  
-  const variables = (selectedEgg?.variables || []).filter(v => v.user_viewable !== false);
-  
-  if (variables.length === 0) {
-    section.style.display = 'none';
-    return;
-  }
-  
-  section.style.display = 'block';
-  container.innerHTML = variables.map(v => `
-    <div class="form-group variable-input">
-      <label>
-        ${escapeHtml$4(v.name)}
-        ${v.user_editable === false ? '<span class="locked-badge">Locked</span>' : ''}
-      </label>
-      ${v.description ? `<p class="variable-desc">${escapeHtml$4(v.description)}</p>` : ''}
-      <input 
-        type="text" 
-        name="var_${escapeHtml$4(v.env_variable)}" 
-        value="${escapeHtml$4(v.default_value || '')}"
-        ${v.user_editable === false ? 'readonly' : ''}
-        placeholder="${escapeHtml$4(v.default_value || '')}"
-      />
-    </div>
-  `).join('');
 }
 
 async function submitCreateServer(remaining) {
@@ -1877,14 +1839,6 @@ async function submitCreateServer(remaining) {
   submitBtn.innerHTML = '<span class="material-icons-outlined spinning">sync</span> Creating...';
   errorEl.style.display = 'none';
   
-  // Collect environment variables
-  const environment = {};
-  for (const [key, value] of formData.entries()) {
-    if (key.startsWith('var_')) {
-      environment[key.substring(4)] = value;
-    }
-  }
-  
   try {
     const res = await api('/api/servers', {
       method: 'POST',
@@ -1895,8 +1849,7 @@ async function submitCreateServer(remaining) {
         docker_image: formData.get('docker_image') || null,
         memory,
         disk,
-        cpu,
-        environment
+        cpu
       })
     });
     
