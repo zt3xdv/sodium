@@ -9,12 +9,30 @@ import logger from '../utils/logger.js';
 const router = express.Router();
 
 // Ruta pública para obtener nests con eggs (para crear servidores)
-router.get('/nests', (req, res) => {
+router.get('/nests', authenticateUser, (req, res) => {
   const nests = loadNests();
   const eggs = loadEggs();
+  const user = req.user;
+  
   nests.nests.forEach(nest => {
-    nest.eggs = eggs.eggs.filter(e => e.nest_id === nest.id);
+    // Filter eggs: if admin_only is true, only show to admins
+    nest.eggs = eggs.eggs.filter(e => {
+      if (e.nest_id !== nest.id) return false;
+      if (e.admin_only && !user?.isAdmin) return false;
+      return true;
+    }).map(e => ({
+      id: e.id,
+      name: e.name,
+      description: e.description,
+      icon: e.icon || null,
+      docker_images: e.docker_images,
+      variables: e.variables || []
+    }));
   });
+  
+  // Filter out empty nests
+  nests.nests = nests.nests.filter(n => n.eggs.length > 0);
+  
   res.json(nests);
 });
 

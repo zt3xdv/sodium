@@ -1,0 +1,439 @@
+import { escapeHtml } from '../utils/security.js';
+import * as toast from '../utils/toast.js';
+import { api, getUser } from '../utils/api.js';
+
+let selectedNest = null;
+let selectedEgg = null;
+let nestsData = null;
+let limitsData = null;
+
+export async function renderCreateServer() {
+  const app = document.getElementById('app');
+  const user = getUser();
+  
+  app.innerHTML = `
+    <div class="create-server-page">
+      <div class="page-header">
+        <a href="/servers" class="back-link">
+          <span class="material-icons-outlined">arrow_back</span>
+          <span>Back to Servers</span>
+        </a>
+        <h1>Create Server</h1>
+      </div>
+      <div class="create-server-content">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  `;
+  
+  try {
+    const [nestsRes, limitsRes] = await Promise.all([
+      api('/api/servers/nests'),
+      api('/api/user/limits')
+    ]);
+    
+    nestsData = await nestsRes.json();
+    limitsData = await limitsRes.json();
+    
+    if (!nestsData.nests || nestsData.nests.length === 0) {
+      document.querySelector('.create-server-content').innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">egg_alt</span>
+          <h3>No Eggs Available</h3>
+          <p>There are no eggs configured. Please contact an administrator.</p>
+          <a href="/servers" class="btn btn-primary">Go Back</a>
+        </div>
+      `;
+      return;
+    }
+    
+    const remaining = {
+      servers: limitsData.limits.servers - limitsData.used.servers,
+      memory: limitsData.limits.memory - limitsData.used.memory,
+      disk: limitsData.limits.disk - limitsData.used.disk,
+      cpu: limitsData.limits.cpu - limitsData.used.cpu
+    };
+    
+    if (remaining.servers <= 0) {
+      document.querySelector('.create-server-content').innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">block</span>
+          <h3>Server Limit Reached</h3>
+          <p>You have reached your maximum server limit (${limitsData.limits.servers}).</p>
+          <a href="/servers" class="btn btn-primary">Go Back</a>
+        </div>
+      `;
+      return;
+    }
+    
+    selectedNest = nestsData.nests[0];
+    selectedEgg = selectedNest.eggs[0];
+    
+    renderCreateForm(remaining);
+    
+  } catch (e) {
+    console.error('Failed to load data:', e);
+    document.querySelector('.create-server-content').innerHTML = `
+      <div class="error">Failed to load data. Please try again.</div>
+    `;
+  }
+}
+
+function renderCreateForm(remaining) {
+  const content = document.querySelector('.create-server-content');
+  
+  content.innerHTML = `
+    <div class="create-server-layout">
+      <div class="create-server-main">
+        <div class="step-card">
+          <div class="step-header">
+            <span class="step-number">1</span>
+            <h3>Select Egg</h3>
+          </div>
+          
+          <div class="nest-tabs" id="nest-tabs">
+            ${nestsData.nests.map((nest, idx) => `
+              <button class="nest-tab ${idx === 0 ? 'active' : ''}" data-nest-id="${nest.id}">
+                ${escapeHtml(nest.name)}
+              </button>
+            `).join('')}
+          </div>
+          
+          <div class="eggs-grid" id="eggs-grid">
+            ${renderEggsGrid(selectedNest)}
+          </div>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-header">
+            <span class="step-number">2</span>
+            <h3>Server Details</h3>
+          </div>
+          
+          <form id="create-server-form">
+            <div class="form-group">
+              <label>Server Name</label>
+              <input type="text" name="name" required placeholder="My Awesome Server" maxlength="50" />
+            </div>
+            
+            <div class="form-group">
+              <label>Description (optional)</label>
+              <textarea name="description" rows="2" placeholder="What is this server for?"></textarea>
+            </div>
+            
+            <div class="form-section">
+              <h4>Resources</h4>
+              <div class="resources-grid">
+                <div class="resource-input">
+                  <label>
+                    <span class="material-icons-outlined">memory</span>
+                    Memory (MB)
+                  </label>
+                  <input type="number" name="memory" value="512" min="128" max="${remaining.memory}" required />
+                  <span class="resource-hint">Max: ${remaining.memory} MB</span>
+                </div>
+                <div class="resource-input">
+                  <label>
+                    <span class="material-icons-outlined">storage</span>
+                    Disk (MB)
+                  </label>
+                  <input type="number" name="disk" value="1024" min="256" max="${remaining.disk}" required />
+                  <span class="resource-hint">Max: ${remaining.disk} MB</span>
+                </div>
+                <div class="resource-input">
+                  <label>
+                    <span class="material-icons-outlined">speed</span>
+                    CPU (%)
+                  </label>
+                  <input type="number" name="cpu" value="100" min="25" max="${remaining.cpu}" required />
+                  <span class="resource-hint">Max: ${remaining.cpu}%</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-section" id="docker-image-section" style="display: none;">
+              <h4>Docker Image</h4>
+              <div class="form-group">
+                <select name="docker_image" id="docker-image-select"></select>
+              </div>
+            </div>
+            
+            <div class="form-section variables-section" id="variables-section" style="display: none;">
+              <h4>Startup Variables</h4>
+              <div id="variables-container"></div>
+            </div>
+            
+            <div id="create-server-error" class="error-message" style="display: none;"></div>
+            
+            <div class="form-actions">
+              <a href="/servers" class="btn btn-ghost">Cancel</a>
+              <button type="submit" class="btn btn-primary btn-large" id="submit-btn">
+                <span class="material-icons-outlined">add</span>
+                Create Server
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <div class="create-server-sidebar">
+        <div class="sidebar-card">
+          <h4>Selected Egg</h4>
+          <div id="selected-egg-preview">
+            ${renderEggPreview(selectedEgg)}
+          </div>
+        </div>
+        
+        <div class="sidebar-card">
+          <h4>Available Resources</h4>
+          <div class="limits-list">
+            <div class="limit-row">
+              <span>Servers</span>
+              <span class="limit-value">${remaining.servers} remaining</span>
+            </div>
+            <div class="limit-row">
+              <span>Memory</span>
+              <span class="limit-value">${remaining.memory} MB</span>
+            </div>
+            <div class="limit-row">
+              <span>Disk</span>
+              <span class="limit-value">${remaining.disk} MB</span>
+            </div>
+            <div class="limit-row">
+              <span>CPU</span>
+              <span class="limit-value">${remaining.cpu}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  setupEventListeners(remaining);
+  updateDockerImages();
+  updateVariables();
+}
+
+function renderEggsGrid(nest) {
+  if (!nest.eggs || nest.eggs.length === 0) {
+    return '<div class="empty-eggs">No eggs in this category</div>';
+  }
+  
+  return nest.eggs.map(egg => `
+    <div class="egg-select-card ${egg.id === selectedEgg?.id ? 'selected' : ''}" data-egg-id="${egg.id}">
+      <div class="egg-select-icon">
+        ${renderEggIcon(egg)}
+      </div>
+      <div class="egg-select-info">
+        <h4>${escapeHtml(egg.name)}</h4>
+        <p>${escapeHtml(egg.description || 'No description')}</p>
+      </div>
+      <span class="egg-select-check material-icons-outlined">check_circle</span>
+    </div>
+  `).join('');
+}
+
+function renderEggIcon(egg) {
+  if (!egg.icon) {
+    return '<span class="material-icons-outlined">egg_alt</span>';
+  }
+  
+  // Check if it's a Material Icon name
+  if (!egg.icon.includes('/') && !egg.icon.includes('.')) {
+    return `<span class="material-icons-outlined">${escapeHtml(egg.icon)}</span>`;
+  }
+  
+  // Check if it's a URL (image)
+  if (egg.icon.startsWith('http') || egg.icon.startsWith('/') || egg.icon.includes('.')) {
+    return `<img src="${escapeHtml(egg.icon)}" alt="${escapeHtml(egg.name)}" onerror="this.outerHTML='<span class=\\'material-icons-outlined\\'>egg_alt</span>'" />`;
+  }
+  
+  return '<span class="material-icons-outlined">egg_alt</span>';
+}
+
+function renderEggPreview(egg) {
+  if (!egg) return '<p class="no-selection">No egg selected</p>';
+  
+  return `
+    <div class="egg-preview">
+      <div class="egg-preview-icon">
+        ${renderEggIcon(egg)}
+      </div>
+      <div class="egg-preview-info">
+        <h5>${escapeHtml(egg.name)}</h5>
+        <p>${escapeHtml(egg.description || 'No description')}</p>
+      </div>
+    </div>
+  `;
+}
+
+function setupEventListeners(remaining) {
+  // Nest tabs
+  document.querySelectorAll('.nest-tab').forEach(tab => {
+    tab.onclick = () => {
+      const nestId = tab.dataset.nestId;
+      selectedNest = nestsData.nests.find(n => n.id === nestId);
+      
+      document.querySelectorAll('.nest-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      selectedEgg = selectedNest.eggs[0];
+      
+      document.getElementById('eggs-grid').innerHTML = renderEggsGrid(selectedNest);
+      document.getElementById('selected-egg-preview').innerHTML = renderEggPreview(selectedEgg);
+      
+      setupEggCardListeners();
+      updateDockerImages();
+      updateVariables();
+    };
+  });
+  
+  setupEggCardListeners();
+  
+  // Form submit
+  document.getElementById('create-server-form').onsubmit = async (e) => {
+    e.preventDefault();
+    await submitCreateServer(remaining);
+  };
+}
+
+function setupEggCardListeners() {
+  document.querySelectorAll('.egg-select-card').forEach(card => {
+    card.onclick = () => {
+      const eggId = card.dataset.eggId;
+      selectedEgg = selectedNest.eggs.find(e => e.id === eggId);
+      
+      document.querySelectorAll('.egg-select-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      
+      document.getElementById('selected-egg-preview').innerHTML = renderEggPreview(selectedEgg);
+      updateDockerImages();
+      updateVariables();
+    };
+  });
+}
+
+function updateDockerImages() {
+  const section = document.getElementById('docker-image-section');
+  const select = document.getElementById('docker-image-select');
+  
+  if (!selectedEgg?.docker_images || Object.keys(selectedEgg.docker_images).length <= 1) {
+    section.style.display = 'none';
+    return;
+  }
+  
+  section.style.display = 'block';
+  select.innerHTML = Object.entries(selectedEgg.docker_images).map(([label, image]) => 
+    `<option value="${escapeHtml(image)}">${escapeHtml(label)}</option>`
+  ).join('');
+}
+
+function updateVariables() {
+  const section = document.getElementById('variables-section');
+  const container = document.getElementById('variables-container');
+  
+  const variables = (selectedEgg?.variables || []).filter(v => v.user_viewable !== false);
+  
+  if (variables.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  
+  section.style.display = 'block';
+  container.innerHTML = variables.map(v => `
+    <div class="form-group variable-input">
+      <label>
+        ${escapeHtml(v.name)}
+        ${v.user_editable === false ? '<span class="locked-badge">Locked</span>' : ''}
+      </label>
+      ${v.description ? `<p class="variable-desc">${escapeHtml(v.description)}</p>` : ''}
+      <input 
+        type="text" 
+        name="var_${escapeHtml(v.env_variable)}" 
+        value="${escapeHtml(v.default_value || '')}"
+        ${v.user_editable === false ? 'readonly' : ''}
+        placeholder="${escapeHtml(v.default_value || '')}"
+      />
+    </div>
+  `).join('');
+}
+
+async function submitCreateServer(remaining) {
+  const form = document.getElementById('create-server-form');
+  const formData = new FormData(form);
+  const errorEl = document.getElementById('create-server-error');
+  const submitBtn = document.getElementById('submit-btn');
+  
+  // Validation
+  const memory = parseInt(formData.get('memory'));
+  const disk = parseInt(formData.get('disk'));
+  const cpu = parseInt(formData.get('cpu'));
+  
+  if (memory > remaining.memory) {
+    errorEl.textContent = `Memory exceeds limit (max: ${remaining.memory} MB)`;
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (disk > remaining.disk) {
+    errorEl.textContent = `Disk exceeds limit (max: ${remaining.disk} MB)`;
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (cpu > remaining.cpu) {
+    errorEl.textContent = `CPU exceeds limit (max: ${remaining.cpu}%)`;
+    errorEl.style.display = 'block';
+    return;
+  }
+  
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="material-icons-outlined spinning">sync</span> Creating...';
+  errorEl.style.display = 'none';
+  
+  // Collect environment variables
+  const environment = {};
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('var_')) {
+      environment[key.substring(4)] = value;
+    }
+  }
+  
+  try {
+    const res = await api('/api/servers', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: formData.get('name'),
+        description: formData.get('description'),
+        egg_id: selectedEgg.id,
+        docker_image: formData.get('docker_image') || null,
+        memory,
+        disk,
+        cpu,
+        environment
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok) {
+      toast.success('Server created successfully');
+      window.router.navigateTo('/servers');
+    } else {
+      errorEl.textContent = data.error || 'Failed to create server';
+      errorEl.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="material-icons-outlined">add</span> Create Server';
+    }
+  } catch (err) {
+    errorEl.textContent = 'Network error. Please try again.';
+    errorEl.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="material-icons-outlined">add</span> Create Server';
+  }
+}
+
+export function cleanupCreateServer() {
+  selectedNest = null;
+  selectedEgg = null;
+  nestsData = null;
+  limitsData = null;
+}

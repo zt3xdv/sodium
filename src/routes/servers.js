@@ -12,10 +12,10 @@ export function renderServers() {
     <div class="servers-page">
       <div class="page-header">
         <h1>My Servers</h1>
-        <button class="btn btn-primary" id="create-server-btn">
+        <a href="/servers/create" class="btn btn-primary">
           <span class="material-icons-outlined">add</span>
           Create Server
-        </button>
+        </a>
       </div>
       
       <div class="servers-grid" id="servers-list">
@@ -37,8 +37,6 @@ export function renderServers() {
       </div>
     </div>
   `;
-  
-  document.getElementById('create-server-btn').onclick = showCreateServerModal;
   
   loadServers();
   loadLimits();
@@ -168,142 +166,6 @@ window.serverPower = async function(serverId, action) {
     toast.error('Failed to execute power action');
   }
 };
-
-async function showCreateServerModal() {
-  const username = localStorage.getItem('username');
-  
-  try {
-    const [nestsRes, limitsRes] = await Promise.all([
-      fetch('/api/servers/nests'),
-      fetch(`/api/user/limits?username=${encodeURIComponent(username)}`)
-    ]);
-    
-    const nestsData = await nestsRes.json();
-    const limitsData = await limitsRes.json();
-    
-    const allEggs = nestsData.nests.flatMap(n => n.eggs || []);
-    if (allEggs.length === 0) {
-      toast.error('No eggs available');
-      return;
-    }
-    
-    const remaining = {
-      servers: limitsData.limits.servers - limitsData.used.servers,
-      memory: limitsData.limits.memory - limitsData.used.memory,
-      disk: limitsData.limits.disk - limitsData.used.disk,
-      cpu: limitsData.limits.cpu - limitsData.used.cpu
-    };
-    
-    if (remaining.servers <= 0) {
-      toast.warning('You have reached your server limit');
-      return;
-    }
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.id = 'create-server-modal';
-    modal.innerHTML = `
-      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
-      <div class="modal-content modal-large">
-        <div class="modal-header">
-          <h3>Create Server</h3>
-          <button class="modal-close" onclick="this.closest('.modal').remove()">
-            <span class="material-icons-outlined">close</span>
-          </button>
-        </div>
-        
-        <div class="remaining-resources">
-          <span>Available: ${remaining.memory} MB RAM, ${remaining.disk} MB Disk, ${remaining.cpu}% CPU</span>
-        </div>
-        
-        <form id="create-server-form">
-          <div class="form-group">
-            <label>Server Name</label>
-            <input type="text" name="name" required placeholder="My Server" />
-          </div>
-          
-          <div class="form-group">
-            <label>Egg</label>
-            <select name="egg_id" required>
-              ${allEggs.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('')}
-            </select>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label>Memory (MB) - Max: ${remaining.memory}</label>
-              <input type="number" name="memory" value="512" min="128" max="${remaining.memory}" required />
-            </div>
-            <div class="form-group">
-              <label>Disk (MB) - Max: ${remaining.disk}</label>
-              <input type="number" name="disk" value="1024" min="256" max="${remaining.disk}" required />
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label>CPU (%) - Max: ${remaining.cpu}</label>
-            <input type="number" name="cpu" value="100" min="25" max="${remaining.cpu}" required />
-          </div>
-          
-          <div id="create-server-error" class="error-message"></div>
-          
-          <div class="modal-actions">
-            <button type="submit" class="btn btn-primary" id="submit-create-server">Create Server</button>
-            <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
-          </div>
-        </form>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    document.getElementById('create-server-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const form = new FormData(e.target);
-      const errorEl = document.getElementById('create-server-error');
-      const submitBtn = document.getElementById('submit-create-server');
-      
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating...';
-      errorEl.style.display = 'none';
-      
-      try {
-        const res = await api('/api/servers', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: form.get('name'),
-            egg_id: form.get('egg_id'),
-            memory: parseInt(form.get('memory')),
-            disk: parseInt(form.get('disk')),
-            cpu: parseInt(form.get('cpu'))
-          })
-        });
-        
-        const data = await res.json();
-        
-        if (res.ok) {
-          modal.remove();
-          loadServers();
-          loadLimits();
-        } else {
-          errorEl.textContent = data.error || 'Failed to create server';
-          errorEl.style.display = 'block';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Server';
-        }
-      } catch (err) {
-        errorEl.textContent = 'Network error';
-        errorEl.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Server';
-      }
-    };
-    
-  } catch (e) {
-    console.error('Failed to load create server data:', e);
-    toast.error('Failed to load data');
-  }
-}
 
 export function cleanupServers() {
   if (pollInterval) {

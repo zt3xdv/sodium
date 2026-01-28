@@ -1529,3 +1529,182 @@
   background: rgba(239, 68, 68, 0.1);
   border-radius: var(--radius-lg);
 }
+
+// ============================================
+// EGG DETAIL STYLES
+// ============================================
+
+.egg-card.clickable {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+}
+
+.egg-meta {
+  margin-left: auto;
+  
+  .egg-vars-count {
+    font-size: 11px;
+    padding: 4px 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
+  }
+}
+
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  
+  h3 {
+    margin: 0 !important;
+  }
+}
+
+.input-readonly {
+  background: var(--bg-tertiary) !important;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.code-textarea {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  tab-size: 2;
+  resize: vertical;
+}
+
+// ============================================
+// VARIABLES LIST
+// ============================================
+
+.variables-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.variable-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  
+  .variable-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  
+  .variable-title {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    .variable-name {
+      font-weight: 600;
+      font-size: 15px;
+    }
+    
+    .variable-env {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      background: rgba(99, 102, 241, 0.1);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+    }
+  }
+  
+  .variable-actions {
+    display: flex;
+    gap: 4px;
+  }
+  
+  .variable-details {
+    .variable-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 0 0 12px;
+      line-height: 1.5;
+    }
+    
+    .variable-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+      
+      strong {
+        color: var(--text-secondary);
+      }
+    }
+    
+    .variable-flags {
+      display: flex;
+      gap: 8px;
+      
+      .flag {
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        background: var(--bg-secondary);
+        color: var(--text-tertiary);
+        
+        &.success {
+          background: rgba(34, 197, 94, 0.15);
+          color: var(--success);
+        }
+      }
+    }
+  }
+}
+
+.empty-state.small {
+  padding: 40px 20px;
+  
+  .material-icons-outlined {
+    font-size: 36px;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+  }
+  
+  p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+}
+
+.admin-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  margin-left: 8px;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
+  border-radius: var(--radius-sm);
+  vertical-align: middle;
+}
+
+.egg-icon {
+  img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+  }
+}

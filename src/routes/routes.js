@@ -5,6 +5,7 @@ import { renderSettings } from './settings.js';
 import { renderNotFound } from './notfound.js';
 import { renderUser } from './user.js';
 import { renderServers, cleanupServers } from './servers.js';
+import { renderCreateServer, cleanupCreateServer } from './create-server.js';
 import { renderServerPage, cleanupServerPage } from './server/index.js';
 import { renderStatus, cleanupStatus } from './status.js';
 import { renderAdmin, cleanupAdmin } from './admin.js';
@@ -33,6 +34,15 @@ export const routes = {
     cleanup: cleanupServers,
     options: {
       title: 'Servers',
+      auth: true,
+      sidebar: true
+    }
+  },
+  '/servers/create': {
+    render: renderCreateServer,
+    cleanup: cleanupCreateServer,
+    options: {
+      title: 'Create Server',
       auth: true,
       sidebar: true
     }

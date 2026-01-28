@@ -217,6 +217,13 @@ router.get('/eggs', (req, res) => {
   res.json(loadEggs());
 });
 
+router.get('/eggs/:id', (req, res) => {
+  const data = loadEggs();
+  const egg = data.eggs.find(e => e.id === req.params.id);
+  if (!egg) return res.status(404).json({ error: 'Egg not found' });
+  res.json({ egg });
+});
+
 router.post('/eggs', (req, res) => {
   const { egg } = req.body;
   const data = loadEggs();
@@ -226,6 +233,8 @@ router.post('/eggs', (req, res) => {
     name: sanitizeText(egg.name),
     description: sanitizeText(egg.description || ''),
     author: sanitizeText(egg.author || ''),
+    icon: egg.icon || null,
+    admin_only: Boolean(egg.admin_only),
     docker_images: egg.docker_images || {},
     docker_image: egg.docker_image || Object.values(egg.docker_images || {})[0] || '',
     startup: egg.startup,
@@ -279,6 +288,8 @@ router.post('/eggs/import', (req, res) => {
       name: imported.name,
       description: imported.description || '',
       author: imported.author || '',
+      icon: imported.icon || null,
+      admin_only: Boolean(imported.admin_only),
       docker_images,
       docker_image,
       startup: imported.startup,
@@ -291,7 +302,9 @@ router.post('/eggs/import', (req, res) => {
         description: v.description,
         env_variable: v.env_variable,
         default_value: v.default_value,
-        rules: v.rules
+        rules: v.rules,
+        user_viewable: v.user_viewable !== false,
+        user_editable: v.user_editable !== false
       }))
     };
     data.eggs.push(newEgg);
@@ -337,16 +350,19 @@ router.put('/eggs/:id', (req, res) => {
   data.eggs[idx] = {
     ...data.eggs[idx],
     nest_id: egg.nest_id || data.eggs[idx].nest_id,
-    name: sanitizeText(egg.name),
-    description: sanitizeText(egg.description || ''),
-    author: sanitizeText(egg.author || ''),
+    name: egg.name !== undefined ? sanitizeText(egg.name) : data.eggs[idx].name,
+    description: egg.description !== undefined ? sanitizeText(egg.description) : data.eggs[idx].description,
+    author: egg.author !== undefined ? sanitizeText(egg.author) : data.eggs[idx].author,
+    icon: egg.icon !== undefined ? egg.icon : data.eggs[idx].icon,
+    admin_only: egg.admin_only !== undefined ? Boolean(egg.admin_only) : data.eggs[idx].admin_only,
     docker_images: egg.docker_images || data.eggs[idx].docker_images || {},
     docker_image: egg.docker_image || Object.values(egg.docker_images || {})[0] || data.eggs[idx].docker_image,
     startup: egg.startup || data.eggs[idx].startup,
     config: egg.config || data.eggs[idx].config,
     install_script: egg.install_script !== undefined ? egg.install_script : data.eggs[idx].install_script,
     install_container: egg.install_container || data.eggs[idx].install_container || 'alpine:3.18',
-    install_entrypoint: egg.install_entrypoint || data.eggs[idx].install_entrypoint || 'bash'
+    install_entrypoint: egg.install_entrypoint || data.eggs[idx].install_entrypoint || 'bash',
+    variables: egg.variables !== undefined ? egg.variables : data.eggs[idx].variables
   };
   
   saveEggs(data);

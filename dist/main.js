@@ -1328,10 +1328,10 @@ function renderServers() {
     <div class="servers-page">
       <div class="page-header">
         <h1>My Servers</h1>
-        <button class="btn btn-primary" id="create-server-btn">
+        <a href="/servers/create" class="btn btn-primary">
           <span class="material-icons-outlined">add</span>
           Create Server
-        </button>
+        </a>
       </div>
       
       <div class="servers-grid" id="servers-list">
@@ -1353,8 +1353,6 @@ function renderServers() {
       </div>
     </div>
   `;
-  
-  document.getElementById('create-server-btn').onclick = showCreateServerModal$1;
   
   loadServers();
   loadLimits();
@@ -1485,21 +1483,55 @@ window.serverPower = async function(serverId, action) {
   }
 };
 
-async function showCreateServerModal$1() {
-  const username = localStorage.getItem('username');
+function cleanupServers() {
+  if (pollInterval$1) {
+    clearInterval(pollInterval$1);
+    pollInterval$1 = null;
+  }
+}
+
+let selectedNest = null;
+let selectedEgg = null;
+let nestsData = null;
+let limitsData = null;
+
+async function renderCreateServer() {
+  const app = document.getElementById('app');
+  const user = getUser();
+  
+  app.innerHTML = `
+    <div class="create-server-page">
+      <div class="page-header">
+        <a href="/servers" class="back-link">
+          <span class="material-icons-outlined">arrow_back</span>
+          <span>Back to Servers</span>
+        </a>
+        <h1>Create Server</h1>
+      </div>
+      <div class="create-server-content">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  `;
   
   try {
     const [nestsRes, limitsRes] = await Promise.all([
-      fetch('/api/servers/nests'),
-      fetch(`/api/user/limits?username=${encodeURIComponent(username)}`)
+      api('/api/servers/nests'),
+      api('/api/user/limits')
     ]);
     
-    const nestsData = await nestsRes.json();
-    const limitsData = await limitsRes.json();
+    nestsData = await nestsRes.json();
+    limitsData = await limitsRes.json();
     
-    const allEggs = nestsData.nests.flatMap(n => n.eggs || []);
-    if (allEggs.length === 0) {
-      error('No eggs available');
+    if (!nestsData.nests || nestsData.nests.length === 0) {
+      document.querySelector('.create-server-content').innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">egg_alt</span>
+          <h3>No Eggs Available</h3>
+          <p>There are no eggs configured. Please contact an administrator.</p>
+          <a href="/servers" class="btn btn-primary">Go Back</a>
+        </div>
+      `;
       return;
     }
     
@@ -1511,121 +1543,387 @@ async function showCreateServerModal$1() {
     };
     
     if (remaining.servers <= 0) {
-      warning('You have reached your server limit');
+      document.querySelector('.create-server-content').innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">block</span>
+          <h3>Server Limit Reached</h3>
+          <p>You have reached your maximum server limit (${limitsData.limits.servers}).</p>
+          <a href="/servers" class="btn btn-primary">Go Back</a>
+        </div>
+      `;
       return;
     }
     
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.id = 'create-server-modal';
-    modal.innerHTML = `
-      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
-      <div class="modal-content modal-large">
-        <div class="modal-header">
-          <h3>Create Server</h3>
-          <button class="modal-close" onclick="this.closest('.modal').remove()">
-            <span class="material-icons-outlined">close</span>
-          </button>
-        </div>
-        
-        <div class="remaining-resources">
-          <span>Available: ${remaining.memory} MB RAM, ${remaining.disk} MB Disk, ${remaining.cpu}% CPU</span>
-        </div>
-        
-        <form id="create-server-form">
-          <div class="form-group">
-            <label>Server Name</label>
-            <input type="text" name="name" required placeholder="My Server" />
-          </div>
-          
-          <div class="form-group">
-            <label>Egg</label>
-            <select name="egg_id" required>
-              ${allEggs.map(e => `<option value="${e.id}">${escapeHtml$4(e.name)}</option>`).join('')}
-            </select>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label>Memory (MB) - Max: ${remaining.memory}</label>
-              <input type="number" name="memory" value="512" min="128" max="${remaining.memory}" required />
-            </div>
-            <div class="form-group">
-              <label>Disk (MB) - Max: ${remaining.disk}</label>
-              <input type="number" name="disk" value="1024" min="256" max="${remaining.disk}" required />
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label>CPU (%) - Max: ${remaining.cpu}</label>
-            <input type="number" name="cpu" value="100" min="25" max="${remaining.cpu}" required />
-          </div>
-          
-          <div id="create-server-error" class="error-message"></div>
-          
-          <div class="modal-actions">
-            <button type="submit" class="btn btn-primary" id="submit-create-server">Create Server</button>
-            <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
-          </div>
-        </form>
-      </div>
-    `;
+    selectedNest = nestsData.nests[0];
+    selectedEgg = selectedNest.eggs[0];
     
-    document.body.appendChild(modal);
-    
-    document.getElementById('create-server-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const form = new FormData(e.target);
-      const errorEl = document.getElementById('create-server-error');
-      const submitBtn = document.getElementById('submit-create-server');
-      
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating...';
-      errorEl.style.display = 'none';
-      
-      try {
-        const res = await api('/api/servers', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: form.get('name'),
-            egg_id: form.get('egg_id'),
-            memory: parseInt(form.get('memory')),
-            disk: parseInt(form.get('disk')),
-            cpu: parseInt(form.get('cpu'))
-          })
-        });
-        
-        const data = await res.json();
-        
-        if (res.ok) {
-          modal.remove();
-          loadServers();
-          loadLimits();
-        } else {
-          errorEl.textContent = data.error || 'Failed to create server';
-          errorEl.style.display = 'block';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Server';
-        }
-      } catch (err) {
-        errorEl.textContent = 'Network error';
-        errorEl.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Server';
-      }
-    };
+    renderCreateForm(remaining);
     
   } catch (e) {
-    console.error('Failed to load create server data:', e);
-    error('Failed to load data');
+    console.error('Failed to load data:', e);
+    document.querySelector('.create-server-content').innerHTML = `
+      <div class="error">Failed to load data. Please try again.</div>
+    `;
   }
 }
 
-function cleanupServers() {
-  if (pollInterval$1) {
-    clearInterval(pollInterval$1);
-    pollInterval$1 = null;
+function renderCreateForm(remaining) {
+  const content = document.querySelector('.create-server-content');
+  
+  content.innerHTML = `
+    <div class="create-server-layout">
+      <div class="create-server-main">
+        <div class="step-card">
+          <div class="step-header">
+            <span class="step-number">1</span>
+            <h3>Select Egg</h3>
+          </div>
+          
+          <div class="nest-tabs" id="nest-tabs">
+            ${nestsData.nests.map((nest, idx) => `
+              <button class="nest-tab ${idx === 0 ? 'active' : ''}" data-nest-id="${nest.id}">
+                ${escapeHtml$4(nest.name)}
+              </button>
+            `).join('')}
+          </div>
+          
+          <div class="eggs-grid" id="eggs-grid">
+            ${renderEggsGrid(selectedNest)}
+          </div>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-header">
+            <span class="step-number">2</span>
+            <h3>Server Details</h3>
+          </div>
+          
+          <form id="create-server-form">
+            <div class="form-group">
+              <label>Server Name</label>
+              <input type="text" name="name" required placeholder="My Awesome Server" maxlength="50" />
+            </div>
+            
+            <div class="form-group">
+              <label>Description (optional)</label>
+              <textarea name="description" rows="2" placeholder="What is this server for?"></textarea>
+            </div>
+            
+            <div class="form-section">
+              <h4>Resources</h4>
+              <div class="resources-grid">
+                <div class="resource-input">
+                  <label>
+                    <span class="material-icons-outlined">memory</span>
+                    Memory (MB)
+                  </label>
+                  <input type="number" name="memory" value="512" min="128" max="${remaining.memory}" required />
+                  <span class="resource-hint">Max: ${remaining.memory} MB</span>
+                </div>
+                <div class="resource-input">
+                  <label>
+                    <span class="material-icons-outlined">storage</span>
+                    Disk (MB)
+                  </label>
+                  <input type="number" name="disk" value="1024" min="256" max="${remaining.disk}" required />
+                  <span class="resource-hint">Max: ${remaining.disk} MB</span>
+                </div>
+                <div class="resource-input">
+                  <label>
+                    <span class="material-icons-outlined">speed</span>
+                    CPU (%)
+                  </label>
+                  <input type="number" name="cpu" value="100" min="25" max="${remaining.cpu}" required />
+                  <span class="resource-hint">Max: ${remaining.cpu}%</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-section" id="docker-image-section" style="display: none;">
+              <h4>Docker Image</h4>
+              <div class="form-group">
+                <select name="docker_image" id="docker-image-select"></select>
+              </div>
+            </div>
+            
+            <div class="form-section variables-section" id="variables-section" style="display: none;">
+              <h4>Startup Variables</h4>
+              <div id="variables-container"></div>
+            </div>
+            
+            <div id="create-server-error" class="error-message" style="display: none;"></div>
+            
+            <div class="form-actions">
+              <a href="/servers" class="btn btn-ghost">Cancel</a>
+              <button type="submit" class="btn btn-primary btn-large" id="submit-btn">
+                <span class="material-icons-outlined">add</span>
+                Create Server
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <div class="create-server-sidebar">
+        <div class="sidebar-card">
+          <h4>Selected Egg</h4>
+          <div id="selected-egg-preview">
+            ${renderEggPreview(selectedEgg)}
+          </div>
+        </div>
+        
+        <div class="sidebar-card">
+          <h4>Available Resources</h4>
+          <div class="limits-list">
+            <div class="limit-row">
+              <span>Servers</span>
+              <span class="limit-value">${remaining.servers} remaining</span>
+            </div>
+            <div class="limit-row">
+              <span>Memory</span>
+              <span class="limit-value">${remaining.memory} MB</span>
+            </div>
+            <div class="limit-row">
+              <span>Disk</span>
+              <span class="limit-value">${remaining.disk} MB</span>
+            </div>
+            <div class="limit-row">
+              <span>CPU</span>
+              <span class="limit-value">${remaining.cpu}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  setupEventListeners(remaining);
+  updateDockerImages();
+  updateVariables();
+}
+
+function renderEggsGrid(nest) {
+  if (!nest.eggs || nest.eggs.length === 0) {
+    return '<div class="empty-eggs">No eggs in this category</div>';
   }
+  
+  return nest.eggs.map(egg => `
+    <div class="egg-select-card ${egg.id === selectedEgg?.id ? 'selected' : ''}" data-egg-id="${egg.id}">
+      <div class="egg-select-icon">
+        ${renderEggIcon(egg)}
+      </div>
+      <div class="egg-select-info">
+        <h4>${escapeHtml$4(egg.name)}</h4>
+        <p>${escapeHtml$4(egg.description || 'No description')}</p>
+      </div>
+      <span class="egg-select-check material-icons-outlined">check_circle</span>
+    </div>
+  `).join('');
+}
+
+function renderEggIcon(egg) {
+  if (!egg.icon) {
+    return '<span class="material-icons-outlined">egg_alt</span>';
+  }
+  
+  // Check if it's a Material Icon name
+  if (!egg.icon.includes('/') && !egg.icon.includes('.')) {
+    return `<span class="material-icons-outlined">${escapeHtml$4(egg.icon)}</span>`;
+  }
+  
+  // Check if it's a URL (image)
+  if (egg.icon.startsWith('http') || egg.icon.startsWith('/') || egg.icon.includes('.')) {
+    return `<img src="${escapeHtml$4(egg.icon)}" alt="${escapeHtml$4(egg.name)}" onerror="this.outerHTML='<span class=\\'material-icons-outlined\\'>egg_alt</span>'" />`;
+  }
+  
+  return '<span class="material-icons-outlined">egg_alt</span>';
+}
+
+function renderEggPreview(egg) {
+  if (!egg) return '<p class="no-selection">No egg selected</p>';
+  
+  return `
+    <div class="egg-preview">
+      <div class="egg-preview-icon">
+        ${renderEggIcon(egg)}
+      </div>
+      <div class="egg-preview-info">
+        <h5>${escapeHtml$4(egg.name)}</h5>
+        <p>${escapeHtml$4(egg.description || 'No description')}</p>
+      </div>
+    </div>
+  `;
+}
+
+function setupEventListeners(remaining) {
+  // Nest tabs
+  document.querySelectorAll('.nest-tab').forEach(tab => {
+    tab.onclick = () => {
+      const nestId = tab.dataset.nestId;
+      selectedNest = nestsData.nests.find(n => n.id === nestId);
+      
+      document.querySelectorAll('.nest-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      selectedEgg = selectedNest.eggs[0];
+      
+      document.getElementById('eggs-grid').innerHTML = renderEggsGrid(selectedNest);
+      document.getElementById('selected-egg-preview').innerHTML = renderEggPreview(selectedEgg);
+      
+      setupEggCardListeners();
+      updateDockerImages();
+      updateVariables();
+    };
+  });
+  
+  setupEggCardListeners();
+  
+  // Form submit
+  document.getElementById('create-server-form').onsubmit = async (e) => {
+    e.preventDefault();
+    await submitCreateServer(remaining);
+  };
+}
+
+function setupEggCardListeners() {
+  document.querySelectorAll('.egg-select-card').forEach(card => {
+    card.onclick = () => {
+      const eggId = card.dataset.eggId;
+      selectedEgg = selectedNest.eggs.find(e => e.id === eggId);
+      
+      document.querySelectorAll('.egg-select-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      
+      document.getElementById('selected-egg-preview').innerHTML = renderEggPreview(selectedEgg);
+      updateDockerImages();
+      updateVariables();
+    };
+  });
+}
+
+function updateDockerImages() {
+  const section = document.getElementById('docker-image-section');
+  const select = document.getElementById('docker-image-select');
+  
+  if (!selectedEgg?.docker_images || Object.keys(selectedEgg.docker_images).length <= 1) {
+    section.style.display = 'none';
+    return;
+  }
+  
+  section.style.display = 'block';
+  select.innerHTML = Object.entries(selectedEgg.docker_images).map(([label, image]) => 
+    `<option value="${escapeHtml$4(image)}">${escapeHtml$4(label)}</option>`
+  ).join('');
+}
+
+function updateVariables() {
+  const section = document.getElementById('variables-section');
+  const container = document.getElementById('variables-container');
+  
+  const variables = (selectedEgg?.variables || []).filter(v => v.user_viewable !== false);
+  
+  if (variables.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  
+  section.style.display = 'block';
+  container.innerHTML = variables.map(v => `
+    <div class="form-group variable-input">
+      <label>
+        ${escapeHtml$4(v.name)}
+        ${v.user_editable === false ? '<span class="locked-badge">Locked</span>' : ''}
+      </label>
+      ${v.description ? `<p class="variable-desc">${escapeHtml$4(v.description)}</p>` : ''}
+      <input 
+        type="text" 
+        name="var_${escapeHtml$4(v.env_variable)}" 
+        value="${escapeHtml$4(v.default_value || '')}"
+        ${v.user_editable === false ? 'readonly' : ''}
+        placeholder="${escapeHtml$4(v.default_value || '')}"
+      />
+    </div>
+  `).join('');
+}
+
+async function submitCreateServer(remaining) {
+  const form = document.getElementById('create-server-form');
+  const formData = new FormData(form);
+  const errorEl = document.getElementById('create-server-error');
+  const submitBtn = document.getElementById('submit-btn');
+  
+  // Validation
+  const memory = parseInt(formData.get('memory'));
+  const disk = parseInt(formData.get('disk'));
+  const cpu = parseInt(formData.get('cpu'));
+  
+  if (memory > remaining.memory) {
+    errorEl.textContent = `Memory exceeds limit (max: ${remaining.memory} MB)`;
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (disk > remaining.disk) {
+    errorEl.textContent = `Disk exceeds limit (max: ${remaining.disk} MB)`;
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (cpu > remaining.cpu) {
+    errorEl.textContent = `CPU exceeds limit (max: ${remaining.cpu}%)`;
+    errorEl.style.display = 'block';
+    return;
+  }
+  
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="material-icons-outlined spinning">sync</span> Creating...';
+  errorEl.style.display = 'none';
+  
+  // Collect environment variables
+  const environment = {};
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('var_')) {
+      environment[key.substring(4)] = value;
+    }
+  }
+  
+  try {
+    const res = await api('/api/servers', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: formData.get('name'),
+        description: formData.get('description'),
+        egg_id: selectedEgg.id,
+        docker_image: formData.get('docker_image') || null,
+        memory,
+        disk,
+        cpu,
+        environment
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok) {
+      success('Server created successfully');
+      window.router.navigateTo('/servers');
+    } else {
+      errorEl.textContent = data.error || 'Failed to create server';
+      errorEl.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="material-icons-outlined">add</span> Create Server';
+    }
+  } catch (err) {
+    errorEl.textContent = 'Network error. Please try again.';
+    errorEl.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="material-icons-outlined">add</span> Create Server';
+  }
+}
+
+function cleanupCreateServer() {
+  selectedNest = null;
+  selectedEgg = null;
+  nestsData = null;
+  limitsData = null;
 }
 
 /**
@@ -42065,6 +42363,7 @@ function getDefaultSubTab(tab) {
     case 'nodes': return 'about';
     case 'servers': return 'details';
     case 'users': return 'overview';
+    case 'eggs': return 'about';
     default: return null;
   }
 }
@@ -42170,6 +42469,9 @@ async function loadView() {
         break;
       case 'users':
         await renderUserDetail(container, username, currentView.id);
+        break;
+      case 'eggs':
+        await renderEggDetail(container, username, currentView.id);
         break;
     }
   } else {
@@ -43641,6 +43943,24 @@ function renderUserSubTab(user, username) {
 
 // ============== NESTS ==============
 
+function renderAdminEggIcon(egg) {
+  if (!egg.icon) {
+    return '<span class="material-icons-outlined">egg_alt</span>';
+  }
+  
+  // Check if it's a Material Icon name (no slashes, no dots)
+  if (!egg.icon.includes('/') && !egg.icon.includes('.')) {
+    return `<span class="material-icons-outlined">${escapeHtml$4(egg.icon)}</span>`;
+  }
+  
+  // It's a URL (image)
+  if (egg.icon.startsWith('http') || egg.icon.startsWith('/') || egg.icon.includes('.')) {
+    return `<img src="${escapeHtml$4(egg.icon)}" alt="${escapeHtml$4(egg.name)}" onerror="this.outerHTML='<span class=\\'material-icons-outlined\\'>egg_alt</span>'" />`;
+  }
+  
+  return '<span class="material-icons-outlined">egg_alt</span>';
+}
+
 async function renderNestsList(container, username) {
   try {
     const res = await api('/api/admin/nests');
@@ -43656,6 +43976,10 @@ async function renderNestsList(container, username) {
             Create Nest
           </button>
           ${nests.length > 0 ? `
+            <button class="btn btn-ghost" id="create-egg-btn">
+              <span class="material-icons-outlined">add</span>
+              New Egg
+            </button>
             <button class="btn btn-primary" id="import-egg-btn">
               <span class="material-icons-outlined">upload</span>
               Import Egg
@@ -43681,13 +44005,13 @@ async function renderNestsList(container, username) {
                     <p>${escapeHtml$4(nest.description || 'No description')}</p>
                   </div>
                   <div class="nest-actions">
-                    <button class="btn btn-sm btn-ghost" onclick="editNestAdmin('${nest.id}')">
+                    <button class="btn btn-sm btn-ghost" onclick="editNestAdmin('${nest.id}')" title="Edit Nest">
                       <span class="material-icons-outlined">edit</span>
                     </button>
-                    <button class="btn btn-sm btn-ghost" onclick="addEggToNestAdmin('${nest.id}')">
+                    <button class="btn btn-sm btn-ghost" onclick="addEggToNestAdmin('${nest.id}')" title="Add Egg">
                       <span class="material-icons-outlined">add</span>
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteNestAdmin('${nest.id}')">
+                    <button class="btn btn-sm btn-danger" onclick="deleteNestAdmin('${nest.id}')" title="Delete Nest">
                       <span class="material-icons-outlined">delete</span>
                     </button>
                   </div>
@@ -43696,21 +44020,16 @@ async function renderNestsList(container, username) {
                   ${(nest.eggs || []).length === 0 ? `
                     <div class="empty-eggs">No eggs in this nest</div>
                   ` : (nest.eggs || []).map(egg => `
-                    <div class="egg-card">
+                    <div class="egg-card clickable" data-egg-id="${egg.id}">
                       <div class="egg-icon">
-                        <span class="material-icons-outlined">egg_alt</span>
+                        ${renderAdminEggIcon(egg)}
                       </div>
                       <div class="egg-info">
-                        <h4>${escapeHtml$4(egg.name)}</h4>
+                        <h4>${escapeHtml$4(egg.name)}${egg.admin_only ? '<span class="admin-badge">Admin</span>' : ''}</h4>
                         <span class="egg-author">${escapeHtml$4(egg.author || 'Unknown')}</span>
                       </div>
-                      <div class="egg-actions">
-                        <button class="btn btn-xs btn-ghost" onclick="editEggAdmin('${egg.id}')">
-                          <span class="material-icons-outlined">edit</span>
-                        </button>
-                        <button class="btn btn-xs btn-danger" onclick="deleteEggAdmin('${egg.id}')">
-                          <span class="material-icons-outlined">delete</span>
-                        </button>
+                      <div class="egg-meta">
+                        <span class="egg-vars-count" title="Variables">${(egg.variables || []).length} vars</span>
                       </div>
                     </div>
                   `).join('')}
@@ -43726,10 +44045,20 @@ async function renderNestsList(container, username) {
     
     document.getElementById('create-nest-btn').onclick = () => showNestModal(username);
     
+    const createEggBtn = document.getElementById('create-egg-btn');
+    if (createEggBtn) {
+      createEggBtn.onclick = () => showQuickEggModal(username, nests);
+    }
+    
     const importBtn = document.getElementById('import-egg-btn');
     if (importBtn) {
       importBtn.onclick = () => showImportEggModal(username, nests);
     }
+    
+    // Click on egg card to open detail view
+    document.querySelectorAll('.egg-card.clickable').forEach(card => {
+      card.onclick = () => navigateTo('eggs', card.dataset.eggId);
+    });
     
   } catch (e) {
     container.innerHTML = `<div class="error">Failed to load nests</div>`;
@@ -43888,17 +44217,8 @@ window.addEggToNestAdmin = async function(nestId) {
   showEggModal(localStorage.getItem('username'), data.nests, nestId);
 };
 
-window.editEggAdmin = async function(eggId) {
-  const res = await api('/api/admin/nests');
-  const data = await res.json();
-  let egg = null;
-  for (const nest of data.nests) {
-    egg = (nest.eggs || []).find(e => e.id === eggId);
-    if (egg) break;
-  }
-  if (egg) {
-    showEggModal(localStorage.getItem('username'), data.nests, egg.nest_id, egg);
-  }
+window.editEggAdmin = function(eggId) {
+  navigateTo('eggs', eggId);
 };
 
 window.deleteEggAdmin = async function(eggId) {
@@ -44023,6 +44343,671 @@ function showEggModal(username, nests, selectedNestId, egg = null) {
       loadView();
     } catch (e) {
       error('Failed to save egg');
+    }
+  };
+}
+
+function showQuickEggModal(username, nests) {
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.innerHTML = `
+    <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Create New Egg</h2>
+        <button class="modal-close" onclick="this.closest('.modal').remove()">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+      <form id="quick-egg-form" class="modal-form">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" name="name" placeholder="e.g., Paper 1.20" required />
+        </div>
+        <div class="form-group">
+          <label>Nest</label>
+          <select name="nest_id" required>
+            ${nests.map(n => `<option value="${n.id}">${escapeHtml$4(n.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Docker Image</label>
+          <input type="text" name="docker_image" placeholder="ghcr.io/pterodactyl/yolks:java_17" required />
+        </div>
+        <div class="form-group">
+          <label>Startup Command</label>
+          <textarea name="startup" rows="2" placeholder="java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar" required></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  document.getElementById('quick-egg-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    
+    const eggData = {
+      name: form.get('name'),
+      nest_id: form.get('nest_id'),
+      docker_images: { 'default': form.get('docker_image') },
+      docker_image: form.get('docker_image'),
+      startup: form.get('startup'),
+      author: 'admin@sodium.local',
+      config: { stop: '^C' },
+      variables: []
+    };
+    
+    try {
+      const res = await api('/api/admin/eggs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ egg: eggData })
+      });
+      const data = await res.json();
+      modal.remove();
+      if (data.egg?.id) {
+        navigateTo('eggs', data.egg.id);
+      } else {
+        loadView();
+      }
+    } catch (e) {
+      error('Failed to create egg');
+    }
+  };
+}
+
+// ============== EGG DETAIL ==============
+
+async function renderEggDetail(container, username, eggId) {
+  try {
+    const res = await api(`/api/admin/eggs/${eggId}`);
+    const data = await res.json();
+    const egg = data.egg;
+    
+    if (!egg) {
+      container.innerHTML = `<div class="error">Egg not found</div>`;
+      return;
+    }
+    
+    const nestsRes = await api('/api/admin/nests');
+    const nestsData = await nestsRes.json();
+    const nests = nestsData.nests || [];
+    const currentNest = nests.find(n => n.id === egg.nest_id);
+    
+    container.innerHTML = `
+      <div class="admin-header">
+        ${renderBreadcrumb([
+          { label: 'Nests & Eggs', onClick: 'list-nests' },
+          { label: egg.name }
+        ])}
+        <div class="admin-header-actions">
+          <button class="btn btn-ghost" id="export-egg-btn">
+            <span class="material-icons-outlined">download</span>
+            Export
+          </button>
+          <button class="btn btn-danger" id="delete-egg-btn">
+            <span class="material-icons-outlined">delete</span>
+            Delete
+          </button>
+        </div>
+      </div>
+      
+      <div class="detail-tabs">
+        <button class="detail-tab ${currentView.subTab === 'about' ? 'active' : ''}" data-subtab="about">About</button>
+        <button class="detail-tab ${currentView.subTab === 'configuration' ? 'active' : ''}" data-subtab="configuration">Configuration</button>
+        <button class="detail-tab ${currentView.subTab === 'variables' ? 'active' : ''}" data-subtab="variables">Variables</button>
+        <button class="detail-tab ${currentView.subTab === 'install' ? 'active' : ''}" data-subtab="install">Install Script</button>
+      </div>
+      
+      <div class="detail-content" id="egg-detail-content"></div>
+    `;
+    
+    setupBreadcrumbListeners();
+    
+    document.querySelectorAll('.detail-tab').forEach(tab => {
+      tab.onclick = () => {
+        currentView.subTab = tab.dataset.subtab;
+        document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderEggSubTab(egg, nests, username);
+      };
+    });
+    
+    document.getElementById('delete-egg-btn').onclick = async () => {
+      if (!confirm('Are you sure you want to delete this egg? This cannot be undone.')) return;
+      try {
+        await api(`/api/admin/eggs/${eggId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        navigateTo('nests');
+      } catch (e) {
+        error('Failed to delete egg');
+      }
+    };
+    
+    document.getElementById('export-egg-btn').onclick = () => {
+      const exportData = {
+        "_comment": "Exported from Sodium Panel",
+        "meta": { "version": "PTDL_v2" },
+        "exported_at": new Date().toISOString(),
+        "name": egg.name,
+        "author": egg.author || "admin@sodium.local",
+        "description": egg.description || "",
+        "docker_images": egg.docker_images || {},
+        "startup": egg.startup,
+        "config": egg.config || {},
+        "scripts": {
+          "installation": {
+            "script": egg.install_script || "#!/bin/bash\necho 'No install script'",
+            "container": egg.install_container || "alpine:3.18",
+            "entrypoint": egg.install_entrypoint || "bash"
+          }
+        },
+        "variables": (egg.variables || []).map(v => ({
+          "name": v.name,
+          "description": v.description || "",
+          "env_variable": v.env_variable,
+          "default_value": v.default_value || "",
+          "user_viewable": v.user_viewable !== false,
+          "user_editable": v.user_editable !== false,
+          "rules": v.rules || "nullable|string"
+        }))
+      };
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `egg-${egg.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      success('Egg exported');
+    };
+    
+    renderEggSubTab(egg, nests, username);
+    
+  } catch (e) {
+    container.innerHTML = `<div class="error">Failed to load egg</div>`;
+  }
+}
+
+function renderEggSubTab(egg, nests, username) {
+  const content = document.getElementById('egg-detail-content');
+  
+  switch (currentView.subTab) {
+    case 'about':
+      renderEggAboutTab(content, egg, nests, username);
+      break;
+    case 'configuration':
+      renderEggConfigTab(content, egg, username);
+      break;
+    case 'variables':
+      renderEggVariablesTab(content, egg, username);
+      break;
+    case 'install':
+      renderEggInstallTab(content, egg, username);
+      break;
+    default:
+      renderEggAboutTab(content, egg, nests, username);
+  }
+}
+
+function renderEggAboutTab(content, egg, nests, username) {
+  const dockerImagesText = egg.docker_images && typeof egg.docker_images === 'object'
+    ? Object.entries(egg.docker_images).map(([k, v]) => `${k}|${v}`).join('\n')
+    : egg.docker_image || '';
+  
+  content.innerHTML = `
+    <div class="detail-card detail-card-wide">
+      <h3>Egg Information</h3>
+      <form id="egg-about-form" class="settings-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" value="${escapeHtml$4(egg.name)}" required />
+          </div>
+          <div class="form-group">
+            <label>Nest</label>
+            <select name="nest_id" required>
+              ${nests.map(n => `<option value="${n.id}" ${n.id === egg.nest_id ? 'selected' : ''}>${escapeHtml$4(n.name)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="description" rows="3">${escapeHtml$4(egg.description || '')}</textarea>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Author</label>
+            <input type="text" name="author" value="${escapeHtml$4(egg.author || '')}" />
+          </div>
+          <div class="form-group">
+            <label>Icon</label>
+            <input type="text" name="icon" value="${escapeHtml$4(egg.icon || '')}" placeholder="egg_alt, terminal, or image URL" />
+            <p class="form-hint">Material Icon name, image URL, or leave empty for default</p>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>UUID</label>
+          <input type="text" value="${egg.id}" readonly class="input-readonly" />
+        </div>
+        <div class="form-group">
+          <label>Docker Images</label>
+          <p class="form-hint">One per line. Format: Label|image:tag (e.g., Java 17|ghcr.io/pterodactyl/yolks:java_17)</p>
+          <textarea name="docker_images" rows="4">${dockerImagesText}</textarea>
+        </div>
+        <div class="form-toggles">
+          <label class="toggle-item">
+            <input type="checkbox" name="admin_only" ${egg.admin_only ? 'checked' : ''} />
+            <span class="toggle-content">
+              <span class="toggle-title">Admin Only</span>
+              <span class="toggle-desc">Only administrators can use this egg to create servers</span>
+            </span>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.getElementById('egg-about-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    
+    const dockerImagesRaw = form.get('docker_images');
+    const docker_images = {};
+    dockerImagesRaw.split('\n').filter(l => l.trim()).forEach(line => {
+      const parts = line.split('|').map(s => s.trim());
+      if (parts.length >= 2) {
+        docker_images[parts[0]] = parts[1];
+      } else if (parts[0]) {
+        docker_images[parts[0]] = parts[0];
+      }
+    });
+    
+    try {
+      await api(`/api/admin/eggs/${egg.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          egg: {
+            name: form.get('name'),
+            nest_id: form.get('nest_id'),
+            description: form.get('description'),
+            author: form.get('author'),
+            icon: form.get('icon') || null,
+            admin_only: form.get('admin_only') === 'on',
+            docker_images,
+            docker_image: Object.values(docker_images)[0] || egg.docker_image
+          }
+        })
+      });
+      success('Egg updated');
+      navigateTo('eggs', egg.id, 'about');
+    } catch (e) {
+      error('Failed to update egg');
+    }
+  };
+}
+
+function renderEggConfigTab(content, egg, username) {
+  const config = egg.config || {};
+  const filesConfig = typeof config.files === 'string' ? config.files : JSON.stringify(config.files || {}, null, 2);
+  const startupConfig = typeof config.startup === 'string' ? config.startup : JSON.stringify(config.startup || {}, null, 2);
+  const logsConfig = typeof config.logs === 'string' ? config.logs : JSON.stringify(config.logs || {}, null, 2);
+  
+  content.innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-card detail-card-wide">
+        <h3>Startup Configuration</h3>
+        <form id="egg-startup-form" class="settings-form">
+          <div class="form-group">
+            <label>Startup Command</label>
+            <p class="form-hint">Use {{VARIABLE}} syntax for environment variables</p>
+            <textarea name="startup" rows="3" class="code-textarea">${escapeHtml$4(egg.startup || '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Stop Command</label>
+            <p class="form-hint">Command sent to stop the server (e.g., ^C, stop, quit)</p>
+            <input type="text" name="stop" value="${escapeHtml$4(config.stop || '^C')}" />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Startup Config</button>
+          </div>
+        </form>
+      </div>
+      
+      <div class="detail-card detail-card-wide">
+        <h3>Advanced Configuration (JSON)</h3>
+        <form id="egg-advanced-form" class="settings-form">
+          <div class="form-group">
+            <label>Files Configuration</label>
+            <p class="form-hint">Configuration file parsing rules</p>
+            <textarea name="files" rows="6" class="code-textarea">${escapeHtml$4(filesConfig)}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Startup Detection</label>
+            <p class="form-hint">Pattern to detect when server has started</p>
+            <textarea name="startup_config" rows="4" class="code-textarea">${escapeHtml$4(startupConfig)}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Logs Configuration</label>
+            <textarea name="logs" rows="4" class="code-textarea">${escapeHtml$4(logsConfig)}</textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Advanced Config</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('egg-startup-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    
+    try {
+      await api(`/api/admin/eggs/${egg.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          egg: {
+            startup: form.get('startup'),
+            config: { ...egg.config, stop: form.get('stop') }
+          }
+        })
+      });
+      success('Startup config updated');
+      navigateTo('eggs', egg.id, 'configuration');
+    } catch (e) {
+      error('Failed to update config');
+    }
+  };
+  
+  document.getElementById('egg-advanced-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    
+    let files, startup_config, logs;
+    try {
+      files = JSON.parse(form.get('files') || '{}');
+      startup_config = JSON.parse(form.get('startup_config') || '{}');
+      logs = JSON.parse(form.get('logs') || '{}');
+    } catch (err) {
+      error('Invalid JSON in configuration');
+      return;
+    }
+    
+    try {
+      await api(`/api/admin/eggs/${egg.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          egg: {
+            config: {
+              ...egg.config,
+              files: JSON.stringify(files),
+              startup: JSON.stringify(startup_config),
+              logs: JSON.stringify(logs)
+            }
+          }
+        })
+      });
+      success('Advanced config updated');
+      navigateTo('eggs', egg.id, 'configuration');
+    } catch (e) {
+      error('Failed to update config');
+    }
+  };
+}
+
+function renderEggVariablesTab(content, egg, username) {
+  const variables = egg.variables || [];
+  
+  content.innerHTML = `
+    <div class="detail-card detail-card-wide">
+      <div class="card-header-flex">
+        <h3>Environment Variables</h3>
+        <button class="btn btn-primary btn-sm" id="add-variable-btn">
+          <span class="material-icons-outlined">add</span>
+          Add Variable
+        </button>
+      </div>
+      <p class="card-description">Variables are passed to the server as environment variables and can be used in the startup command with {{VARIABLE}} syntax.</p>
+      
+      <div class="variables-list" id="variables-list">
+        ${variables.length === 0 ? `
+          <div class="empty-state small">
+            <span class="material-icons-outlined">code</span>
+            <p>No variables defined</p>
+          </div>
+        ` : variables.map((v, idx) => `
+          <div class="variable-card" data-index="${idx}">
+            <div class="variable-header">
+              <div class="variable-title">
+                <span class="variable-name">${escapeHtml$4(v.name)}</span>
+                <code class="variable-env">\${${escapeHtml$4(v.env_variable)}}</code>
+              </div>
+              <div class="variable-actions">
+                <button class="btn btn-xs btn-ghost edit-var-btn" data-index="${idx}">
+                  <span class="material-icons-outlined">edit</span>
+                </button>
+                <button class="btn btn-xs btn-danger delete-var-btn" data-index="${idx}">
+                  <span class="material-icons-outlined">delete</span>
+                </button>
+              </div>
+            </div>
+            <div class="variable-details">
+              <p class="variable-desc">${escapeHtml$4(v.description || 'No description')}</p>
+              <div class="variable-meta">
+                <span><strong>Default:</strong> ${escapeHtml$4(v.default_value || '(empty)')}</span>
+                <span><strong>Rules:</strong> ${escapeHtml$4(v.rules || 'nullable|string')}</span>
+              </div>
+              <div class="variable-flags">
+                ${v.user_viewable !== false ? '<span class="flag success">Viewable</span>' : '<span class="flag">Hidden</span>'}
+                ${v.user_editable !== false ? '<span class="flag success">Editable</span>' : '<span class="flag">Locked</span>'}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('add-variable-btn').onclick = () => showVariableModal(egg, null, username);
+  
+  document.querySelectorAll('.edit-var-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.index);
+      showVariableModal(egg, idx, username);
+    };
+  });
+  
+  document.querySelectorAll('.delete-var-btn').forEach(btn => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm('Delete this variable?')) return;
+      const idx = parseInt(btn.dataset.index);
+      const newVars = [...variables];
+      newVars.splice(idx, 1);
+      
+      try {
+        await api(`/api/admin/eggs/${egg.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ egg: { variables: newVars } })
+        });
+        success('Variable deleted');
+        navigateTo('eggs', egg.id, 'variables');
+      } catch (e) {
+        error('Failed to delete variable');
+      }
+    };
+  });
+}
+
+function showVariableModal(egg, editIndex, username) {
+  const isEdit = editIndex !== null;
+  const variable = isEdit ? egg.variables[editIndex] : {};
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.innerHTML = `
+    <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2>${isEdit ? 'Edit Variable' : 'Add Variable'}</h2>
+        <button class="modal-close" onclick="this.closest('.modal').remove()">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+      <form id="variable-form" class="modal-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" value="${escapeHtml$4(variable.name || '')}" placeholder="Server Memory" required />
+          </div>
+          <div class="form-group">
+            <label>Environment Variable</label>
+            <input type="text" name="env_variable" value="${escapeHtml$4(variable.env_variable || '')}" placeholder="SERVER_MEMORY" required pattern="[A-Z0-9_]+" title="Uppercase letters, numbers and underscores only" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="description" rows="2" placeholder="Memory allocated to the server in MB">${escapeHtml$4(variable.description || '')}</textarea>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Default Value</label>
+            <input type="text" name="default_value" value="${escapeHtml$4(variable.default_value || '')}" placeholder="1024" />
+          </div>
+          <div class="form-group">
+            <label>Validation Rules</label>
+            <input type="text" name="rules" value="${escapeHtml$4(variable.rules || 'nullable|string')}" placeholder="required|integer|min:128" />
+          </div>
+        </div>
+        <div class="form-toggles">
+          <label class="toggle-item">
+            <input type="checkbox" name="user_viewable" ${variable.user_viewable !== false ? 'checked' : ''} />
+            <span class="toggle-content">
+              <span class="toggle-title">User Viewable</span>
+              <span class="toggle-desc">Users can see this variable's value</span>
+            </span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" name="user_editable" ${variable.user_editable !== false ? 'checked' : ''} />
+            <span class="toggle-content">
+              <span class="toggle-title">User Editable</span>
+              <span class="toggle-desc">Users can modify this variable's value</span>
+            </span>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
+          <button type="submit" class="btn btn-primary">${isEdit ? 'Save' : 'Add'}</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  document.getElementById('variable-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    
+    const newVar = {
+      name: form.get('name'),
+      env_variable: form.get('env_variable').toUpperCase(),
+      description: form.get('description'),
+      default_value: form.get('default_value'),
+      rules: form.get('rules') || 'nullable|string',
+      user_viewable: form.get('user_viewable') === 'on',
+      user_editable: form.get('user_editable') === 'on'
+    };
+    
+    const newVars = [...(egg.variables || [])];
+    if (isEdit) {
+      newVars[editIndex] = newVar;
+    } else {
+      newVars.push(newVar);
+    }
+    
+    try {
+      await api(`/api/admin/eggs/${egg.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ egg: { variables: newVars } })
+      });
+      modal.remove();
+      success(isEdit ? 'Variable updated' : 'Variable added');
+      navigateTo('eggs', egg.id, 'variables');
+    } catch (e) {
+      error('Failed to save variable');
+    }
+  };
+}
+
+function renderEggInstallTab(content, egg, username) {
+  content.innerHTML = `
+    <div class="detail-card detail-card-wide">
+      <h3>Install Script</h3>
+      <p class="card-description">This script runs when a server is first created to set up the environment.</p>
+      <form id="egg-install-form" class="settings-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Install Container</label>
+            <p class="form-hint">Docker image used to run the install script</p>
+            <input type="text" name="install_container" value="${escapeHtml$4(egg.install_container || 'alpine:3.18')}" />
+          </div>
+          <div class="form-group">
+            <label>Install Entrypoint</label>
+            <p class="form-hint">Command used to run the script (e.g., bash, ash, sh)</p>
+            <input type="text" name="install_entrypoint" value="${escapeHtml$4(egg.install_entrypoint || 'bash')}" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Install Script</label>
+          <p class="form-hint">Shell script executed during server installation. Files are stored in /mnt/server</p>
+          <textarea name="install_script" rows="20" class="code-textarea">${escapeHtml$4(egg.install_script || '#!/bin/bash\ncd /mnt/server\necho "No install script configured"')}</textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save Install Script</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.getElementById('egg-install-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    
+    try {
+      await api(`/api/admin/eggs/${egg.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          egg: {
+            install_container: form.get('install_container'),
+            install_entrypoint: form.get('install_entrypoint'),
+            install_script: form.get('install_script')
+          }
+        })
+      });
+      success('Install script updated');
+      navigateTo('eggs', egg.id, 'install');
+    } catch (e) {
+      error('Failed to update install script');
     }
   };
 }
@@ -44349,6 +45334,15 @@ const routes = {
     cleanup: cleanupServers,
     options: {
       title: 'Servers',
+      auth: true,
+      sidebar: true
+    }
+  },
+  '/servers/create': {
+    render: renderCreateServer,
+    cleanup: cleanupCreateServer,
+    options: {
+      title: 'Create Server',
       auth: true,
       sidebar: true
     }
