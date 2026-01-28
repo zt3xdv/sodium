@@ -1,0 +1,377 @@
+#!/bin/bashx
+
+function StatusCard() {
+  @parse "$@"
+  @return html {
+    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+      <div class="flex items-center gap-3 mb-4">
+        <i data-lucide="$icon" class="w-6 h-6 text-blue-400"></i>
+        <h3 class="text-lg font-semibold text-white">$title</h3>
+      </div>
+      <div class="text-gray-300">
+        {@children}
+      </div>
+    </div>
+  }
+}
+@wrapper StatusCard
+
+function ProgressBar() {
+  @parse "$@"
+  @return html {
+    <div class="w-full bg-gray-700 rounded-full h-3 mt-2">
+      <div class="bg-gradient-to-r from-blue-500 to-cyan-400 h-3 rounded-full" style="width: ${percent}%"></div>
+    </div>
+    <p class="text-sm text-gray-400 mt-1">${percent}% used</p>
+  }
+}
+
+function getUptime() {
+  uptime -p 2>/dev/null || echo "N/A"
+}
+
+function getHostname() {
+  hostname 2>/dev/null || echo "Unknown"
+}
+
+function getOS() {
+  if [[ -f /etc/os-release ]]; then
+    grep PRETTY_NAME /etc/os-release | cut -d'"' -f2
+  else
+    uname -o 2>/dev/null || echo "Unknown"
+  fi
+}
+
+function getKernel() {
+  uname -r 2>/dev/null || echo "Unknown"
+}
+
+function getCPUUsage() {
+  top -bn1 2>/dev/null | grep "Cpu(s)" | awk '{print int($2)}' || echo "0"
+}
+
+function getMemory() {
+  free -m 2>/dev/null | awk '/Mem:/ {printf "%d/%d MB", $3, $2}' || echo "N/A"
+}
+
+function getMemoryPercent() {
+  free 2>/dev/null | awk '/Mem:/ {printf "%.0f", $3/$2 * 100}' || echo "0"
+}
+
+function getDisk() {
+  df -h / 2>/dev/null | awk 'NR==2 {printf "%s/%s", $3, $2}' || echo "N/A"
+}
+
+function getDiskPercent() {
+  df / 2>/dev/null | awk 'NR==2 {gsub("%",""); print $5}' || echo "0"
+}
+
+function getLoadAvg() {
+  cat /proc/loadavg 2>/dev/null | awk '{print $1, $2, $3}' || echo "N/A"
+}
+
+function getProcessCount() {
+  ps aux 2>/dev/null | wc -l || echo "0"
+}
+
+function getIPAddress() {
+  hostname -I 2>/dev/null | awk '{print $1}' || ip addr 2>/dev/null | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | cut -d'/' -f1 | head -1 || echo "N/A"
+}
+
+function getNetworkRX() {
+  cat /proc/net/dev 2>/dev/null | grep -E 'eth0|wlan0|enp|ens' | head -1 | awk '{printf "%.2f GB", $2/1024/1024/1024}' || echo "N/A"
+}
+
+function getNetworkTX() {
+  cat /proc/net/dev 2>/dev/null | grep -E 'eth0|wlan0|enp|ens' | head -1 | awk '{printf "%.2f GB", $10/1024/1024/1024}' || echo "N/A"
+}
+
+function getNetworkInterface() {
+  ip route 2>/dev/null | grep default | awk '{print $5}' | head -1 || echo "N/A"
+}
+
+function getPublicIP() {
+  curl -s --connect-timeout 2 ifconfig.me 2>/dev/null || curl -s --connect-timeout 2 icanhazip.com 2>/dev/null || echo "N/A"
+}
+
+function getOpenPorts() {
+  ss -tuln 2>/dev/null | grep LISTEN | wc -l || netstat -tuln 2>/dev/null | grep LISTEN | wc -l || echo "0"
+}
+
+function getConnections() {
+  ss -t 2>/dev/null | grep ESTAB | wc -l || netstat -t 2>/dev/null | grep ESTABLISHED | wc -l || echo "0"
+}
+
+function getSwap() {
+  free -m 2>/dev/null | awk '/Swap:/ {if($2>0) printf "%d/%d MB", $3, $2; else print "No swap"}' || echo "N/A"
+}
+
+function getSwapPercent() {
+  free 2>/dev/null | awk '/Swap:/ {if($2>0) printf "%.0f", $3/$2 * 100; else print "0"}' || echo "0"
+}
+
+function getCPUModel() {
+  grep "model name" /proc/cpuinfo 2>/dev/null | head -1 | cut -d':' -f2 | xargs || echo "Unknown"
+}
+
+function getCPUCores() {
+  nproc 2>/dev/null || grep -c processor /proc/cpuinfo 2>/dev/null || echo "N/A"
+}
+
+function getCPUTemp() {
+  if [[ -f /sys/class/thermal/thermal_zone0/temp ]]; then
+    echo "scale=1; $(cat /sys/class/thermal/thermal_zone0/temp)/1000" | bc 2>/dev/null || echo "N/A"
+  else
+    echo "N/A"
+  fi
+}
+
+function getLastBoot() {
+  who -b 2>/dev/null | awk '{print $3, $4}' || echo "N/A"
+}
+
+function getUsers() {
+  who 2>/dev/null | wc -l || echo "0"
+}
+
+function getFailedLogins() {
+  lastb 2>/dev/null | head -20 | wc -l || echo "N/A"
+}
+
+function getPackageUpdates() {
+  if command -v apt &>/dev/null; then
+    apt list --upgradable 2>/dev/null | grep -c upgradable || echo "0"
+  elif command -v dnf &>/dev/null; then
+    dnf check-update 2>/dev/null | grep -c "^[a-zA-Z]" || echo "0"
+  else
+    echo "N/A"
+  fi
+}
+
+function getDockerContainers() {
+  if command -v docker &>/dev/null; then
+    docker ps -q 2>/dev/null | wc -l || echo "0"
+  else
+    echo "N/A"
+  fi
+}
+
+function getDockerImages() {
+  if command -v docker &>/dev/null; then
+    docker images -q 2>/dev/null | wc -l || echo "0"
+  else
+    echo "N/A"
+  fi
+}
+
+function getTopProcess() {
+  ps aux --sort=-%cpu 2>/dev/null | awk 'NR==2 {print $11}' | xargs basename 2>/dev/null || echo "N/A"
+}
+
+function getTopProcessCPU() {
+  ps aux --sort=-%cpu 2>/dev/null | awk 'NR==2 {print $3}' || echo "0"
+}
+
+function getTopMemProcess() {
+  ps aux --sort=-%mem 2>/dev/null | awk 'NR==2 {print $11}' | xargs basename 2>/dev/null || echo "N/A"
+}
+
+function getTopMemProcessMem() {
+  ps aux --sort=-%mem 2>/dev/null | awk 'NR==2 {print $4}' || echo "0"
+}
+
+function getSSHConnections() {
+  ss -t 2>/dev/null | grep -c ":22 " || echo "0"
+}
+
+function getDNS() {
+  grep nameserver /etc/resolv.conf 2>/dev/null | head -1 | awk '{print $2}' || echo "N/A"
+}
+
+function main() {
+  local hostname=$(getHostname)
+  local os=$(getOS)
+  local kernel=$(getKernel)
+  local uptime=$(getUptime)
+  local cpu_usage=$(getCPUUsage)
+  local cpu_model=$(getCPUModel)
+  local cpu_cores=$(getCPUCores)
+  local cpu_temp=$(getCPUTemp)
+  local memory=$(getMemory)
+  local memory_percent=$(getMemoryPercent)
+  local swap=$(getSwap)
+  local swap_percent=$(getSwapPercent)
+  local disk=$(getDisk)
+  local disk_percent=$(getDiskPercent)
+  local load_avg=$(getLoadAvg)
+  local process_count=$(getProcessCount)
+  local ip_address=$(getIPAddress)
+  local public_ip=$(getPublicIP)
+  local network_rx=$(getNetworkRX)
+  local network_tx=$(getNetworkTX)
+  local network_iface=$(getNetworkInterface)
+  local open_ports=$(getOpenPorts)
+  local connections=$(getConnections)
+  local ssh_connections=$(getSSHConnections)
+  local dns=$(getDNS)
+  local users=$(getUsers)
+  local last_boot=$(getLastBoot)
+  local docker_containers=$(getDockerContainers)
+  local docker_images=$(getDockerImages)
+  local top_process=$(getTopProcess)
+  local top_process_cpu=$(getTopProcessCPU)
+  local top_mem_process=$(getTopMemProcess)
+  local top_mem_process_mem=$(getTopMemProcessMem)
+  local current_time=$(date "+%Y-%m-%d %H:%M:%S")
+
+  addMeta '<meta name="description" content="VPS Server Status Dashboard">'
+  addMeta '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+  addMeta '<title>VPS Status - '$hostname'</title>'
+
+  @return html {
+    <main class="min-h-screen bg-gray-900 py-8 px-4">
+      <div class="max-w-6xl mx-auto">
+        
+        <div class="text-center mb-10">
+          <div class="flex items-center justify-center gap-3 mb-4">
+            <i data-lucide="server" class="w-10 h-10 text-cyan-400"></i>
+            <h1 class="text-4xl font-bold text-white">VPS Status Dashboard</h1>
+          </div>
+          <p class="text-gray-400">Real-time server monitoring</p>
+          <div class="flex items-center justify-center gap-2 mt-4">
+            <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+            <span class="text-green-400 font-medium">Online</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          <StatusCard icon="info" title="System Info">
+            <div class="space-y-2">
+              <p><span class="text-gray-500">Hostname:</span> $hostname</p>
+              <p><span class="text-gray-500">OS:</span> $os</p>
+              <p><span class="text-gray-500">Kernel:</span> $kernel</p>
+              <p><span class="text-gray-500">Last Boot:</span> $last_boot</p>
+            </div>
+          </StatusCard>
+
+          <StatusCard icon="clock" title="Uptime">
+            <p class="text-2xl font-bold text-cyan-400">$uptime</p>
+            <p class="text-sm text-gray-500 mt-2">Last checked: $current_time</p>
+          </StatusCard>
+
+          <StatusCard icon="cpu" title="CPU Usage">
+            <p class="text-2xl font-bold text-white">${cpu_usage}%</p>
+            <ProgressBar percent="$cpu_usage" />
+            <div class="mt-3 text-sm space-y-1">
+              <p><span class="text-gray-500">Model:</span> $cpu_model</p>
+              <p><span class="text-gray-500">Cores:</span> $cpu_cores</p>
+              <p><span class="text-gray-500">Temp:</span> ${cpu_temp}°C</p>
+            </div>
+          </StatusCard>
+
+          <StatusCard icon="memory-stick" title="Memory">
+            <p class="text-2xl font-bold text-white">$memory</p>
+            <ProgressBar percent="$memory_percent" />
+            <div class="mt-3">
+              <p class="text-sm"><span class="text-gray-500">Swap:</span> $swap</p>
+              <ProgressBar percent="$swap_percent" />
+            </div>
+          </StatusCard>
+
+          <StatusCard icon="hard-drive" title="Disk Usage">
+            <p class="text-2xl font-bold text-white">$disk</p>
+            <ProgressBar percent="$disk_percent" />
+          </StatusCard>
+
+          <StatusCard icon="activity" title="System Load">
+            <p class="text-2xl font-bold text-white">$load_avg</p>
+            <p class="text-sm text-gray-500 mt-2">1min / 5min / 15min average</p>
+          </StatusCard>
+
+        </div>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6 flex items-center gap-3">
+          <i data-lucide="network" class="w-6 h-6 text-cyan-400"></i>
+          Network & Connections
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          <StatusCard icon="globe" title="IP Addresses">
+            <div class="space-y-2">
+              <p><span class="text-gray-500">Local IP:</span> $ip_address</p>
+              <p><span class="text-gray-500">Public IP:</span> $public_ip</p>
+              <p><span class="text-gray-500">Interface:</span> $network_iface</p>
+              <p><span class="text-gray-500">DNS:</span> $dns</p>
+            </div>
+          </StatusCard>
+
+          <StatusCard icon="arrow-down-up" title="Network Traffic">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-gray-500 text-sm">Download</p>
+                <p class="text-xl font-bold text-green-400">$network_rx</p>
+              </div>
+              <div>
+                <p class="text-gray-500 text-sm">Upload</p>
+                <p class="text-xl font-bold text-blue-400">$network_tx</p>
+              </div>
+            </div>
+          </StatusCard>
+
+          <StatusCard icon="plug" title="Connections">
+            <div class="space-y-2">
+              <p><span class="text-gray-500">Open Ports:</span> <span class="text-cyan-400 font-bold">$open_ports</span></p>
+              <p><span class="text-gray-500">Active Connections:</span> <span class="text-cyan-400 font-bold">$connections</span></p>
+              <p><span class="text-gray-500">SSH Sessions:</span> <span class="text-cyan-400 font-bold">$ssh_connections</span></p>
+            </div>
+          </StatusCard>
+
+        </div>
+
+        <h2 class="text-2xl font-bold text-white mt-10 mb-6 flex items-center gap-3">
+          <i data-lucide="box" class="w-6 h-6 text-cyan-400"></i>
+          Processes & Services
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          <StatusCard icon="layers" title="Processes">
+            <p class="text-2xl font-bold text-cyan-400">$process_count</p>
+            <p class="text-sm text-gray-500 mt-2">Running processes</p>
+          </StatusCard>
+
+          <StatusCard icon="flame" title="Top CPU Process">
+            <p class="text-xl font-bold text-orange-400">$top_process</p>
+            <p class="text-sm text-gray-500 mt-1">Using ${top_process_cpu}% CPU</p>
+          </StatusCard>
+
+          <StatusCard icon="database" title="Top Memory Process">
+            <p class="text-xl font-bold text-purple-400">$top_mem_process</p>
+            <p class="text-sm text-gray-500 mt-1">Using ${top_mem_process_mem}% RAM</p>
+          </StatusCard>
+
+          <StatusCard icon="container" title="Docker">
+            <div class="space-y-2">
+              <p><span class="text-gray-500">Running Containers:</span> <span class="text-cyan-400 font-bold">$docker_containers</span></p>
+              <p><span class="text-gray-500">Images:</span> <span class="text-cyan-400 font-bold">$docker_images</span></p>
+            </div>
+          </StatusCard>
+
+          <StatusCard icon="users" title="Users">
+            <p class="text-2xl font-bold text-cyan-400">$users</p>
+            <p class="text-sm text-gray-500 mt-2">Logged in users</p>
+          </StatusCard>
+
+        </div>
+
+        <div class="text-center mt-10 text-gray-600 text-sm">
+          <p>Powered by Fiction Framework</p>
+        </div>
+
+      </div>
+    </main>
+  }
+}
+
+fiction.serve "/" "main"
+fiction.server "0.0.0.0:8080" core="bash"
