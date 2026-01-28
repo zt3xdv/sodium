@@ -116,8 +116,7 @@ function safeFit() {
 }
 
 function debouncedFit() {
-  if (resizeTimeout) clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(safeFit, 5);
+  requestAnimationFrame(safeFit);
 }
 
 async function connectWebSocket(serverId) {
