@@ -1,5 +1,5 @@
 import { getTheme, setTheme, getAvailableThemes } from '../utils/theme.js';
-import { clearAuth } from '../utils/api.js';
+import { clearAuth, api } from '../utils/api.js';
 
 export function renderSettings() {
   const app = document.getElementById('app');
@@ -225,11 +225,9 @@ export function renderSettings() {
     btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
     
     try {
-      const res = await fetch('/api/user/password', {
+      const res = await api('/api/user/password', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: localStorage.getItem('username'),
           currentPassword,
           newPassword
         })
@@ -243,7 +241,6 @@ export function renderSettings() {
       } else {
         messageEl.textContent = 'Password updated successfully!';
         messageEl.className = 'message success';
-        localStorage.setItem('password', newPassword);
         
         setTimeout(() => {
           closeModalFn();
@@ -289,14 +286,9 @@ async function loadSettings() {
 
 async function saveSettings(settings) {
   try {
-    await fetch('/api/user/settings', {
+    await api('/api/user/settings', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: localStorage.getItem('username'),
-        password: localStorage.getItem('password'),
-        settings
-      })
+      body: JSON.stringify({ settings })
     });
   } catch (err) {
     console.error('Failed to save settings:', err);

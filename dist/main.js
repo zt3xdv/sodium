@@ -612,12 +612,9 @@ function renderProfile() {
     btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
     
     try {
-      const res = await fetch('/api/user/profile', {
+      const res = await api('/api/user/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: localStorage.getItem('username'),
-          password: localStorage.getItem('password'),
           displayName,
           bio,
           avatar,
@@ -985,11 +982,9 @@ function renderSettings() {
     btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
     
     try {
-      const res = await fetch('/api/user/password', {
+      const res = await api('/api/user/password', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: localStorage.getItem('username'),
           currentPassword,
           newPassword
         })
@@ -1003,7 +998,6 @@ function renderSettings() {
       } else {
         messageEl.textContent = 'Password updated successfully!';
         messageEl.className = 'message success';
-        localStorage.setItem('password', newPassword);
         
         setTimeout(() => {
           closeModalFn();
@@ -1049,14 +1043,9 @@ async function loadSettings() {
 
 async function saveSettings(settings) {
   try {
-    await fetch('/api/user/settings', {
+    await api('/api/user/settings', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: localStorage.getItem('username'),
-        password: localStorage.getItem('password'),
-        settings
-      })
+      body: JSON.stringify({ settings })
     });
   } catch (err) {
     console.error('Failed to save settings:', err);

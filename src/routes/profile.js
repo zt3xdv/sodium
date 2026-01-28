@@ -1,4 +1,5 @@
 import { escapeHtml, escapeUrl } from '../utils/security.js';
+import { api } from '../utils/api.js';
 
 export function renderProfile() {
   const app = document.getElementById('app');
@@ -160,12 +161,9 @@ export function renderProfile() {
     btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
     
     try {
-      const res = await fetch('/api/user/profile', {
+      const res = await api('/api/user/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: localStorage.getItem('username'),
-          password: localStorage.getItem('password'),
           displayName,
           bio,
           avatar,

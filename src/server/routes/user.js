@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import { loadUsers, saveUsers, loadServers } from '../db.js';
 import { validateUsername, sanitizeText, sanitizeUrl, sanitizeLinks } from '../utils/helpers.js';
+import { authenticateUser } from '../utils/auth.js';
 
 const router = express.Router();
 
@@ -42,26 +43,17 @@ router.get('/profile', (req, res) => {
   res.json({ user: userWithoutPassword });
 });
 
-router.put('/profile', (req, res) => {
-  const { username, password, displayName, bio, avatar, links } = req.body;
-  
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Authentication required' });
-  }
+router.put('/profile', authenticateUser, (req, res) => {
+  const { displayName, bio, avatar, links } = req.body;
   
   const data = loadUsers();
-  const userIndex = data.users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+  const userIndex = data.users.findIndex(u => u.id === req.user.id);
   
   if (userIndex === -1) {
     return res.status(404).json({ error: 'User not found' });
   }
   
   const user = data.users[userIndex];
-  const isValidPassword = bcrypt.compareSync(password, user.password);
-  
-  if (!isValidPassword) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
   
   if (displayName !== undefined) {
     user.displayName = sanitizeText(displayName.slice(0, 50));
@@ -86,26 +78,17 @@ router.put('/profile', (req, res) => {
   res.json({ success: true, user: userWithoutPassword });
 });
 
-router.put('/settings', (req, res) => {
-  const { username, password, settings } = req.body;
-  
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Authentication required' });
-  }
+router.put('/settings', authenticateUser, (req, res) => {
+  const { settings } = req.body;
   
   const data = loadUsers();
-  const userIndex = data.users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+  const userIndex = data.users.findIndex(u => u.id === req.user.id);
   
   if (userIndex === -1) {
     return res.status(404).json({ error: 'User not found' });
   }
   
   const user = data.users[userIndex];
-  const isValidPassword = bcrypt.compareSync(password, user.password);
-  
-  if (!isValidPassword) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
   
   user.settings = { ...user.settings, ...settings };
   data.users[userIndex] = user;
@@ -115,10 +98,10 @@ router.put('/settings', (req, res) => {
   res.json({ success: true, user: userWithoutPassword });
 });
 
-router.put('/password', async (req, res) => {
-  const { username, currentPassword, newPassword } = req.body;
+router.put('/password', authenticateUser, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
   
-  if (!username || !currentPassword || !newPassword) {
+  if (!currentPassword || !newPassword) {
     return res.status(400).json({ error: 'All fields are required' });
   }
   
@@ -127,7 +110,7 @@ router.put('/password', async (req, res) => {
   }
   
   const data = loadUsers();
-  const userIndex = data.users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+  const userIndex = data.users.findIndex(u => u.id === req.user.id);
   
   if (userIndex === -1) {
     return res.status(404).json({ error: 'User not found' });
