@@ -16,9 +16,25 @@
 <body>
   <div id="loading">
     <div class="loader">
-      <div class="spinner"></div>
+      <span class="material-icons-outlined loader-icon">bolt</span>
       <span>Loading...</span>
     </div>
   </div>
+  <style>
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .loader-icon {
+      font-size: 48px;
+      background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899, #6366f1);
+      background-size: 300% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradient 2s ease infinite;
+    }
+  </style>
 </body>
 </html>
