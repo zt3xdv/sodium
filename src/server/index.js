@@ -11,7 +11,9 @@ import statusRoutes from './routes/status.js';
 import adminRoutes from './routes/admin.js';
 import serverRoutes from './routes/servers.js';
 import remoteRoutes from './routes/remote.js';
+import pluginRoutes from './routes/plugins.js';
 import { setupWebSocket } from './socket.js';
+import pluginManager from './plugins/manager.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -44,19 +46,40 @@ app.use(express.static(path.join(__dirname, '../../assets')));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api', statusRoutes); // Contiene /api/status/nodes y /api/nodes/available
+app.use('/api', statusRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api/remote', remoteRoutes);
+app.use('/api/plugins', pluginRoutes);
 
-// Fallback para SPA
-app.get(/.*/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../../dist', 'index.html'));
-});
+// Inicializar plugins
+pluginManager.setApp(app);
 
-// Inicializar WebSocket
-setupWebSocket(server);
+async function startServer() {
+  await pluginManager.loadPlugins();
+  
+  await pluginManager.executeHook('server:init', { app, server });
+  
+  pluginManager.applyMiddlewares(app);
+  pluginManager.applyRoutes(app);
+  
+  await pluginManager.executeHook('server:routes', { app });
+  
+  // Fallback para SPA (debe ir después de las rutas de plugins)
+  app.get(/.*/, (req, res) => {
+    res.sendFile(path.join(__dirname, '../../dist', 'index.html'));
+  });
+  
+  setupWebSocket(server);
+  
+  await pluginManager.executeHook('server:ready', { app, server });
+  
+  server.listen(PORT, () => {
+    logger.startup(PORT);
+  });
+}
 
-server.listen(PORT, () => {
-  logger.startup(PORT);
+startServer().catch(err => {
+  logger.error(`Server startup failed: ${err.message}`);
+  process.exit(1);
 });

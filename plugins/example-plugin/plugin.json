@@ -1,0 +1,6 @@
+{
+  "name": "example-plugin",
+  "version": "1.0.0",
+  "description": "Example plugin demonstrating Sodium plugin API",
+  "author": "Sodium Team"
+}
