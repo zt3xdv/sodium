@@ -6267,6 +6267,79 @@ input, textarea, select {
   -o-object-fit: contain;
      object-fit: contain;
 }
+
+.user-servers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-server-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.user-server-item:hover {
+  background: var(--bg-hover);
+}
+.user-server-item .user-server-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.user-server-item .user-server-info > .material-icons-outlined {
+  font-size: 24px;
+  color: var(--text-secondary);
+}
+.user-server-item .user-server-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.user-server-item .user-server-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.user-server-item .user-server-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.user-server-item .user-server-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.user-server-item .server-status-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+.user-server-item .server-status-badge.suspended {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+
+.empty-state.small {
+  padding: 32px;
+  text-align: center;
+}
+.empty-state.small .material-icons-outlined {
+  font-size: 48px;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
+}
+.empty-state.small p {
+  color: var(--text-secondary);
+  margin: 0;
+}
 /**
  * Copyright (c) 2014 The xterm.js authors. All rights reserved.
  * Copyright (c) 2012-2013, Christopher Jeffrey (MIT License)

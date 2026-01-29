@@ -43876,6 +43876,7 @@ async function renderUserDetail(container, username, userId) {
       
       <div class="detail-tabs">
         <button class="detail-tab ${currentView.subTab === 'overview' ? 'active' : ''}" data-subtab="overview">Overview</button>
+        <button class="detail-tab ${currentView.subTab === 'servers' ? 'active' : ''}" data-subtab="servers">Servers</button>
         <button class="detail-tab ${currentView.subTab === 'permissions' ? 'active' : ''}" data-subtab="permissions">Permissions</button>
         <button class="detail-tab ${currentView.subTab === 'limits' ? 'active' : ''}" data-subtab="limits">Resource Limits</button>
       </div>
@@ -43886,22 +43887,22 @@ async function renderUserDetail(container, username, userId) {
     setupBreadcrumbListeners();
     
     document.querySelectorAll('.detail-tab').forEach(tab => {
-      tab.onclick = () => {
+      tab.onclick = async () => {
         currentView.subTab = tab.dataset.subtab;
         document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-        renderUserSubTab(user, username);
+        await renderUserSubTab(user, username);
       };
     });
     
-    renderUserSubTab(user, username);
+    await renderUserSubTab(user, username);
     
   } catch (e) {
     container.innerHTML = `<div class="error">Failed to load user</div>`;
   }
 }
 
-function renderUserSubTab(user, username) {
+async function renderUserSubTab(user, username) {
   const content = document.getElementById('user-detail-content');
   
   switch (currentView.subTab) {
@@ -43953,6 +43954,54 @@ function renderUserSubTab(user, username) {
           </div>
         </div>
       `;
+      break;
+      
+    case 'servers':
+      content.innerHTML = '<div class="loading-spinner"></div>';
+      try {
+        const serversRes = await api('/api/admin/servers?per_page=100');
+        const serversData = await serversRes.json();
+        const userServers = serversData.servers.filter(s => s.user_id === user.id);
+        
+        content.innerHTML = `
+          <div class="detail-card detail-card-wide">
+            <h3>User Servers</h3>
+            ${userServers.length === 0 ? `
+              <div class="empty-state small">
+                <span class="material-icons-outlined">storage</span>
+                <p>This user has no servers</p>
+              </div>
+            ` : `
+              <div class="user-servers-list">
+                ${userServers.map(s => `
+                  <div class="user-server-item" data-server-id="${s.id}">
+                    <div class="user-server-info">
+                      <span class="material-icons-outlined">dns</span>
+                      <div class="user-server-details">
+                        <span class="user-server-name">${escapeHtml$4(s.name)}</span>
+                        <span class="user-server-meta">${s.node_name || 'Unknown Node'} • ${formatBytes((s.limits?.memory || 0) * 1024 * 1024)} RAM</span>
+                      </div>
+                    </div>
+                    <div class="user-server-actions">
+                      <span class="server-status-badge ${s.suspended ? 'suspended' : ''}">${s.suspended ? 'Suspended' : 'Active'}</span>
+                      <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); adminNavigate('servers', '${s.id}')">
+                        <span class="material-icons-outlined">settings</span>
+                        Manage
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            `}
+          </div>
+        `;
+        
+        document.querySelectorAll('.user-server-item').forEach(el => {
+          el.onclick = () => navigateTo('servers', el.dataset.serverId);
+        });
+      } catch (e) {
+        content.innerHTML = '<div class="error">Failed to load servers</div>';
+      }
       break;
       
     case 'permissions':
