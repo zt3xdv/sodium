@@ -77,6 +77,7 @@ function loadDatabase() {
 
   let offset = 8;
   const collectionCount = data.readUInt8(offset++);
+  const expectedCollectionCount = Object.keys(COLLECTIONS).length;
   const idToName = Object.fromEntries(
     Object.entries(COLLECTIONS).map(([k, v]) => [v, k])
   );
@@ -98,6 +99,11 @@ function loadDatabase() {
         cache[name].push(JSON.parse(json));
       } catch {}
     }
+  }
+  
+  // Resave if DB has fewer collections than expected (schema upgrade)
+  if (collectionCount < expectedCollectionCount) {
+    saveDatabase();
   }
 }
 
