@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { authMiddleware, adminMiddleware } from '../utils/auth.js';
 import pluginManager from '../plugins/manager.js';
+import { installPlugin, uninstallPlugin, createPluginPackage } from '../plugins/installer.js';
 
 const router = Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -105,6 +106,111 @@ router.post('/load/:name', authMiddleware, adminMiddleware, async (req, res) => 
 router.get('/hooks', authMiddleware, adminMiddleware, (req, res) => {
   const hooks = Array.from(pluginManager.hooks.keys());
   res.json({ hooks });
+});
+
+router.get('/assets', authMiddleware, (req, res) => {
+  const user = req.user;
+  const assets = pluginManager.getClientAssets();
+  
+  assets.sidebar = pluginManager.getSidebarItems(user?.isAdmin);
+  
+  res.json(assets);
+});
+
+router.get('/slots/:name', authMiddleware, (req, res) => {
+  const { name } = req.params;
+  const content = pluginManager.getSlotContent(name);
+  res.json({ slot: name, content });
+});
+
+router.post('/install', authMiddleware, adminMiddleware, async (req, res) => {
+  const { source } = req.body;
+  
+  if (!source) {
+    return res.status(400).json({ error: 'Source is required' });
+  }
+  
+  try {
+    const result = await installPlugin(source);
+    await pluginManager.loadPlugin(result.path);
+    res.json({ message: `Plugin ${result.name} installed`, plugin: result.manifest });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/:name', authMiddleware, adminMiddleware, async (req, res) => {
+  const { name } = req.params;
+  
+  try {
+    await pluginManager.unloadPlugin(name);
+    await uninstallPlugin(name);
+    res.json({ message: `Plugin ${name} uninstalled` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/:name/package', authMiddleware, adminMiddleware, async (req, res) => {
+  const { name } = req.params;
+  
+  try {
+    const outputPath = await createPluginPackage(name);
+    res.json({ message: `Plugin packaged`, path: outputPath });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:name/settings', authMiddleware, adminMiddleware, (req, res) => {
+  const { name } = req.params;
+  const plugin = pluginManager.plugins.get(name);
+  
+  if (!plugin) {
+    return res.status(404).json({ error: 'Plugin not found' });
+  }
+  
+  const settings = pluginManager.getPluginSettings(name);
+  const schema = plugin.manifest.settings?.schema || [];
+  
+  res.json({ settings, schema });
+});
+
+router.put('/:name/settings', authMiddleware, adminMiddleware, (req, res) => {
+  const { name } = req.params;
+  const { settings } = req.body;
+  
+  const plugin = pluginManager.plugins.get(name);
+  if (!plugin) {
+    return res.status(404).json({ error: 'Plugin not found' });
+  }
+  
+  for (const [key, value] of Object.entries(settings)) {
+    pluginManager.setPluginSetting(name, key, value);
+  }
+  
+  res.json({ message: 'Settings updated' });
+});
+
+router.get('/:name', authMiddleware, adminMiddleware, (req, res) => {
+  const { name } = req.params;
+  const plugin = pluginManager.plugins.get(name);
+  
+  if (!plugin) {
+    return res.status(404).json({ error: 'Plugin not found' });
+  }
+  
+  res.json({
+    name: plugin.manifest.name,
+    id: plugin.manifest.id,
+    version: plugin.manifest.version,
+    description: plugin.manifest.description,
+    author: plugin.manifest.author,
+    website: plugin.manifest.website,
+    license: plugin.manifest.license,
+    permissions: plugin.manifest.permissions,
+    hasSettings: !!(plugin.manifest.settings?.schema?.length)
+  });
 });
 
 export default router;

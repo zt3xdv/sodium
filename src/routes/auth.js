@@ -1,4 +1,5 @@
 import { setToken, setUser } from '../utils/api.js';
+import { renderSlot, initSlotListeners } from '../utils/plugins.js';
 
 export function renderAuth() {
   const app = document.getElementById('app');
@@ -43,6 +44,18 @@ export function renderAuth() {
             <span>Sign In</span>
             <span class="material-icons-outlined">arrow_forward</span>
           </button>
+          
+          <div class="auth-slot auth-slot-login" id="slot-login-buttons">
+            ${renderSlot('auth:login:buttons')}
+          </div>
+          
+          <div class="auth-divider" id="auth-divider-login" style="display: none;">
+            <span>or continue with</span>
+          </div>
+          
+          <div class="auth-slot auth-slot-providers" id="slot-login-providers">
+            ${renderSlot('auth:login:providers')}
+          </div>
         </form>
         
         <form id="register-form" class="auth-form">

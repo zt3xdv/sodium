@@ -38,10 +38,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Assets estáticos (asumiendo que dist y assets están al nivel raíz del proyecto)
-// Ajustamos las rutas para subir dos niveles desde src/server
+// Assets estáticos
 app.use(express.static(path.join(__dirname, '../../dist')));
 app.use(express.static(path.join(__dirname, '../../assets')));
+app.use('/plugins', express.static(path.join(__dirname, '../../plugins')));
 
 // API Routes
 app.use('/api/auth', authRoutes);

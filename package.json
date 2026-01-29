@@ -39,6 +39,7 @@
     "codemirror": "^6.0.2",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.3",
+    "tar": "^7.5.7",
     "ws": "^8.18.3"
   },
   "devDependencies": {
@@ -65,4 +66,3 @@
     "theme_color": "#6366f1"
   }
 }
-

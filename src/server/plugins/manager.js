@@ -14,6 +14,12 @@ class PluginManager {
     this.middlewares = [];
     this.wsHandlers = new Map();
     this.overrides = new Map();
+    this.sidebarItems = [];
+    this.styles = [];
+    this.scripts = [];
+    this.components = new Map();
+    this.slots = new Map();
+    this.pages = new Map();
     this.app = null;
   }
 
@@ -73,6 +79,69 @@ class PluginManager {
       this.wsHandlers.set(event, []);
     }
     this.wsHandlers.get(event).push(handler);
+  }
+
+  registerSidebarItem(item) {
+    const sidebarItem = {
+      path: item.path,
+      icon: item.icon || 'extension',
+      label: item.label,
+      adminOnly: item.adminOnly || false,
+      position: item.position || 'bottom',
+      priority: item.priority || 100,
+      plugin: item.plugin
+    };
+    this.sidebarItems.push(sidebarItem);
+    this.sidebarItems.sort((a, b) => a.priority - b.priority);
+  }
+
+  getSidebarItems(isAdmin = false) {
+    return this.sidebarItems.filter(item => !item.adminOnly || isAdmin);
+  }
+
+  registerStyle(style) {
+    this.styles.push(style);
+  }
+
+  registerScript(script) {
+    this.scripts.push(script);
+  }
+
+  registerComponent(name, component) {
+    this.components.set(name, component);
+  }
+
+  registerSlot(slotName, content) {
+    if (!this.slots.has(slotName)) {
+      this.slots.set(slotName, []);
+    }
+    this.slots.get(slotName).push(content);
+    this.slots.get(slotName).sort((a, b) => (a.priority || 100) - (b.priority || 100));
+  }
+
+  getSlotContent(slotName) {
+    return this.slots.get(slotName) || [];
+  }
+
+  registerPage(path, page) {
+    this.pages.set(path, page);
+  }
+
+  getClientAssets() {
+    return {
+      styles: this.styles,
+      scripts: this.scripts,
+      components: Array.from(this.components.entries()).map(([name, comp]) => ({
+        name,
+        ...comp
+      })),
+      slots: Object.fromEntries(this.slots),
+      sidebar: this.sidebarItems,
+      pages: Array.from(this.pages.entries()).map(([path, page]) => ({
+        path,
+        ...page
+      }))
+    };
   }
 
   async handleWebSocketEvent(event, args, context) {
@@ -150,43 +219,112 @@ class PluginManager {
   async loadPlugin(pluginPath) {
     const manifestPath = path.join(pluginPath, 'plugin.json');
     const indexPath = path.join(pluginPath, 'index.js');
-    
-    if (!fs.existsSync(indexPath)) {
-      logger.warn(`Plugin missing index.js: ${pluginPath}`);
-      return;
-    }
+    const mainPath = path.join(pluginPath, 'main.js');
 
     let manifest = { name: path.basename(pluginPath), version: '1.0.0' };
     if (fs.existsSync(manifestPath)) {
       try {
         manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        manifest.id = manifest.id || manifest.name;
+        manifest._path = pluginPath;
       } catch (err) {
         logger.warn(`Invalid plugin manifest: ${manifestPath}`);
+        return;
       }
     }
 
-    await this.loadPluginModule(indexPath, manifest);
+    await this.processManifest(manifest, pluginPath);
+
+    const entryPoint = manifest.main 
+      ? path.join(pluginPath, manifest.main)
+      : fs.existsSync(indexPath) ? indexPath : mainPath;
+    
+    if (fs.existsSync(entryPoint)) {
+      await this.loadPluginModule(entryPoint, manifest, pluginPath);
+    } else {
+      this.plugins.set(manifest.id || manifest.name, {
+        manifest,
+        module: null,
+        path: pluginPath
+      });
+      logger.info(`Plugin loaded (declarative): ${manifest.name} v${manifest.version}`);
+    }
+  }
+
+  async processManifest(manifest, pluginPath) {
+    const pluginId = manifest.id || manifest.name;
+
+    if (manifest.sidebar) {
+      for (const item of manifest.sidebar) {
+        this.registerSidebarItem({ ...item, plugin: pluginId });
+      }
+    }
+
+    if (manifest.slots) {
+      for (const [slotName, contents] of Object.entries(manifest.slots)) {
+        for (const content of contents) {
+          this.registerSlot(slotName, { ...content, plugin: pluginId });
+        }
+      }
+    }
+
+    if (manifest.styles) {
+      for (const style of manifest.styles) {
+        const stylePath = path.join(pluginPath, style);
+        if (fs.existsSync(stylePath)) {
+          const css = fs.readFileSync(stylePath, 'utf-8');
+          this.registerStyle({ css, plugin: pluginId, file: style });
+        } else {
+          this.registerStyle({ url: `/plugins/${pluginId}/${style}`, plugin: pluginId });
+        }
+      }
+    }
+
+    if (manifest.scripts) {
+      for (const script of manifest.scripts) {
+        this.registerScript({ url: `/plugins/${pluginId}/${script}`, plugin: pluginId });
+      }
+    }
+
+    if (manifest.pages) {
+      for (const page of manifest.pages) {
+        const templatePath = path.join(pluginPath, page.template);
+        let html = '';
+        if (fs.existsSync(templatePath)) {
+          html = fs.readFileSync(templatePath, 'utf-8');
+        }
+        this.registerPage(page.path, {
+          title: page.title,
+          html,
+          plugin: pluginId
+        });
+      }
+    }
   }
 
   async loadPluginFile(filePath) {
     const name = path.basename(filePath, '.js');
     const manifest = { name, version: '1.0.0' };
-    await this.loadPluginModule(filePath, manifest);
+    await this.loadPluginModule(filePath, manifest, path.dirname(filePath));
   }
 
-  async loadPluginModule(modulePath, manifest) {
+  async loadPluginModule(modulePath, manifest, pluginPath) {
     try {
       const pluginModule = await import(`file://${modulePath}`);
       const plugin = pluginModule.default || pluginModule;
+      const pluginId = manifest.id || manifest.name;
+      
+      const api = this.createPluginAPI(manifest, pluginPath);
       
       if (typeof plugin.init === 'function') {
-        await plugin.init(this.createPluginAPI(manifest));
+        await plugin.init(api);
       }
       
-      this.plugins.set(manifest.name, {
+      this.plugins.set(pluginId, {
         manifest,
         module: plugin,
-        path: modulePath
+        path: pluginPath || path.dirname(modulePath),
+        api
       });
       
       logger.info(`Plugin loaded: ${manifest.name} v${manifest.version}`);
@@ -195,8 +333,9 @@ class PluginManager {
     }
   }
 
-  createPluginAPI(manifest) {
+  createPluginAPI(manifest, pluginPath) {
     const self = this;
+    const pluginId = manifest.id || manifest.name;
     
     return {
       name: manifest.name,
@@ -222,26 +361,66 @@ class PluginManager {
       
       ws: (event, handler) => self.registerWebSocketHandler(event, handler),
       
+      sidebar: (item) => self.registerSidebarItem({ ...item, plugin: manifest.name }),
+      
+      ui: {
+        style: (css) => self.registerStyle({ css, plugin: manifest.name }),
+        styleUrl: (url) => self.registerStyle({ url, plugin: manifest.name }),
+        script: (code) => self.registerScript({ code, plugin: manifest.name }),
+        scriptUrl: (url) => self.registerScript({ url, plugin: manifest.name }),
+        component: (name, config) => self.registerComponent(name, { ...config, plugin: manifest.name }),
+        slot: (slotName, content) => self.registerSlot(slotName, { ...content, plugin: manifest.name }),
+        page: (path, config) => self.registerPage(path, { ...config, plugin: manifest.name })
+      },
+      
       override: (target, replacement) => self.override(target, replacement),
       
       wrap: (original, before, after) => self.wrapFunction(original, before, after),
       
       storage: {
-        get: (key) => self.getPluginStorage(manifest.name, key),
-        set: (key, value) => self.setPluginStorage(manifest.name, key, value),
-        delete: (key) => self.deletePluginStorage(manifest.name, key)
+        get: (key) => self.getPluginStorage(pluginId, key),
+        set: (key, value) => self.setPluginStorage(pluginId, key, value),
+        delete: (key) => self.deletePluginStorage(pluginId, key),
+        getAll: () => self.getPluginStorage(pluginId)
+      },
+      
+      settings: {
+        get: (key) => self.getPluginSetting(pluginId, key),
+        set: (key, value) => self.setPluginSetting(pluginId, key, value),
+        getAll: () => self.getPluginSettings(pluginId),
+        getSchema: () => manifest.settings?.schema || []
       },
       
       log: {
-        info: (msg) => logger.info(`[${manifest.name}] ${msg}`),
-        warn: (msg) => logger.warn(`[${manifest.name}] ${msg}`),
-        error: (msg) => logger.error(`[${manifest.name}] ${msg}`)
+        info: (msg) => logger.info(`[${pluginId}] ${msg}`),
+        warn: (msg) => logger.warn(`[${pluginId}] ${msg}`),
+        error: (msg) => logger.error(`[${pluginId}] ${msg}`)
       },
 
+      manifest,
+      path: pluginPath,
+      
       getPlugins: () => Array.from(self.plugins.keys()),
       
-      emit: (event, data) => self.executeHook(event, data)
+      emit: (event, data) => self.executeHook(event, data),
+      
+      require: (filePath) => import(`file://${path.join(pluginPath, filePath)}`)
     };
+  }
+
+  getPluginSettings(pluginId) {
+    return this.getPluginStorage(pluginId, '_settings') || {};
+  }
+
+  getPluginSetting(pluginId, key) {
+    const settings = this.getPluginSettings(pluginId);
+    return settings[key];
+  }
+
+  setPluginSetting(pluginId, key, value) {
+    const settings = this.getPluginSettings(pluginId);
+    settings[key] = value;
+    this.setPluginStorage(pluginId, '_settings', settings);
   }
 
   getPluginStorage(pluginName, key) {

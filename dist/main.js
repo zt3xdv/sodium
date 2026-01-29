@@ -68,6 +68,155 @@ async function apiJson(endpoint, options = {}) {
   return response.json();
 }
 
+let pluginAssets = null;
+let loadedStyles = new Set();
+let loadedScripts = new Set();
+
+async function loadPluginAssets() {
+  try {
+    const res = await api('/api/plugins/assets');
+    if (res.ok) {
+      pluginAssets = await res.json();
+      await injectStyles();
+      await injectScripts();
+      return pluginAssets;
+    }
+  } catch (e) {
+    console.error('Failed to load plugin assets:', e);
+  }
+  return null;
+}
+
+function getPluginAssets() {
+  return pluginAssets;
+}
+
+function getPluginSidebarItems() {
+  return pluginAssets?.sidebar || [];
+}
+
+function getPluginPages() {
+  return pluginAssets?.pages || [];
+}
+
+function getSlotContent(slotName) {
+  return pluginAssets?.slots?.[slotName] || [];
+}
+
+async function injectStyles() {
+  if (!pluginAssets?.styles) return;
+  
+  for (const style of pluginAssets.styles) {
+    const id = `plugin-style-${style.plugin}`;
+    if (loadedStyles.has(id)) continue;
+    
+    if (style.css) {
+      const el = document.createElement('style');
+      el.id = id;
+      el.textContent = style.css;
+      document.head.appendChild(el);
+    } else if (style.url) {
+      const el = document.createElement('link');
+      el.id = id;
+      el.rel = 'stylesheet';
+      el.href = style.url;
+      document.head.appendChild(el);
+    }
+    
+    loadedStyles.add(id);
+  }
+}
+
+async function injectScripts() {
+  if (!pluginAssets?.scripts) return;
+  
+  for (const script of pluginAssets.scripts) {
+    const id = `plugin-script-${script.plugin}`;
+    if (loadedScripts.has(id)) continue;
+    
+    if (script.code) {
+      try {
+        const fn = new Function(script.code);
+        fn();
+      } catch (e) {
+        console.error(`Plugin script error [${script.plugin}]:`, e);
+      }
+    } else if (script.url) {
+      const el = document.createElement('script');
+      el.id = id;
+      el.src = script.url;
+      document.body.appendChild(el);
+    }
+    
+    loadedScripts.add(id);
+  }
+}
+
+function renderSlot(slotName, context = {}) {
+  const content = getSlotContent(slotName);
+  if (!content.length) return '';
+  
+  return content.map(item => {
+    if (item.html) {
+      return item.html;
+    }
+    if (item.render) {
+      try {
+        const fn = new Function('context', `return (${item.render})(context)`);
+        return fn(context);
+      } catch (e) {
+        console.error(`Slot render error [${slotName}]:`, e);
+        return '';
+      }
+    }
+    return '';
+  }).join('');
+}
+
+function initSlotListeners(container) {
+  const content = getSlotContent('global:listeners');
+  
+  for (const item of content) {
+    if (item.init) {
+      try {
+        const fn = new Function('container', `return (${item.init})(container)`);
+        fn(container);
+      } catch (e) {
+        console.error('Slot listener error:', e);
+      }
+    }
+  }
+}
+
+function getPluginComponent(name) {
+  return pluginAssets?.components?.find(c => c.name === name);
+}
+
+function renderPluginComponent(name, props = {}) {
+  const component = getPluginComponent(name);
+  if (!component) return '';
+  
+  if (component.html) {
+    let html = component.html;
+    for (const [key, value] of Object.entries(props)) {
+      html = html.replace(new RegExp(`{{${key}}}`, 'g'), value);
+    }
+    return html;
+  }
+  
+  if (component.render) {
+    try {
+      const fn = new Function('props', `return (${component.render})(props)`);
+      return fn(props);
+    } catch (e) {
+      console.error(`Component render error [${name}]:`, e);
+      return '';
+    }
+  }
+  
+  return '';
+}
+
 function renderAuth() {
   const app = document.getElementById('app');
   app.className = 'auth-page';
@@ -111,6 +260,18 @@ function renderAuth() {
             <span>Sign In</span>
             <span class="material-icons-outlined">arrow_forward</span>
           </button>
+          
+          <div class="auth-slot auth-slot-login" id="slot-login-buttons">
+            ${renderSlot('auth:login:buttons')}
+          </div>
+          
+          <div class="auth-divider" id="auth-divider-login" style="display: none;">
+            <span>or continue with</span>
+          </div>
+          
+          <div class="auth-slot auth-slot-providers" id="slot-login-providers">
+            ${renderSlot('auth:login:providers')}
+          </div>
         </form>
         
         <form id="register-form" class="auth-form">
@@ -45982,25 +46143,45 @@ async function checkAdminStatus(sidebar, currentPath) {
   
   if (!user) return;
   
+  const navList = sidebar.querySelector('#nav-list');
+  const settingsItem = navList.querySelector('a[href="/settings"]')?.closest('.nav-item');
+  
   try {
-    if (user.isAdmin) {
-      const navList = sidebar.querySelector('#nav-list');
-      const settingsItem = navList.querySelector('a[href="/settings"]')?.closest('.nav-item');
-      
-      if (settingsItem && !navList.querySelector('a[href="/admin"]')) {
-        const adminItem = document.createElement('li');
-        adminItem.className = 'nav-item';
-        adminItem.innerHTML = `
-          <a href="/admin" class="nav-link ${currentPath === '/admin' ? 'active' : ''}">
-            <span class="material-icons-outlined">admin_panel_settings</span>
-            <span class="nav-text">Admin</span>
-          </a>
-        `;
-        navList.insertBefore(adminItem, settingsItem);
-      }
+    if (user.isAdmin && settingsItem && !navList.querySelector('a[href="/admin"]')) {
+      const adminItem = document.createElement('li');
+      adminItem.className = 'nav-item';
+      adminItem.innerHTML = `
+        <a href="/admin" class="nav-link ${currentPath === '/admin' ? 'active' : ''}">
+          <span class="material-icons-outlined">admin_panel_settings</span>
+          <span class="nav-text">Admin</span>
+        </a>
+      `;
+      navList.insertBefore(adminItem, settingsItem);
     }
   } catch (e) {
     console.error('Failed to check admin status:', e);
+  }
+  
+  const pluginItems = getPluginSidebarItems();
+  for (const item of pluginItems) {
+    if (navList.querySelector(`a[href="${item.path}"]`)) continue;
+    
+    const li = document.createElement('li');
+    li.className = 'nav-item plugin-nav-item';
+    li.innerHTML = `
+      <a href="${item.path}" class="nav-link ${currentPath === item.path ? 'active' : ''}">
+        <span class="material-icons-outlined">${item.icon}</span>
+        <span class="nav-text">${item.label}</span>
+      </a>
+    `;
+    
+    if (item.position === 'top') {
+      navList.insertBefore(li, navList.firstChild);
+    } else if (settingsItem) {
+      navList.insertBefore(li, settingsItem);
+    } else {
+      navList.appendChild(li);
+    }
   }
 }
 

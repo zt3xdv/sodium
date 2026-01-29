@@ -1,6 +1,96 @@
 {
-  "name": "example-plugin",
+  "id": "example-plugin",
+  "name": "Example Plugin",
   "version": "1.0.0",
   "description": "Example plugin demonstrating Sodium plugin API",
-  "author": "Sodium Team"
+  "author": "Sodium Team",
+  "website": "https://github.com/example/plugin",
+  "license": "MIT",
+  
+  "main": "index.js",
+  
+  "permissions": [
+    "routes",
+    "hooks",
+    "ui",
+    "websocket",
+    "storage"
+  ],
+  
+  "sidebar": [
+    {
+      "path": "/example",
+      "icon": "extension",
+      "label": "Example",
+      "position": "bottom",
+      "priority": 50
+    }
+  ],
+  
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/example/info",
+      "handler": "handlers/info.js"
+    }
+  ],
+  
+  "hooks": [
+    {
+      "event": "server:ready",
+      "handler": "hooks/ready.js",
+      "priority": 10
+    }
+  ],
+  
+  "slots": {
+    "auth:login:providers": [
+      {
+        "html": "<button class=\"btn btn-oauth btn-google\" onclick=\"exampleGoogleLogin()\"><img src=\"/plugins/example-plugin/assets/google.svg\" alt=\"\"> Continue with Google</button>",
+        "priority": 10
+      }
+    ],
+    "dashboard:header": [
+      {
+        "html": "<div class=\"plugin-banner\">Welcome from Example Plugin!</div>",
+        "priority": 5
+      }
+    ]
+  },
+  
+  "styles": [
+    "assets/style.css"
+  ],
+  
+  "scripts": [
+    "assets/client.js"
+  ],
+  
+  "assets": "assets",
+  
+  "pages": [
+    {
+      "path": "/example",
+      "title": "Example Page",
+      "template": "pages/example.html"
+    }
+  ],
+  
+  "settings": {
+    "schema": [
+      {
+        "key": "api_key",
+        "type": "string",
+        "label": "API Key",
+        "description": "Your API key for external service",
+        "required": false
+      },
+      {
+        "key": "enabled",
+        "type": "boolean",
+        "label": "Enable Feature",
+        "default": true
+      }
+    ]
+  }
 }
