@@ -5,6 +5,7 @@ import { loadUsers, saveUsers, loadConfig } from '../db.js';
 import { validateUsername, sanitizeText, generateUUID } from '../utils/helpers.js';
 import { JWT_SECRET } from '../utils/auth.js';
 import { rateLimit } from '../utils/rate-limiter.js';
+import { logActivity, ACTIVITY_TYPES } from '../utils/activity.js';
 
 const router = express.Router();
 
@@ -72,6 +73,9 @@ router.post('/register', authLimiter, async (req, res) => {
     JWT_SECRET,
     { expiresIn: '7d' }
   );
+  
+  logActivity(newUser.id, ACTIVITY_TYPES.LOGIN, { method: 'register' }, req.ip);
+  
   res.json({ success: true, user: userWithoutPassword, token });
 });
 
@@ -101,6 +105,9 @@ router.post('/login', authLimiter, async (req, res) => {
     JWT_SECRET,
     { expiresIn: '7d' }
   );
+  
+  logActivity(user.id, ACTIVITY_TYPES.LOGIN, { method: 'password' }, req.ip);
+  
   res.json({ success: true, user: userWithoutPassword, token });
 });
 

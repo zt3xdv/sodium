@@ -15,11 +15,11 @@
 ## Pending
 
 - [ ] Scheduled tasks (cron jobs, commands, power actions)
-- [ ] Activity log
+- [x] Activity log
 - [x] API keys for users
 - [ ] Session management
-- [ ] Announcements
-- [ ] Audit log
+- [x] Announcements
+- [x] Audit log
 - [ ] Server transfers between nodes
 - [ ] Panel statistics
 - [ ] In-app notifications

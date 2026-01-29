@@ -12,7 +12,10 @@ const COLLECTIONS = {
   nests: 4,
   eggs: 5,
   locations: 6,
-  apiKeys: 7
+  apiKeys: 7,
+  announcements: 8,
+  auditLogs: 9,
+  activityLogs: 10
 };
 
 let cache = {
@@ -22,7 +25,10 @@ let cache = {
   nests: [],
   eggs: [],
   locations: [],
-  apiKeys: []
+  apiKeys: [],
+  announcements: [],
+  auditLogs: [],
+  activityLogs: []
 };
 
 if (!fs.existsSync(DATA_DIR)) {
@@ -142,6 +148,15 @@ export function saveLocations(data) { cache.locations = data.locations || []; sa
 
 export function loadApiKeys() { return { apiKeys: cache.apiKeys }; }
 export function saveApiKeys(data) { cache.apiKeys = data.apiKeys || []; saveDatabase(); }
+
+export function loadAnnouncements() { return { announcements: cache.announcements }; }
+export function saveAnnouncements(data) { cache.announcements = data.announcements || []; saveDatabase(); }
+
+export function loadAuditLogs() { return { auditLogs: cache.auditLogs }; }
+export function saveAuditLogs(data) { cache.auditLogs = data.auditLogs || []; saveDatabase(); }
+
+export function loadActivityLogs() { return { activityLogs: cache.activityLogs }; }
+export function saveActivityLogs(data) { cache.activityLogs = data.activityLogs || []; saveDatabase(); }
 
 export function loadConfig() {
   try {

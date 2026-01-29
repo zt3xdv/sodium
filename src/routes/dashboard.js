@@ -16,6 +16,8 @@ export function renderDashboard() {
   
   app.innerHTML = `
     <div class="dashboard-container">
+      <div id="announcements-container"></div>
+      
       <header class="dashboard-header">
         <div class="greeting">
           <h1>${greeting}, <span class="highlight">${escapeHtml(displayName)}</span></h1>
@@ -50,6 +52,7 @@ export function renderDashboard() {
   
   loadLimits();
   loadServers();
+  loadAnnouncements();
   
   pollInterval = setInterval(() => {
     loadServers();
@@ -143,6 +146,54 @@ async function loadServers() {
     `).join('');
   } catch (e) {
     container.innerHTML = `<div class="error-state">Failed to load servers</div>`;
+  }
+}
+
+async function loadAnnouncements() {
+  const container = document.getElementById('announcements-container');
+  if (!container) return;
+  
+  try {
+    const res = await api('/api/announcements/active');
+    const data = await res.json();
+    
+    if (data.announcements.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+    
+    const dismissed = JSON.parse(localStorage.getItem('dismissedAnnouncements') || '[]');
+    const activeAnnouncements = data.announcements.filter(a => !dismissed.includes(a.id));
+    
+    if (activeAnnouncements.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+    
+    container.innerHTML = activeAnnouncements.map(a => `
+      <div class="announcement-banner type-${a.type}" data-id="${a.id}">
+        <div class="announcement-icon">
+          <span class="material-icons-outlined">campaign</span>
+        </div>
+        <div class="announcement-content">
+          <div class="announcement-title">${escapeHtml(a.title)}</div>
+          <div class="announcement-text">${escapeHtml(a.content)}</div>
+        </div>
+        <button class="announcement-close" onclick="dismissAnnouncement('${a.id}')">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+    `).join('');
+    
+    window.dismissAnnouncement = (id) => {
+      const dismissed = JSON.parse(localStorage.getItem('dismissedAnnouncements') || '[]');
+      dismissed.push(id);
+      localStorage.setItem('dismissedAnnouncements', JSON.stringify(dismissed));
+      const banner = document.querySelector(`.announcement-banner[data-id="${id}"]`);
+      if (banner) banner.remove();
+    };
+  } catch (e) {
+    container.innerHTML = '';
   }
 }
 

@@ -13,6 +13,9 @@ import serverRoutes from './routes/servers.js';
 import remoteRoutes from './routes/remote.js';
 import pluginRoutes from './routes/plugins.js';
 import apiKeysRoutes from './routes/api-keys.js';
+import announcementsRoutes from './routes/announcements.js';
+import auditLogsRoutes from './routes/audit-logs.js';
+import activityLogsRoutes from './routes/activity-logs.js';
 import { setupWebSocket } from './socket.js';
 import pluginManager from './plugins/manager.js';
 
@@ -53,6 +56,9 @@ app.use('/api/servers', serverRoutes);
 app.use('/api/remote', remoteRoutes);
 app.use('/api/plugins', pluginRoutes);
 app.use('/api/api-keys', apiKeysRoutes);
+app.use('/api/announcements', announcementsRoutes);
+app.use('/api/admin/audit-logs', auditLogsRoutes);
+app.use('/api/activity', activityLogsRoutes);
 
 // Inicializar plugins
 pluginManager.setApp(app);
