@@ -1,10 +1,12 @@
-import { api } from '../../utils/api.js';
+import { api, getToken } from '../../utils/api.js';
 import * as toast from '../../utils/toast.js';
 import { createEditor } from '../../utils/editor.js';
 import * as modal from '../../utils/modal.js';
 
 let currentPath = '/';
 let currentServerId = null;
+let progressSocket = null;
+let activeProgressIndicators = new Map();
 let isEditing = false;
 let editingPath = null;
 let selectedFiles = new Set();
@@ -21,6 +23,160 @@ const EDITABLE_EXTENSIONS = [
 ];
 
 const ARCHIVE_EXTENSIONS = ['zip', 'tar', 'tar.gz', 'tgz', 'gz', 'rar', '7z'];
+
+function connectProgressSocket(serverId) {
+  if (progressSocket && progressSocket.readyState === WebSocket.OPEN) {
+    return;
+  }
+  
+  const token = getToken();
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${window.location.host}/ws/console?server=${serverId}&token=${encodeURIComponent(token)}`;
+  
+  progressSocket = new WebSocket(wsUrl);
+  
+  progressSocket.onmessage = (event) => {
+    try {
+      const message = JSON.parse(event.data);
+      handleProgressEvent(message);
+    } catch (e) {
+      // Ignore parse errors
+    }
+  };
+  
+  progressSocket.onerror = () => {
+    // Silent fail - will use fallback
+  };
+}
+
+function handleProgressEvent(message) {
+  const { event, args } = message;
+  
+  if (!args || !args[0]) return;
+  const data = args[0];
+  
+  switch (event) {
+    case 'compress progress': {
+      const indicator = activeProgressIndicators.get('compress');
+      if (indicator) {
+        indicator.update(data.percent, `${data.processed_files}/${data.total_files} files`);
+        indicator.hasProgress = true;
+      }
+      break;
+    }
+    
+    case 'compress completed': {
+      const indicator = activeProgressIndicators.get('compress');
+      if (indicator) {
+        indicator.complete(data.success, data.error);
+        activeProgressIndicators.delete('compress');
+      }
+      break;
+    }
+    
+    case 'decompress progress': {
+      const indicator = activeProgressIndicators.get('decompress');
+      if (indicator) {
+        indicator.update(data.percent, data.current_file ? data.current_file.split('/').pop() : '');
+        indicator.hasProgress = true;
+      }
+      break;
+    }
+    
+    case 'decompress completed': {
+      const indicator = activeProgressIndicators.get('decompress');
+      if (indicator) {
+        indicator.complete(data.success, data.error);
+        activeProgressIndicators.delete('decompress');
+      }
+      break;
+    }
+  }
+}
+
+function showCompressIndicator() {
+  const filesList = document.getElementById('files-list');
+  
+  const el = document.createElement('div');
+  el.className = 'file-item compress-indicator';
+  el.innerHTML = `
+    <div class="file-select"></div>
+    <div class="file-icon">
+      <span class="material-icons-outlined rotating">archive</span>
+    </div>
+    <div class="file-info">
+      <span class="file-name">Compressing files...</span>
+      <div class="upload-progress">
+        <div class="upload-progress-bar" style="width: 0%"></div>
+      </div>
+      <span class="file-meta compress-percent">Preparing...</span>
+    </div>
+  `;
+  
+  filesList.insertBefore(el, filesList.firstChild);
+  
+  return {
+    hasProgress: false,
+    update: (percent, detail) => {
+      const bar = el.querySelector('.upload-progress-bar');
+      const text = el.querySelector('.compress-percent');
+      if (bar) bar.style.width = `${percent}%`;
+      if (text) text.textContent = detail ? `Compressing... ${percent}% - ${detail}` : `Compressing... ${percent}%`;
+    },
+    complete: (success, error) => {
+      el.remove();
+      if (success) {
+        toast.success('Compressed successfully');
+        loadFiles(currentServerId, currentPath);
+      } else {
+        toast.error(error || 'Failed to compress');
+      }
+    },
+    remove: () => el.remove()
+  };
+}
+
+function showDecompressIndicator(filename) {
+  const filesList = document.getElementById('files-list');
+  
+  const el = document.createElement('div');
+  el.className = 'file-item decompress-indicator';
+  el.innerHTML = `
+    <div class="file-select"></div>
+    <div class="file-icon">
+      <span class="material-icons-outlined rotating">unarchive</span>
+    </div>
+    <div class="file-info">
+      <span class="file-name">Extracting ${filename}...</span>
+      <div class="upload-progress">
+        <div class="upload-progress-bar" style="width: 0%"></div>
+      </div>
+      <span class="file-meta decompress-percent">Preparing...</span>
+    </div>
+  `;
+  
+  filesList.insertBefore(el, filesList.firstChild);
+  
+  return {
+    hasProgress: false,
+    update: (percent, currentFile) => {
+      const bar = el.querySelector('.upload-progress-bar');
+      const text = el.querySelector('.decompress-percent');
+      if (bar) bar.style.width = `${percent}%`;
+      if (text) text.textContent = currentFile ? `Extracting... ${percent}% - ${currentFile}` : `Extracting... ${percent}%`;
+    },
+    complete: (success, error) => {
+      el.remove();
+      if (success) {
+        toast.success('Extracted successfully');
+        loadFiles(currentServerId, currentPath);
+      } else {
+        toast.error(error || 'Failed to extract');
+      }
+    },
+    remove: () => el.remove()
+  };
+}
 
 function isArchive(filename) {
   const name = filename.toLowerCase();
@@ -512,27 +668,39 @@ async function moveSelectedFiles(serverId) {
 async function compressSelectedFiles(serverId) {
   if (selectedFiles.size === 0) return;
   
-  const username = localStorage.getItem('username');
   const files = Array.from(selectedFiles);
   
-  toast.info('Compressing...');
+  connectProgressSocket(serverId);
+  
+  const indicator = showCompressIndicator();
+  activeProgressIndicators.set('compress', indicator);
+  clearSelection();
   
   try {
     const res = await api(`/api/servers/${serverId}/files/compress`, {
       method: 'POST',
-      
       body: JSON.stringify({ root: currentPath, files })
     });
     
+    // If we received progress events, the completion is handled by WebSocket
+    if (indicator.hasProgress) {
+      return;
+    }
+    
+    // Fallback for Wings without progress API
+    activeProgressIndicators.delete('compress');
+    indicator.remove();
+    
     if (res.ok) {
       toast.success('Compressed successfully');
-      clearSelection();
       loadFiles(serverId, currentPath);
     } else {
       const data = await res.json();
       toast.error(data.error || 'Failed to compress');
     }
   } catch (e) {
+    activeProgressIndicators.delete('compress');
+    indicator.remove();
     toast.error('Failed to compress');
   }
 }
@@ -564,46 +732,29 @@ function showDecompressDialog(serverId, filename) {
   });
 }
 
-function showExtractIndicator(filename) {
-  const filesList = document.getElementById('files-list');
-  
-  const el = document.createElement('div');
-  el.className = 'file-item extract-indicator';
-  el.innerHTML = `
-    <div class="file-select"></div>
-    <div class="file-icon">
-      <span class="material-icons-outlined rotating">unarchive</span>
-    </div>
-    <div class="file-info">
-      <span class="file-name">Extracting ${filename}...</span>
-      <span class="file-meta">Please wait</span>
-    </div>
-  `;
-  
-  filesList.insertBefore(el, filesList.firstChild);
-  
-  return {
-    remove: () => el.remove()
-  };
-}
-
 async function decompressFile(serverId, filename, archiveDir, extractTo) {
-  const username = localStorage.getItem('username');
+  connectProgressSocket(serverId);
   
-  const indicator = showExtractIndicator(filename);
+  const indicator = showDecompressIndicator(filename);
+  activeProgressIndicators.set('decompress', indicator);
   
   try {
     const res = await api(`/api/servers/${serverId}/files/decompress`, {
       method: 'POST',
-      
       body: JSON.stringify({ 
-        username, 
         root: archiveDir,
         file: filename,
         extractTo: extractTo
       })
     });
     
+    // If we received progress events, the completion is handled by WebSocket
+    if (indicator.hasProgress) {
+      return;
+    }
+    
+    // Fallback for Wings without progress API
+    activeProgressIndicators.delete('decompress');
     indicator.remove();
     
     if (res.ok) {
@@ -614,6 +765,7 @@ async function decompressFile(serverId, filename, archiveDir, extractTo) {
       toast.error(data.error || 'Failed to extract');
     }
   } catch (e) {
+    activeProgressIndicators.delete('decompress');
     indicator.remove();
     toast.error('Failed to extract');
   }
@@ -888,6 +1040,11 @@ function restoreFilesList(serverId) {
 export function cleanupFilesTab() {
   currentPath = '/';
   selectedFiles.clear();
+  activeProgressIndicators.clear();
+  if (progressSocket) {
+    progressSocket.close();
+    progressSocket = null;
+  }
   if (editorInstance) {
     editorInstance.destroy();
     editorInstance = null;

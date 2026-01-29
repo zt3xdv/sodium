@@ -55,9 +55,9 @@
     "sass": "^1.93.3"
   },
   "manifest": {
-    "name": "Sodium Panel",
+    "name": "Sodium",
     "short_name": "Sodium",
-    "description": "Modern game server management panel.",
+    "description": "Ultimate Game Server management Panel.",
     "start_url": "/",
     "url": "https://sodium.app/",
     "display": "standalone",
