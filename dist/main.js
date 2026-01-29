@@ -42682,7 +42682,7 @@ async function renderNodesList(container, username) {
       card.onclick = () => navigateTo('nodes', card.dataset.id);
     });
     
-    document.getElementById('create-node-btn').onclick = () => showCreateNodeModal(username);
+    document.getElementById('create-node-btn').onclick = () => createNewNode();
     
   } catch (e) {
     container.innerHTML = `<div class="error">Failed to load nodes</div>`;
@@ -43067,95 +43067,40 @@ function renderNodeSubTab(node, locations, username) {
   }
 }
 
-async function showCreateNodeModal(username) {
-  const locRes = await api('/api/admin/locations');
-  const locData = await locRes.json();
-  
-  const modal = document.createElement('div');
-  modal.className = 'modal active';
-  modal.innerHTML = `
-    <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
-    <div class="modal-content modal-large">
-      <div class="modal-header">
-        <h2>Create Node</h2>
-        <button class="modal-close" onclick="this.closest('.modal').remove()">
-          <span class="material-icons-outlined">close</span>
-        </button>
-      </div>
-      <form id="create-node-form" class="modal-form">
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Name</label>
-            <input type="text" name="name" required />
-          </div>
-          <div class="form-group">
-            <label>Location</label>
-            <select name="location_id">
-              ${locData.locations.map(l => `<option value="${l.id}">${escapeHtml$4(l.long)}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label>FQDN</label>
-            <input type="text" name="fqdn" placeholder="node.example.com" required />
-          </div>
-          <div class="form-group">
-            <label>Scheme</label>
-            <select name="scheme">
-              <option value="https">HTTPS</option>
-              <option value="http">HTTP</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Memory (MB)</label>
-            <input type="number" name="memory" value="8192" required />
-          </div>
-          <div class="form-group">
-            <label>Disk (MB)</label>
-            <input type="number" name="disk" value="51200" required />
-          </div>
-          <div class="form-group">
-            <label>Daemon Port</label>
-            <input type="number" name="daemon_port" value="8080" required />
-          </div>
-          <div class="form-group">
-            <label>SFTP Port</label>
-            <input type="number" name="daemon_sftp_port" value="2022" required />
-          </div>
-          <div class="form-group">
-            <label>Port Range Start</label>
-            <input type="number" name="allocation_start" value="25565" required />
-          </div>
-          <div class="form-group">
-            <label>Port Range End</label>
-            <input type="number" name="allocation_end" value="25665" required />
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Create Node</button>
-        </div>
-      </form>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  
-  document.getElementById('create-node-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.target);
-    const node = Object.fromEntries(form);
+async function createNewNode() {
+  try {
+    const locRes = await api('/api/admin/locations');
+    const locData = await locRes.json();
     
-    try {
-      await api('/api/admin/nodes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ node })
-      });
-      modal.remove();
-      loadView();
-    } catch (e) {
+    const node = {
+      name: 'Untitled Node',
+      fqdn: 'node.example.com',
+      scheme: 'https',
+      memory: 8192,
+      disk: 51200,
+      daemon_port: 8080,
+      daemon_sftp_port: 2022,
+      allocation_start: 25565,
+      allocation_end: 25665,
+      location_id: locData.locations[0]?.id || null
+    };
+    
+    const res = await api('/api/admin/nodes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ node })
+    });
+    
+    const data = await res.json();
+    if (data.node?.id) {
+      navigateTo('nodes', data.node.id, 'about');
+      info('Configure your new node');
+    } else {
       error('Failed to create node');
     }
-  };
+  } catch (e) {
+    error('Failed to create node');
+  }
 }
 
 // ============== SERVERS ==============
@@ -43278,7 +43223,7 @@ async function renderServersList(container, username) {
       el.onclick = () => navigateTo('servers', el.dataset.id);
     });
     
-    document.getElementById('create-server-btn').onclick = () => showCreateServerModal(username);
+    document.getElementById('create-server-btn').onclick = () => createNewServer();
     
   } catch (e) {
     container.innerHTML = `<div class="error">Failed to load servers</div>`;
@@ -43596,97 +43541,59 @@ function renderServerSubTab(server, username) {
   }
 }
 
-async function showCreateServerModal(username) {
-  const [usersRes, nodesRes, eggsRes] = await Promise.all([
-    api(`/api/admin/users?per_page=100`),
-    api(`/api/admin/nodes?per_page=100`),
-    api('/api/admin/eggs')
-  ]);
-  
-  const [usersData, nodesData, eggsData] = await Promise.all([
-    usersRes.json(),
-    nodesRes.json(),
-    eggsRes.json()
-  ]);
-  
-  const modal = document.createElement('div');
-  modal.className = 'modal active';
-  modal.innerHTML = `
-    <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
-    <div class="modal-content modal-large">
-      <div class="modal-header">
-        <h2>Create Server</h2>
-        <button class="modal-close" onclick="this.closest('.modal').remove()">
-          <span class="material-icons-outlined">close</span>
-        </button>
-      </div>
-      <form id="create-server-form" class="modal-form">
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label>Server Name</label>
-            <input type="text" name="name" required />
-          </div>
-          <div class="form-group">
-            <label>Owner</label>
-            <select name="user_id" required>
-              ${usersData.users.map(u => `<option value="${u.id}">${escapeHtml$4(u.username)}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Node</label>
-            <select name="node_id" required>
-              ${nodesData.nodes.map(n => `<option value="${n.id}">${escapeHtml$4(n.name)}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group full-width">
-            <label>Egg</label>
-            <select name="egg_id" required>
-              ${eggsData.eggs.map(e => `<option value="${e.id}">${escapeHtml$4(e.name)}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Memory (MB)</label>
-            <input type="number" name="memory" value="1024" required />
-          </div>
-          <div class="form-group">
-            <label>Disk (MB)</label>
-            <input type="number" name="disk" value="5120" required />
-          </div>
-          <div class="form-group">
-            <label>CPU Limit (%)</label>
-            <input type="number" name="cpu" value="100" required />
-          </div>
-          <div class="form-group">
-            <label>Allocation Port</label>
-            <input type="number" name="allocation_port" value="25565" />
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Create Server</button>
-        </div>
-      </form>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  
-  document.getElementById('create-server-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.target);
-    const server = Object.fromEntries(form);
+async function createNewServer() {
+  try {
+    const [usersRes, nodesRes, eggsRes] = await Promise.all([
+      api(`/api/admin/users?per_page=100`),
+      api(`/api/admin/nodes?per_page=100`),
+      api('/api/admin/eggs')
+    ]);
     
-    try {
-      await api('/api/admin/servers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ server })
-      });
-      modal.remove();
-      loadView();
-    } catch (e) {
-      error('Failed to create server');
+    const [usersData, nodesData, eggsData] = await Promise.all([
+      usersRes.json(),
+      nodesRes.json(),
+      eggsRes.json()
+    ]);
+    
+    if (!usersData.users?.length) {
+      error('No users available');
+      return;
     }
-  };
+    if (!nodesData.nodes?.length) {
+      error('No nodes available');
+      return;
+    }
+    if (!eggsData.eggs?.length) {
+      error('No eggs available');
+      return;
+    }
+    
+    const server = {
+      name: 'Untitled Server',
+      user_id: usersData.users[0].id,
+      node_id: nodesData.nodes[0].id,
+      egg_id: eggsData.eggs[0].id,
+      memory: 1024,
+      disk: 5120,
+      cpu: 100
+    };
+    
+    const res = await api('/api/admin/servers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ server })
+    });
+    
+    const data = await res.json();
+    if (data.server?.id) {
+      navigateTo('servers', data.server.id, 'details');
+      info('Configure your new server');
+    } else {
+      error(data.error || 'Failed to create server');
+    }
+  } catch (e) {
+    error('Failed to create server');
+  }
 }
 
 window.suspendServerAdmin = async function(serverId) {
@@ -44217,7 +44124,7 @@ async function renderNestsList(container, username) {
     
     const createEggBtn = document.getElementById('create-egg-btn');
     if (createEggBtn) {
-      createEggBtn.onclick = () => showQuickEggModal(username, nests);
+      createEggBtn.onclick = () => createNewEgg();
     }
     
     const importBtn = document.getElementById('import-egg-btn');
@@ -44382,10 +44289,49 @@ window.deleteNestAdmin = async function(nestId) {
 };
 
 window.addEggToNestAdmin = async function(nestId) {
-  const res = await api('/api/admin/nests');
-  const data = await res.json();
-  showEggModal(localStorage.getItem('username'), data.nests, nestId);
+  await createNewEgg(nestId);
 };
+
+async function createNewEgg(nestId = null) {
+  try {
+    const res = await api('/api/admin/nests');
+    const data = await res.json();
+    
+    if (!data.nests?.length) {
+      error('Create a nest first');
+      return;
+    }
+    
+    const targetNestId = nestId || data.nests[0].id;
+    
+    const egg = {
+      name: 'Untitled Egg',
+      nest_id: targetNestId,
+      description: '',
+      author: 'admin@sodium.local',
+      docker_images: { 'Default': 'ghcr.io/pterodactyl/yolks:java_17' },
+      docker_image: 'ghcr.io/pterodactyl/yolks:java_17',
+      startup: 'java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar',
+      config: { stop: 'stop' }
+    };
+    
+    const createRes = await api('/api/admin/eggs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ egg })
+    });
+    
+    const createData = await createRes.json();
+    if (createData.egg?.id) {
+      navigateTo('eggs', createData.egg.id, 'about');
+      info('Configure your new egg');
+    } else {
+      error(createData.error || 'Failed to create egg');
+    }
+  } catch (e) {
+    error('Failed to create egg');
+  }
+}
 
 window.editEggAdmin = function(eggId) {
   navigateTo('eggs', eggId);
