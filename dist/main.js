@@ -43466,28 +43466,46 @@ function renderServerSubTab(server, username) {
       break;
       
     case 'manage':
+      const isDraft = server.status === 'draft' || server.status === 'install_failed';
       content.innerHTML = `
         <div class="detail-card detail-card-wide">
           <h3>Server Management</h3>
           <div class="manage-actions">
-            <div class="manage-action">
-              <div class="manage-action-info">
-                <h4>Open Server</h4>
-                <p>Access the server console, files, and settings as an administrator.</p>
+            ${isDraft ? `
+              <div class="manage-action highlight">
+                <div class="manage-action-info">
+                  <h4>Install Server</h4>
+                  <p>${server.status === 'install_failed' 
+                    ? `Previous installation failed: ${escapeHtml$4(server.install_error || 'Unknown error')}. Fix the configuration and try again.` 
+                    : 'This server is configured but not yet installed. Click to install it on the node.'}</p>
+                </div>
+                <button class="btn btn-success" id="install-btn">
+                  <span class="material-icons-outlined">play_arrow</span>
+                  Install Now
+                </button>
               </div>
-              <a href="/server/${server.id}" class="btn btn-primary">
-                <span class="material-icons-outlined">open_in_new</span>
-                Open Server
-              </a>
-            </div>
+            ` : `
+              <div class="manage-action">
+                <div class="manage-action-info">
+                  <h4>Open Server</h4>
+                  <p>Access the server console, files, and settings as an administrator.</p>
+                </div>
+                <a href="/server/${server.id}" class="btn btn-primary">
+                  <span class="material-icons-outlined">open_in_new</span>
+                  Open Server
+                </a>
+              </div>
+            `}
             
-            <div class="manage-action">
-              <div class="manage-action-info">
-                <h4>Reinstall Server</h4>
-                <p>This will reinstall the server with the selected egg. All files will be deleted.</p>
+            ${!isDraft ? `
+              <div class="manage-action">
+                <div class="manage-action-info">
+                  <h4>Reinstall Server</h4>
+                  <p>This will reinstall the server with the selected egg. All files will be deleted.</p>
+                </div>
+                <button class="btn btn-warning" id="reinstall-btn">Reinstall</button>
               </div>
-              <button class="btn btn-warning" id="reinstall-btn">Reinstall</button>
-            </div>
+            ` : ''}
             
             <div class="manage-action">
               <div class="manage-action-info">
@@ -43510,19 +43528,52 @@ function renderServerSubTab(server, username) {
         </div>
       `;
       
-      document.getElementById('reinstall-btn').onclick = async () => {
-        if (!confirm('Are you sure? All server files will be deleted.')) return;
-        try {
-          await api(`/api/servers/${server.id}/reinstall`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-          });
-          success('Server reinstall initiated');
-        } catch (e) {
-          error('Failed to reinstall server');
-        }
-      };
+      if (isDraft) {
+        document.getElementById('install-btn').onclick = async () => {
+          const btn = document.getElementById('install-btn');
+          btn.disabled = true;
+          btn.innerHTML = '<span class="material-icons-outlined rotating">sync</span> Installing...';
+          
+          try {
+            const res = await api(`/api/admin/servers/${server.id}/install`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({})
+            });
+            
+            if (res.ok) {
+              success('Server installation started');
+              navigateTo('servers', server.id, 'manage');
+            } else {
+              const data = await res.json();
+              error(data.error || 'Installation failed');
+              btn.disabled = false;
+              btn.innerHTML = '<span class="material-icons-outlined">play_arrow</span> Install Now';
+            }
+          } catch (e) {
+            error('Failed to install server');
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-icons-outlined">play_arrow</span> Install Now';
+          }
+        };
+      }
+      
+      const reinstallBtn = document.getElementById('reinstall-btn');
+      if (reinstallBtn) {
+        reinstallBtn.onclick = async () => {
+          if (!confirm('Are you sure? All server files will be deleted.')) return;
+          try {
+            await api(`/api/servers/${server.id}/reinstall`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({})
+            });
+            success('Server reinstall initiated');
+          } catch (e) {
+            error('Failed to reinstall server');
+          }
+        };
+      }
       
       document.getElementById('suspend-btn').onclick = async () => {
         const action = server.suspended ? 'unsuspend' : 'suspend';
@@ -43673,13 +43724,13 @@ async function createNewServer() {
     const res = await api('/api/admin/servers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ server })
+      body: JSON.stringify({ server, skipInstall: true })
     });
     
     const data = await res.json();
     if (data.server?.id) {
       navigateTo('servers', data.server.id, 'details');
-      info('Configure your new server');
+      info('Configure your server, then click "Install" when ready');
     } else {
       error(data.error || 'Failed to create server');
     }

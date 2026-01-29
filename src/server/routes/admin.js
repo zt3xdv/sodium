@@ -420,7 +420,7 @@ router.get('/servers', (req, res) => {
 });
 
 router.post('/servers', async (req, res) => {
-  const { server } = req.body;
+  const { server, skipInstall } = req.body;
   
   const nodes = loadNodes();
   const node = nodes.nodes.find(n => n.id === server.node_id);
@@ -456,10 +456,17 @@ router.post('/servers', async (req, res) => {
     },
     environment: server.environment || {},
     allocation: { ip: server.allocation_ip || '0.0.0.0', port: parseInt(server.allocation_port) || 25565 },
-    status: 'installing',
+    status: skipInstall ? 'draft' : 'installing',
     suspended: false,
     created_at: new Date().toISOString()
   };
+  
+  // If skipInstall, just save as draft without installing on Wings
+  if (skipInstall) {
+    data.servers.push(newServer);
+    saveServers(data);
+    return res.json({ success: true, server: newServer });
+  }
   
   try {
     await wingsRequest(node, 'POST', '/api/servers', {
@@ -491,6 +498,66 @@ router.post('/servers', async (req, res) => {
   data.servers.push(newServer);
   saveServers(data);
   res.json({ success: true, server: newServer });
+});
+
+// Install a draft server
+router.post('/servers/:id/install', async (req, res) => {
+  const data = loadServers();
+  const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+  if (serverIdx === -1) return res.status(404).json({ error: 'Server not found' });
+  
+  const server = data.servers[serverIdx];
+  
+  if (server.status !== 'draft' && server.status !== 'install_failed') {
+    return res.status(400).json({ error: 'Server is already installed or installing' });
+  }
+  
+  const nodes = loadNodes();
+  const node = nodes.nodes.find(n => n.id === server.node_id);
+  if (!node) return res.status(400).json({ error: 'Node not found' });
+  
+  const eggs = loadEggs();
+  const egg = eggs.eggs.find(e => e.id === server.egg_id);
+  if (!egg) return res.status(400).json({ error: 'Egg not found. Please select a valid egg.' });
+  
+  // Update server with egg data if missing
+  if (!server.docker_image) server.docker_image = egg.docker_image;
+  if (!server.startup) server.startup = egg.startup;
+  
+  server.status = 'installing';
+  delete server.install_error;
+  saveServers(data);
+  
+  try {
+    await wingsRequest(node, 'POST', '/api/servers', {
+      uuid: server.uuid,
+      start_on_completion: false,
+      suspended: false,
+      environment: server.environment || {},
+      invocation: server.startup,
+      skip_egg_scripts: false,
+      build: {
+        memory_limit: server.limits?.memory || 1024,
+        swap: server.limits?.swap || 0,
+        io_weight: server.limits?.io || 500,
+        cpu_limit: server.limits?.cpu || 100,
+        disk_space: server.limits?.disk || 5120
+      },
+      container: { image: server.docker_image },
+      allocations: {
+        default: { ip: server.allocation?.ip || '0.0.0.0', port: server.allocation?.port || 25565 },
+        mappings: { [server.allocation?.ip || '0.0.0.0']: [server.allocation?.port || 25565] }
+      }
+    });
+    server.status = 'offline';
+    saveServers(data);
+    res.json({ success: true, server });
+  } catch (e) {
+    server.status = 'install_failed';
+    server.install_error = e.message;
+    saveServers(data);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 router.put('/servers/:id', (req, res) => {
