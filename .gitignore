@@ -1,11 +1,4 @@
-# Dependencies
 node_modules/
 package-lock.json
-
-# Data (contains sensitive user info, tokens, etc.)
 data/
-
-# Environment
 .env
-.env.local
-.env.*.local
