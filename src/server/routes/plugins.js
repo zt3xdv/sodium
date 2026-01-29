@@ -108,6 +108,90 @@ router.get('/hooks', authMiddleware, adminMiddleware, (req, res) => {
   res.json({ hooks });
 });
 
+router.get('/injection-points', authMiddleware, (req, res) => {
+  const points = {
+    'global': [
+      { id: 'inject-global-head', description: 'Inside <head> tag' },
+      { id: 'inject-global-body-start', description: 'Start of <body>' },
+      { id: 'inject-global-body-end', description: 'End of <body>' }
+    ],
+    'sidebar': [
+      { id: 'inject-sidebar-header-before', description: 'Before sidebar header' },
+      { id: 'inject-sidebar-header-after', description: 'After sidebar header' },
+      { id: 'inject-sidebar-nav-start', description: 'Start of nav list' },
+      { id: 'inject-sidebar-nav-end', description: 'End of nav list' },
+      { id: 'inject-sidebar-footer-before', description: 'Before sidebar footer' },
+      { id: 'inject-sidebar-footer-after', description: 'After sidebar footer' }
+    ],
+    'auth': [
+      { id: 'inject-auth-container-before', description: 'Before auth container' },
+      { id: 'inject-auth-header-before', description: 'Before auth header' },
+      { id: 'inject-auth-header-after', description: 'After auth header' },
+      { id: 'inject-auth-tabs-before', description: 'Before auth tabs' },
+      { id: 'inject-auth-tabs-after', description: 'After auth tabs' },
+      { id: 'inject-auth-login-before', description: 'Before login form' },
+      { id: 'inject-auth-login-fields-before', description: 'Before login fields' },
+      { id: 'inject-auth-login-fields-after', description: 'After login fields' },
+      { id: 'inject-auth-login-button-before', description: 'Before login button' },
+      { id: 'inject-auth-login-button-after', description: 'After login button' },
+      { id: 'inject-auth-login-providers', description: 'OAuth providers (Google, Discord, etc)' },
+      { id: 'inject-auth-login-after', description: 'After login form' },
+      { id: 'inject-auth-register-before', description: 'Before register form' },
+      { id: 'inject-auth-register-fields-before', description: 'Before register fields' },
+      { id: 'inject-auth-register-fields-after', description: 'After register fields' },
+      { id: 'inject-auth-register-button-before', description: 'Before register button' },
+      { id: 'inject-auth-register-button-after', description: 'After register button' },
+      { id: 'inject-auth-register-providers', description: 'OAuth providers for register' },
+      { id: 'inject-auth-register-after', description: 'After register form' },
+      { id: 'inject-auth-container-after', description: 'After auth container' }
+    ],
+    'dashboard': [
+      { id: 'inject-dashboard-before', description: 'Before dashboard' },
+      { id: 'inject-dashboard-header-before', description: 'Before dashboard header' },
+      { id: 'inject-dashboard-header-after', description: 'After dashboard header' },
+      { id: 'inject-dashboard-stats-before', description: 'Before stats cards' },
+      { id: 'inject-dashboard-stats-after', description: 'After stats cards' },
+      { id: 'inject-dashboard-servers-before', description: 'Before servers list' },
+      { id: 'inject-dashboard-servers-after', description: 'After servers list' },
+      { id: 'inject-dashboard-after', description: 'After dashboard' }
+    ],
+    'server': [
+      { id: 'inject-server-header-before', description: 'Before server header' },
+      { id: 'inject-server-header-info', description: 'Server header info' },
+      { id: 'inject-server-header-actions', description: 'Server action buttons' },
+      { id: 'inject-server-header-after', description: 'After server header' },
+      { id: 'inject-server-tabs-start', description: 'Start of tabs' },
+      { id: 'inject-server-tabs-end', description: 'End of tabs' },
+      { id: 'inject-server-console-before', description: 'Before console' },
+      { id: 'inject-server-console-actions', description: 'Console actions' },
+      { id: 'inject-server-console-after', description: 'After console' },
+      { id: 'inject-server-files-toolbar-actions', description: 'File toolbar actions' },
+      { id: 'inject-server-backups-actions', description: 'Backup actions' }
+    ],
+    'admin': [
+      { id: 'inject-admin-sidebar-items', description: 'Admin sidebar items' },
+      { id: 'inject-admin-content-before', description: 'Before admin content' },
+      { id: 'inject-admin-content-after', description: 'After admin content' },
+      { id: 'inject-admin-users-actions', description: 'User management actions' },
+      { id: 'inject-admin-servers-actions', description: 'Server management actions' },
+      { id: 'inject-admin-nodes-actions', description: 'Node management actions' }
+    ],
+    'profile': [
+      { id: 'inject-profile-header-after', description: 'After profile header' },
+      { id: 'inject-profile-info-after', description: 'After profile info' },
+      { id: 'inject-profile-security-after', description: 'After security section' }
+    ],
+    'modal': [
+      { id: 'inject-modal-header-after', description: 'After modal header' },
+      { id: 'inject-modal-body-before', description: 'Before modal body' },
+      { id: 'inject-modal-body-after', description: 'After modal body' },
+      { id: 'inject-modal-footer-before', description: 'Before modal footer' }
+    ]
+  };
+  
+  res.json({ points });
+});
+
 router.get('/assets', authMiddleware, (req, res) => {
   const user = req.user;
   const assets = pluginManager.getClientAssets();

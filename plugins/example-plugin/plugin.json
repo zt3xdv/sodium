@@ -2,7 +2,7 @@
   "id": "example-plugin",
   "name": "Example Plugin",
   "version": "1.0.0",
-  "description": "Example plugin demonstrating Sodium plugin API",
+  "description": "Example plugin demonstrating Sodium plugin API with injections",
   "author": "Sodium Team",
   "website": "https://github.com/example/plugin",
   "license": "MIT",
@@ -14,7 +14,8 @@
     "hooks",
     "ui",
     "websocket",
-    "storage"
+    "storage",
+    "injections"
   ],
   
   "sidebar": [
@@ -27,33 +28,31 @@
     }
   ],
   
-  "routes": [
+  "injections": [
     {
-      "method": "GET",
-      "path": "/api/example/info",
-      "handler": "handlers/info.js"
-    }
-  ],
-  
-  "hooks": [
-    {
-      "event": "server:ready",
-      "handler": "hooks/ready.js",
+      "target": "inject-auth-login-providers",
+      "file": "injections/oauth-buttons.html",
+      "position": "append",
       "priority": 10
+    },
+    {
+      "target": "inject-auth-register-providers",
+      "file": "injections/oauth-buttons.html",
+      "position": "append",
+      "priority": 10
+    },
+    {
+      "target": "inject-dashboard-header-after",
+      "html": "<div class='plugin-banner'><span class='material-icons-outlined'>celebration</span> Welcome to Sodium! This banner is injected by a plugin.</div>",
+      "priority": 5
     }
   ],
   
   "slots": {
     "auth:login:providers": [
       {
-        "html": "<button class=\"btn btn-oauth btn-google\" onclick=\"exampleGoogleLogin()\"><img src=\"/plugins/example-plugin/assets/google.svg\" alt=\"\"> Continue with Google</button>",
+        "html": "",
         "priority": 10
-      }
-    ],
-    "dashboard:header": [
-      {
-        "html": "<div class=\"plugin-banner\">Welcome from Example Plugin!</div>",
-        "priority": 5
       }
     ]
   },
@@ -79,17 +78,41 @@
   "settings": {
     "schema": [
       {
-        "key": "api_key",
+        "key": "google_client_id",
         "type": "string",
-        "label": "API Key",
-        "description": "Your API key for external service",
+        "label": "Google Client ID",
+        "description": "OAuth 2.0 Client ID from Google Cloud Console",
         "required": false
       },
       {
-        "key": "enabled",
+        "key": "google_enabled",
         "type": "boolean",
-        "label": "Enable Feature",
-        "default": true
+        "label": "Enable Google Login",
+        "default": false
+      },
+      {
+        "key": "discord_client_id",
+        "type": "string",
+        "label": "Discord Client ID",
+        "required": false
+      },
+      {
+        "key": "discord_enabled",
+        "type": "boolean",
+        "label": "Enable Discord Login",
+        "default": false
+      },
+      {
+        "key": "github_client_id",
+        "type": "string",
+        "label": "GitHub Client ID",
+        "required": false
+      },
+      {
+        "key": "github_enabled",
+        "type": "boolean",
+        "label": "Enable GitHub Login",
+        "default": false
       }
     ]
   }

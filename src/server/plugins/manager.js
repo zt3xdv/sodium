@@ -20,6 +20,7 @@ class PluginManager {
     this.components = new Map();
     this.slots = new Map();
     this.pages = new Map();
+    this.injections = [];
     this.app = null;
   }
 
@@ -127,6 +128,11 @@ class PluginManager {
     this.pages.set(path, page);
   }
 
+  registerInjection(injection) {
+    this.injections.push(injection);
+    this.injections.sort((a, b) => (a.priority || 100) - (b.priority || 100));
+  }
+
   getClientAssets() {
     return {
       styles: this.styles,
@@ -140,7 +146,8 @@ class PluginManager {
       pages: Array.from(this.pages.entries()).map(([path, page]) => ({
         path,
         ...page
-      }))
+      })),
+      injections: this.injections
     };
   }
 
@@ -300,6 +307,25 @@ class PluginManager {
         });
       }
     }
+
+    if (manifest.injections) {
+      for (const injection of manifest.injections) {
+        let html = injection.html || '';
+        if (injection.file) {
+          const filePath = path.join(pluginPath, injection.file);
+          if (fs.existsSync(filePath)) {
+            html = fs.readFileSync(filePath, 'utf-8');
+          }
+        }
+        this.registerInjection({
+          target: injection.target,
+          html,
+          position: injection.position || 'append',
+          priority: injection.priority || 100,
+          plugin: pluginId
+        });
+      }
+    }
   }
 
   async loadPluginFile(filePath) {
@@ -364,13 +390,21 @@ class PluginManager {
       sidebar: (item) => self.registerSidebarItem({ ...item, plugin: manifest.name }),
       
       ui: {
-        style: (css) => self.registerStyle({ css, plugin: manifest.name }),
-        styleUrl: (url) => self.registerStyle({ url, plugin: manifest.name }),
-        script: (code) => self.registerScript({ code, plugin: manifest.name }),
-        scriptUrl: (url) => self.registerScript({ url, plugin: manifest.name }),
-        component: (name, config) => self.registerComponent(name, { ...config, plugin: manifest.name }),
-        slot: (slotName, content) => self.registerSlot(slotName, { ...content, plugin: manifest.name }),
-        page: (path, config) => self.registerPage(path, { ...config, plugin: manifest.name })
+        style: (css) => self.registerStyle({ css, plugin: pluginId }),
+        styleUrl: (url) => self.registerStyle({ url, plugin: pluginId }),
+        script: (code) => self.registerScript({ code, plugin: pluginId }),
+        scriptUrl: (url) => self.registerScript({ url, plugin: pluginId }),
+        component: (name, config) => self.registerComponent(name, { ...config, plugin: pluginId }),
+        slot: (slotName, content) => self.registerSlot(slotName, { ...content, plugin: pluginId }),
+        page: (path, config) => self.registerPage(path, { ...config, plugin: pluginId }),
+        inject: (target, content, position = 'append', priority = 100) => self.registerInjection({
+          target,
+          html: typeof content === 'string' ? content : null,
+          render: typeof content === 'function' ? content.toString() : null,
+          position,
+          priority,
+          plugin: pluginId
+        })
       },
       
       override: (target, replacement) => self.override(target, replacement),
