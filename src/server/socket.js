@@ -116,7 +116,9 @@ export function setupWebSocket(server) {
           if (hookResult.message) {
             message = JSON.stringify(hookResult.message);
           }
-        } catch {}
+        } catch {
+          // Plugin hook failed, continue with original message
+        }
         
         clientWs.send(message);
       }

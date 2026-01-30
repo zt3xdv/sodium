@@ -110,6 +110,7 @@ async function loadLimits() {
       </div>
     `;
   } catch (e) {
+    console.error('Failed to load limits:', e);
     container.innerHTML = `<div class="error-state">Failed to load resources</div>`;
   }
 }
@@ -145,6 +146,7 @@ async function loadServers() {
       </a>
     `).join('');
   } catch (e) {
+    console.error('Failed to load servers:', e);
     container.innerHTML = `<div class="error-state">Failed to load servers</div>`;
   }
 }
@@ -193,6 +195,7 @@ async function loadAnnouncements() {
       if (banner) banner.remove();
     };
   } catch (e) {
+    console.error('Failed to load announcements:', e);
     container.innerHTML = '';
   }
 }

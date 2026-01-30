@@ -1,6 +1,7 @@
 import { api } from '../../utils/api.js';
 import { PERMISSIONS, PERMISSION_GROUPS } from '../../utils/permissions.js';
 import * as toast from '../../utils/toast.js';
+import { escapeHtml } from '../../utils/security.js';
 
 let currentServerId = null;
 let subusers = [];
@@ -273,12 +274,6 @@ async function deleteSubuser(id) {
   } catch (e) {
     toast.error('Failed to remove subuser');
   }
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text || '';
-  return div.innerHTML;
 }
 
 export function cleanupUsersTab() {

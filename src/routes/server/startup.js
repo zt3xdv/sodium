@@ -1,5 +1,6 @@
 import { api } from '../../utils/api.js';
 import * as toast from '../../utils/toast.js';
+import { escapeHtml } from '../../utils/security.js';
 
 let currentServerId = null;
 let serverData = null;
@@ -455,13 +456,6 @@ async function resetToDefaults() {
   const env = getEnvironmentFromForm();
   document.getElementById('startup-preview').textContent = 
     parseStartupCommand(eggData.startup || '', env);
-}
-
-function escapeHtml(text) {
-  if (typeof text !== 'string') return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }
 
 export function cleanupStartupTab() {

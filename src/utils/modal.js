@@ -1,3 +1,5 @@
+import { escapeHtml } from './security.js';
+
 export function confirm(message, options = {}) {
   return new Promise((resolve) => {
     const { title = 'Confirm', confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = options;
@@ -8,10 +10,10 @@ export function confirm(message, options = {}) {
       <div class="modal-backdrop"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h3>${title}</h3>
+          <h3>${escapeHtml(title)}</h3>
         </div>
         <div class="modal-body">
-          <p>${message}</p>
+          <p>${escapeHtml(message)}</p>
         </div>
         <div class="modal-actions">
           <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
@@ -58,11 +60,11 @@ export function prompt(message, options = {}) {
       <div class="modal-backdrop"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h3>${title}</h3>
+          <h3>${escapeHtml(title)}</h3>
         </div>
         <div class="modal-body">
-          <p>${message}</p>
-          <input type="text" class="input" id="modal-input" placeholder="${placeholder}" value="${defaultValue}">
+          <p>${escapeHtml(message)}</p>
+          <input type="text" class="input" id="modal-input" placeholder="${escapeHtml(placeholder)}" value="${escapeHtml(defaultValue)}">
         </div>
         <div class="modal-actions">
           <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
@@ -111,10 +113,10 @@ export function alert(message, options = {}) {
       <div class="modal-backdrop"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h3>${title}</h3>
+          <h3>${escapeHtml(title)}</h3>
         </div>
         <div class="modal-body">
-          <p>${message}</p>
+          <p>${escapeHtml(message)}</p>
         </div>
         <div class="modal-actions">
           <button class="btn btn-primary" id="modal-confirm">${confirmText}</button>

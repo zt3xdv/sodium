@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { loadUsers, loadConfig } from '../db.js';
+import { loadConfig } from '../db.js';
 
 export function sanitizeText(str) {
   if (typeof str !== 'string') return '';
@@ -23,6 +23,7 @@ export function sanitizeUrl(url) {
     if (parsed.hostname.includes('<') || parsed.hostname.includes('>')) return '';
     return parsed.href;
   } catch {
+    // Invalid URL format
     return '';
   }
 }
@@ -42,12 +43,6 @@ export function sanitizeLinks(links) {
     }
   }
   return sanitized;
-}
-
-export function isAdmin(username) {
-  const data = loadUsers();
-  const user = data.users.find(u => u.username.toLowerCase() === username.toLowerCase());
-  return user && user.isAdmin === true;
 }
 
 export function generateUUID() {

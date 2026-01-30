@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { DATA_DIR, CONFIG_FILE, DEFAULT_CONFIG } from './config.js';
+import logger from './utils/logger.js';
 
 const DB_FILE = path.join(DATA_DIR, 'sodium.db');
 const MAGIC = Buffer.from('SODIUM01');
@@ -153,7 +154,8 @@ async function loadFromExternalDb() {
         const data = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
         return { id: r.id, ...data };
       });
-    } catch {
+    } catch (err) {
+      logger.warn(`Failed to load table ${table}: ${err.message}`);
       cache[table] = [];
     }
   }
@@ -271,7 +273,9 @@ function loadDatabase() {
       offset += len;
       try {
         cache[name].push(JSON.parse(json));
-      } catch {}
+      } catch (err) {
+        logger.warn(`Failed to parse record in ${name}: ${err.message}`);
+      }
     }
   }
   
@@ -297,7 +301,8 @@ function migrateFromJson() {
         const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
         cache[name] = data[name] || [];
         fs.unlinkSync(filePath);
-      } catch {
+      } catch (err) {
+        logger.warn(`Failed to migrate ${file}: ${err.message}`);
         cache[name] = [];
       }
     }
@@ -320,75 +325,48 @@ export async function waitForDb() {
   await dbReadyPromise;
 }
 
-export function loadUsers() { return { users: cache.users }; }
-export function saveUsers(data) { 
-  cache.users = data.users || []; 
-  if (dbConnection) syncCollectionToExternalDb('users');
-  else saveDatabase(); 
+function createCollectionAccessors(name) {
+  return {
+    load: () => ({ [name]: cache[name] }),
+    save: (data) => {
+      cache[name] = data[name] || [];
+      if (dbConnection) syncCollectionToExternalDb(name);
+      else saveDatabase();
+    }
+  };
 }
 
-export function loadNodes() { return { nodes: cache.nodes }; }
-export function saveNodes(data) { 
-  cache.nodes = data.nodes || []; 
-  if (dbConnection) syncCollectionToExternalDb('nodes');
-  else saveDatabase(); 
-}
+const usersAccessors = createCollectionAccessors('users');
+const nodesAccessors = createCollectionAccessors('nodes');
+const serversAccessors = createCollectionAccessors('servers');
+const nestsAccessors = createCollectionAccessors('nests');
+const eggsAccessors = createCollectionAccessors('eggs');
+const locationsAccessors = createCollectionAccessors('locations');
+const apiKeysAccessors = createCollectionAccessors('apiKeys');
+const announcementsAccessors = createCollectionAccessors('announcements');
+const auditLogsAccessors = createCollectionAccessors('auditLogs');
+const activityLogsAccessors = createCollectionAccessors('activityLogs');
 
-export function loadServers() { return { servers: cache.servers }; }
-export function saveServers(data) { 
-  cache.servers = data.servers || []; 
-  if (dbConnection) syncCollectionToExternalDb('servers');
-  else saveDatabase(); 
-}
-
-export function loadNests() { return { nests: cache.nests }; }
-export function saveNests(data) { 
-  cache.nests = data.nests || []; 
-  if (dbConnection) syncCollectionToExternalDb('nests');
-  else saveDatabase(); 
-}
-
-export function loadEggs() { return { eggs: cache.eggs }; }
-export function saveEggs(data) { 
-  cache.eggs = data.eggs || []; 
-  if (dbConnection) syncCollectionToExternalDb('eggs');
-  else saveDatabase(); 
-}
-
-export function loadLocations() { return { locations: cache.locations }; }
-export function saveLocations(data) { 
-  cache.locations = data.locations || []; 
-  if (dbConnection) syncCollectionToExternalDb('locations');
-  else saveDatabase(); 
-}
-
-export function loadApiKeys() { return { apiKeys: cache.apiKeys }; }
-export function saveApiKeys(data) { 
-  cache.apiKeys = data.apiKeys || []; 
-  if (dbConnection) syncCollectionToExternalDb('apiKeys');
-  else saveDatabase(); 
-}
-
-export function loadAnnouncements() { return { announcements: cache.announcements }; }
-export function saveAnnouncements(data) { 
-  cache.announcements = data.announcements || []; 
-  if (dbConnection) syncCollectionToExternalDb('announcements');
-  else saveDatabase(); 
-}
-
-export function loadAuditLogs() { return { auditLogs: cache.auditLogs }; }
-export function saveAuditLogs(data) { 
-  cache.auditLogs = data.auditLogs || []; 
-  if (dbConnection) syncCollectionToExternalDb('auditLogs');
-  else saveDatabase(); 
-}
-
-export function loadActivityLogs() { return { activityLogs: cache.activityLogs }; }
-export function saveActivityLogs(data) { 
-  cache.activityLogs = data.activityLogs || []; 
-  if (dbConnection) syncCollectionToExternalDb('activityLogs');
-  else saveDatabase(); 
-}
+export const loadUsers = usersAccessors.load;
+export const saveUsers = usersAccessors.save;
+export const loadNodes = nodesAccessors.load;
+export const saveNodes = nodesAccessors.save;
+export const loadServers = serversAccessors.load;
+export const saveServers = serversAccessors.save;
+export const loadNests = nestsAccessors.load;
+export const saveNests = nestsAccessors.save;
+export const loadEggs = eggsAccessors.load;
+export const saveEggs = eggsAccessors.save;
+export const loadLocations = locationsAccessors.load;
+export const saveLocations = locationsAccessors.save;
+export const loadApiKeys = apiKeysAccessors.load;
+export const saveApiKeys = apiKeysAccessors.save;
+export const loadAnnouncements = announcementsAccessors.load;
+export const saveAnnouncements = announcementsAccessors.save;
+export const loadAuditLogs = auditLogsAccessors.load;
+export const saveAuditLogs = auditLogsAccessors.save;
+export const loadActivityLogs = activityLogsAccessors.load;
+export const saveActivityLogs = activityLogsAccessors.save;
 
 export function loadConfig() {
   try {
@@ -400,6 +378,7 @@ export function loadConfig() {
       features: { ...DEFAULT_CONFIG.features, ...config.features }
     };
   } catch {
+    // Config file missing or corrupted, recreate with defaults
     saveConfig(DEFAULT_CONFIG);
     return DEFAULT_CONFIG;
   }

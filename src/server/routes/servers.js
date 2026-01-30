@@ -913,7 +913,6 @@ router.post('/:id/allocations', authenticateUser, async (req, res) => {
 });
 
 router.put('/:id/allocations/:allocId/primary', authenticateUser, async (req, res) => {
-  const user = req.user;
   const result = await getServerAndNode(req.params.id, req.user);
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
@@ -945,7 +944,6 @@ router.put('/:id/allocations/:allocId/primary', authenticateUser, async (req, re
 });
 
 router.delete('/:id/allocations/:allocId', authenticateUser, async (req, res) => {
-  const user = req.user;
   const result = await getServerAndNode(req.params.id, req.user);
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;

@@ -1,5 +1,6 @@
 import { api } from '../../utils/api.js';
 import * as toast from '../../utils/toast.js';
+import { escapeHtml } from '../../utils/security.js';
 
 let currentServerId = null;
 let serverData = null;
@@ -269,8 +270,6 @@ function confirmReinstall() {
 }
 
 async function reinstallServer() {
-  const username = localStorage.getItem('username');
-  
   try {
     const res = await api(`/api/servers/${currentServerId}/reinstall`, {
       method: 'POST',
@@ -345,8 +344,6 @@ function confirmDelete() {
 }
 
 async function deleteServer() {
-  const username = localStorage.getItem('username');
-  
   try {
     const res = await api(`/api/servers/${currentServerId}`, {
       method: 'DELETE',
@@ -378,13 +375,6 @@ function formatDate(dateStr) {
     hour: '2-digit',
     minute: '2-digit'
   });
-}
-
-function escapeHtml(text) {
-  if (typeof text !== 'string') return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }
 
 export function cleanupSettingsTab() {

@@ -182,4 +182,6 @@ export async function loadView() {
   }
 }
 
-export function cleanupAdmin() {}
+export function cleanupAdmin() {
+  // Reset admin view state when leaving
+}

@@ -1,9 +1,7 @@
-import { api } from '../../utils/api.js';
+import { api, getToken } from '../../utils/api.js';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
-
-import { getToken } from '../../utils/api.js';
 
 let consoleSocket = null;
 let terminal = null;
@@ -175,6 +173,7 @@ async function connectWebSocket(serverId) {
   consoleSocket = new WebSocket(wsUrl);
   
   consoleSocket.onopen = () => {
+    // Connection established, auth handled by server
   };
   
   consoleSocket.onmessage = (event) => {
@@ -326,7 +325,6 @@ async function sendCommand(serverId) {
       args: [command]
     }));
   } else {
-    const username = localStorage.getItem('username');
     try {
       const res = await api(`/api/servers/${serverId}/command`, {
         method: 'POST',

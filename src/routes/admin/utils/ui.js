@@ -1,13 +1,8 @@
 import { escapeHtml } from '../../../utils/security.js';
+import { formatBytes } from '../../../utils/format.js';
 import { state } from '../state.js';
 
-export function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
+export { formatBytes };
 
 export function jsonToYaml(obj, indent = 0) {
   let yaml = '';

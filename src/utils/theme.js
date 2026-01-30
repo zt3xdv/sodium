@@ -1,4 +1,4 @@
-const THEMES = ['dark', 'light', 'amoled', 'ocean', 'rose'];
+const THEMES = ['dark', 'light', 'amoled'];
 const STORAGE_KEY = 'sodium-theme';
 
 export function getTheme() {

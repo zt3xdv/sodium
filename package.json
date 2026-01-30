@@ -38,6 +38,7 @@
     "bcryptjs": "^3.0.2",
     "codemirror": "^6.0.2",
     "express": "^5.1.0",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "tar": "^7.5.7",
     "ws": "^8.18.3"

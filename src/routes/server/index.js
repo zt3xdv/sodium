@@ -1,4 +1,5 @@
 import { api } from '../../utils/api.js';
+import { formatBytes } from '../../utils/format.js';
 import { renderConsoleTab, initConsoleTab, cleanupConsoleTab, setConsoleCallbacks } from './console.js';
 import { renderFilesTab, initFilesTab, cleanupFilesTab } from './files.js';
 import { renderStartupTab, initStartupTab, cleanupStartupTab } from './startup.js';
@@ -448,14 +449,6 @@ function updateSparkline(svgId, data) {
   }).join(' ');
   
   polyline.setAttribute('points', points);
-}
-
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 export function cleanupServerPage() {

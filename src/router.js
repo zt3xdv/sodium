@@ -1,7 +1,6 @@
 import { routes, getUserRoute, getServerRoute } from './routes/routes.js';
 import { renderNav } from './components/nav.js';
 import { renderSidebar } from './components/sidebar.js';
-import { escapeHtml } from './utils/security.js';
 
 let mounted = false;
 let currentCleanup = null;
@@ -106,7 +105,7 @@ export function router() {
     route = routes['/404'];
   }
   
-  const isAuthenticated = !!localStorage.getItem('loggedIn');
+  const isAuthenticated = !!localStorage.getItem('auth_token');
   
   if (route.redirect) {
     window.history.replaceState({}, '', route.redirect);

@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import helmet from 'helmet';
 import logger from './utils/logger.js';
 
 // Rutas
@@ -24,6 +25,14 @@ const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 3000;
 
+// Security middleware
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+
 app.use(express.json({ strict: false }));
 app.use(express.text({ type: 'application/json' }));
 
@@ -36,6 +45,7 @@ app.use((req, res, next) => {
     try {
       req.body = JSON.parse(req.body);
     } catch {
+      // Invalid JSON body, use empty object
       req.body = {};
     }
   }

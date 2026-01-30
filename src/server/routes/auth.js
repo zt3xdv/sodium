@@ -111,27 +111,4 @@ router.post('/login', authLimiter, async (req, res) => {
   res.json({ success: true, user: userWithoutPassword, token });
 });
 
-router.get('/me', async (req, res) => {
-  const { username, password } = req.query;
-  
-  if (!username || !password) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-  
-  const data = loadUsers();
-  const user = data.users.find(u => u.username.toLowerCase() === username.toLowerCase());
-  
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-  
-  const isValidPassword = await bcrypt.compare(password, user.password);
-  if (!isValidPassword) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-  
-  const { password: _, ...userWithoutPassword } = user;
-  res.json({ user: userWithoutPassword });
-});
-
 export default router;

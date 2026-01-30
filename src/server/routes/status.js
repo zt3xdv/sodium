@@ -1,5 +1,5 @@
 import express from 'express';
-import { loadNodes, loadLocations, loadServers } from '../db.js';
+import { loadNodes, loadLocations, loadServers, loadUsers } from '../db.js';
 import { wingsRequest } from '../utils/helpers.js';
 import { getNodeAvailableResources } from '../utils/node-resources.js';
 
@@ -15,7 +15,9 @@ router.get('/status/nodes', async (req, res) => {
       const info = await wingsRequest(node, 'GET', '/api/system');
       status = 'online';
       stats = info;
-    } catch {}
+    } catch {
+      // Node offline, use default values
+    }
     
     const servers = loadServers();
     const nodeServers = servers.servers.filter(s => s.node_id === node.id);
@@ -69,9 +71,6 @@ router.get('/nodes/available', (req, res) => {
   res.json({ nodes: availableNodes });
 });
 
-// Nota: Esta ruta estaba en el código original bajo /api/nodes/:id/ports, 
-// lo cual es un poco ambiguo si es admin o no, pero requiere username, así que la mantengo aquí.
-import { loadUsers } from '../db.js';
 router.get('/nodes/:id/ports', (req, res) => {
   const { username } = req.query;
   if (!username) return res.status(400).json({ error: 'Username required' });

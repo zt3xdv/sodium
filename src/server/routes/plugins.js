@@ -33,7 +33,9 @@ router.get('/available', authenticateUser, requireAdmin, (req, res) => {
       if (fs.existsSync(manifestPath)) {
         try {
           manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-        } catch {}
+        } catch {
+          // Invalid manifest, use defaults
+        }
       }
     } else if (entry.name.endsWith('.js')) {
       manifest.name = entry.name.replace('.js', '');

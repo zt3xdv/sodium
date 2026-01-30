@@ -617,7 +617,11 @@ router.delete('/servers/:id', async (req, res) => {
   const node = nodes.nodes.find(n => n.id === server.node_id);
   
   if (node) {
-    try { await wingsRequest(node, 'DELETE', `/api/servers/${server.uuid}`); } catch {}
+    try {
+      await wingsRequest(node, 'DELETE', `/api/servers/${server.uuid}`);
+    } catch {
+      // Ignore Wings errors during deletion
+    }
   }
   
   data.servers = data.servers.filter(s => s.id !== req.params.id);

@@ -16,6 +16,7 @@ export function escapeUrl(url) {
     if (!['http:', 'https:'].includes(parsed.protocol)) return '';
     return parsed.href;
   } catch {
+    // Invalid URL format
     return '';
   }
 }
@@ -31,6 +32,7 @@ export function isValidUrl(url) {
     const parsed = new URL(url.trim());
     return parsed.protocol === 'https:';
   } catch {
+    // Invalid URL format
     return false;
   }
 }

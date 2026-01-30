@@ -13,6 +13,7 @@ export function getUser() {
   try {
     return JSON.parse(localStorage.getItem(USER_KEY) || 'null');
   } catch {
+    // Invalid JSON in localStorage
     return null;
   }
 }
@@ -26,7 +27,6 @@ export function clearAuth() {
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem('loggedIn');
   localStorage.removeItem('username');
-  localStorage.removeItem('password');
 }
 
 export function isLoggedIn() {

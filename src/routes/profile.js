@@ -209,6 +209,7 @@ function validateUrls(urls) {
       const parsed = new URL(url);
       if (parsed.protocol !== 'https:') return false;
     } catch {
+      // Invalid URL format
       return false;
     }
   }

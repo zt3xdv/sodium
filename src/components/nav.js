@@ -1,11 +1,12 @@
 import { clearAuth } from '../utils/api.js';
+import { escapeHtml } from '../utils/security.js';
 
 export function renderNav() {
   const nav = document.createElement('nav');
   nav.id = 'navbar';
   nav.className = 'navbar';
   
-  const displayName = localStorage.getItem('displayName') || localStorage.getItem('username') || 'User';
+  const displayName = escapeHtml(localStorage.getItem('displayName') || localStorage.getItem('username') || 'User');
   const isLoggedIn = !!localStorage.getItem('loggedIn');
   
   nav.innerHTML = `

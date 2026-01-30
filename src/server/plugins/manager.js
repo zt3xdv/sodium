@@ -466,6 +466,7 @@ class PluginManager {
       const data = JSON.parse(fs.readFileSync(storagePath, 'utf-8'));
       return key ? data[key] : data;
     } catch {
+      // Corrupted storage file
       return undefined;
     }
   }
@@ -482,7 +483,9 @@ class PluginManager {
     if (fs.existsSync(storagePath)) {
       try {
         data = JSON.parse(fs.readFileSync(storagePath, 'utf-8'));
-      } catch {}
+      } catch {
+        // Corrupted storage file, start fresh
+      }
     }
     
     data[key] = value;
@@ -498,7 +501,9 @@ class PluginManager {
       const data = JSON.parse(fs.readFileSync(storagePath, 'utf-8'));
       delete data[key];
       fs.writeFileSync(storagePath, JSON.stringify(data, null, 2));
-    } catch {}
+    } catch {
+      // Storage file corrupted or inaccessible
+    }
   }
 
   applyRoutes(app) {

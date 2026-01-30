@@ -1,3 +1,5 @@
+import { escapeHtml } from './security.js';
+
 let container = null;
 
 function ensureContainer() {
@@ -62,10 +64,4 @@ export function warning(message, duration) {
 
 export function info(message, duration) {
   return toast(message, 'info', duration);
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text || '';
-  return div.innerHTML;
 }

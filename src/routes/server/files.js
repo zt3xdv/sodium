@@ -2,6 +2,7 @@ import { api, getToken } from '../../utils/api.js';
 import * as toast from '../../utils/toast.js';
 import { createEditor } from '../../utils/editor.js';
 import * as modal from '../../utils/modal.js';
+import { formatBytes } from '../../utils/format.js';
 
 let currentPath = '/';
 let currentServerId = null;
@@ -549,14 +550,6 @@ function renderFilesList(files, serverId) {
   });
 }
 
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
 function formatDate(dateStr) {
   if (!dateStr) return '--';
   const date = new Date(dateStr);
@@ -567,7 +560,6 @@ async function createNewFolder(serverId) {
   const name = await modal.prompt('Enter folder name:', { title: 'New Folder', placeholder: 'folder-name' });
   if (!name) return;
   
-  const username = localStorage.getItem('username');
   const path = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
   
   try {
@@ -592,7 +584,6 @@ async function createNewFile(serverId) {
   const name = await modal.prompt('Enter file name:', { title: 'New File', placeholder: 'file.txt' });
   if (!name) return;
   
-  const username = localStorage.getItem('username');
   const path = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
   
   try {

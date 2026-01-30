@@ -1,5 +1,5 @@
 import { renderAuth } from './auth.js';
-import { renderDashboard } from './dashboard.js';
+import { renderDashboard, cleanupDashboard } from './dashboard.js';
 import { renderProfile } from './profile.js';
 import { renderSettings } from './settings.js';
 import { renderNotFound } from './notfound.js';
@@ -24,6 +24,7 @@ export const routes = {
   },
   '/dashboard': {
     render: renderDashboard,
+    cleanup: cleanupDashboard,
     options: {
       title: 'Dashboard',
       auth: true,
