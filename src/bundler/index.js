@@ -8,6 +8,7 @@ import { terser } from 'rollup-plugin-terser';
 import postcss from 'rollup-plugin-postcss';
 import autoprefixer from 'autoprefixer';
 import htmlPlugin from './html-plugin.js';
+import pluginsPlugin from './plugins-plugin.js';
 import logger from '../server/utils/logger.js';
 import path from 'path';
 import fs from 'fs';
@@ -92,7 +93,8 @@ function getPlugins() {
     htmlPlugin({
       template: 'src/templates/index.html',
       filename: 'index.html'
-    })
+    }),
+    pluginsPlugin({ outDir })
   ];
   
   if (!config.watch) {

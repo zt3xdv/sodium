@@ -1,0 +1,129 @@
+/* OAuth Providers */
+.oauth-providers {
+  margin-top: 1rem;
+}
+
+.oauth-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-oauth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  background: var(--bg-secondary, #1a1a2e);
+  color: var(--text-primary, #fff);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-oauth:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-oauth svg {
+  flex-shrink: 0;
+}
+
+.btn-google {
+  background: #fff;
+  color: #333;
+  border-color: #ddd;
+}
+
+.btn-google:hover {
+  background: #f8f9fa;
+  border-color: #4285f4;
+}
+
+.btn-discord {
+  background: #5865F2;
+  color: #fff;
+  border-color: #5865F2;
+}
+
+.btn-discord:hover {
+  background: #4752c4;
+  border-color: #4752c4;
+}
+
+.btn-github {
+  background: #24292e;
+  color: #fff;
+  border-color: #24292e;
+}
+
+.btn-github:hover {
+  background: #1b1f23;
+  border-color: #1b1f23;
+}
+
+/* Auth Divider */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.25rem 0 1rem;
+  color: var(--text-muted, #666);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color, #333);
+}
+
+.auth-divider span {
+  padding: 0 1rem;
+}
+
+/* Plugin Banner */
+.plugin-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, var(--primary, #6366f1) 0%, #8b5cf6 100%);
+  color: #fff;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.plugin-banner .material-icons-outlined {
+  font-size: 1.25rem;
+}
+
+/* Injection Slots - Hidden when empty */
+.injection-slot:empty {
+  display: none;
+}
+
+.auth-providers:empty {
+  display: none;
+}
+
+/* Responsive OAuth buttons */
+@media (max-width: 480px) {
+  .oauth-buttons {
+    flex-direction: column;
+  }
+  
+  .btn-oauth span {
+    display: inline;
+  }
+}

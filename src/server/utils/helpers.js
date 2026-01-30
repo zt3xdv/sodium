@@ -1,6 +1,10 @@
 import crypto from 'crypto';
 import { loadConfig } from '../db.js';
 
+export function isAdmin(user) {
+  return user && user.role === 'admin';
+}
+
 export function sanitizeText(str) {
   if (typeof str !== 'string') return '';
   return str
