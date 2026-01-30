@@ -42906,9 +42906,46 @@ function cleanupStatus() {
   }
 }
 
-let currentView = { type: 'list', tab: 'nodes', id: null, subTab: null };
-let currentPage = { nodes: 1, servers: 1, users: 1 };
-let itemsPerPage = { nodes: 10, servers: 10, users: 10 };
+const state = {
+  currentView: { type: 'list', tab: 'nodes', id: null, subTab: null },
+  currentPage: { nodes: 1, servers: 1, users: 1 },
+  itemsPerPage: { nodes: 10, servers: 10, users: 10 }
+};
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function jsonToYaml(obj, indent = 0) {
+  let yaml = '';
+  const spaces = '  '.repeat(indent);
+  
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === null || value === undefined) {
+      yaml += `${spaces}${key}: null\n`;
+    } else if (typeof value === 'object' && !Array.isArray(value)) {
+      yaml += `${spaces}${key}:\n${jsonToYaml(value, indent + 1)}`;
+    } else if (Array.isArray(value)) {
+      yaml += `${spaces}${key}:\n`;
+      value.forEach(item => {
+        if (typeof item === 'object') {
+          yaml += `${spaces}  -\n${jsonToYaml(item, indent + 2)}`;
+        } else {
+          yaml += `${spaces}  - ${item}\n`;
+        }
+      });
+    } else if (typeof value === 'string') {
+      yaml += `${spaces}${key}: "${value}"\n`;
+    } else {
+      yaml += `${spaces}${key}: ${value}\n`;
+    }
+  }
+  return yaml;
+}
 
 function renderPagination(meta, tab) {
   if (!meta || meta.total === 0) return '';
@@ -42966,30 +43003,30 @@ function renderPagination(meta, tab) {
   `;
 }
 
-function setupPaginationListeners(tab) {
+function setupPaginationListeners(tab, loadViewCallback) {
   document.querySelectorAll('.pagination .page-btn').forEach(btn => {
     btn.onclick = () => {
       const page = parseInt(btn.dataset.page);
       if (page >= 1) {
-        currentPage[tab] = page;
-        loadView();
+        state.currentPage[tab] = page;
+        loadViewCallback();
       }
     };
   });
   
   document.querySelectorAll('.pagination .page-num').forEach(btn => {
     btn.onclick = () => {
-      currentPage[tab] = parseInt(btn.dataset.page);
-      loadView();
+      state.currentPage[tab] = parseInt(btn.dataset.page);
+      loadViewCallback();
     };
   });
   
   const perPageSelect = document.querySelector('.per-page-select');
   if (perPageSelect) {
     perPageSelect.onchange = (e) => {
-      itemsPerPage[tab] = parseInt(e.target.value);
-      currentPage[tab] = 1;
-      loadView();
+      state.itemsPerPage[tab] = parseInt(e.target.value);
+      state.currentPage[tab] = 1;
+      loadViewCallback();
     };
   }
   
@@ -43001,8 +43038,8 @@ function setupPaginationListeners(tab) {
         const max = parseInt(gotoInput.max);
         if (page < 1) page = 1;
         if (page > max) page = max;
-        currentPage[tab] = page;
-        loadView();
+        state.currentPage[tab] = page;
+        loadViewCallback();
       }
     };
   }
@@ -43019,191 +43056,25 @@ function renderBreadcrumb(items) {
   `;
 }
 
-function setupBreadcrumbListeners() {
+function setupBreadcrumbListeners(navigateToCallback) {
   document.querySelectorAll('.breadcrumb-item[data-action]').forEach(el => {
     el.onclick = (e) => {
       e.preventDefault();
       const action = el.dataset.action;
-      if (action === 'list-nodes') navigateTo('nodes');
-      else if (action === 'list-servers') navigateTo('servers');
-      else if (action === 'list-users') navigateTo('users');
-      else if (action === 'list-nests') navigateTo('nests');
-      else if (action === 'list-locations') navigateTo('locations');
+      if (action === 'list-nodes') navigateToCallback('nodes');
+      else if (action === 'list-servers') navigateToCallback('servers');
+      else if (action === 'list-users') navigateToCallback('users');
+      else if (action === 'list-nests') navigateToCallback('nests');
+      else if (action === 'list-locations') navigateToCallback('locations');
     };
   });
 }
 
-function navigateTo(tab, id = null, subTab = null) {
-  currentView = { type: id ? 'detail' : 'list', tab, id, subTab: subTab || getDefaultSubTab(tab) };
-  loadView();
-}
+const navigateTo$8 = (...args) => window.adminNavigate(...args);
 
-function getDefaultSubTab(tab) {
-  switch (tab) {
-    case 'nodes': return 'about';
-    case 'servers': return 'details';
-    case 'users': return 'overview';
-    case 'eggs': return 'about';
-    default: return null;
-  }
-}
-
-window.adminNavigate = navigateTo;
-
-async function renderAdmin() {
-  const app = document.getElementById('app');
-  const user = getUser();
-  
-  app.innerHTML = '<div class="loading-spinner"></div>';
-  
+async function renderNodesList(container, username, loadView) {
   try {
-    if (!user?.isAdmin) {
-      app.innerHTML = `
-        <div class="error-page">
-          <h1>403</h1>
-          <p>Access Denied</p>
-          <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
-        </div>
-      `;
-      return;
-    }
-  } catch (e) {
-    app.innerHTML = '<div class="error">Failed to verify permissions</div>';
-    return;
-  }
-  
-  app.innerHTML = `
-    <div class="admin-page">
-      <div class="admin-layout">
-        <aside class="admin-sidebar">
-          <div class="admin-sidebar-header">
-            <span class="material-icons-outlined">admin_panel_settings</span>
-            <span>Admin</span>
-          </div>
-          <nav class="admin-nav">
-            <a href="#" class="admin-nav-item active" data-tab="nodes">
-              <span class="material-icons-outlined">dns</span>
-              <span>Nodes</span>
-            </a>
-            <a href="#" class="admin-nav-item" data-tab="servers">
-              <span class="material-icons-outlined">storage</span>
-              <span>Servers</span>
-            </a>
-            <a href="#" class="admin-nav-item" data-tab="users">
-              <span class="material-icons-outlined">people</span>
-              <span>Users</span>
-            </a>
-            <a href="#" class="admin-nav-item" data-tab="nests">
-              <span class="material-icons-outlined">egg</span>
-              <span>Nests</span>
-            </a>
-            <a href="#" class="admin-nav-item" data-tab="locations">
-              <span class="material-icons-outlined">location_on</span>
-              <span>Locations</span>
-            </a>
-            <a href="#" class="admin-nav-item" data-tab="announcements">
-              <span class="material-icons-outlined">campaign</span>
-              <span>Announcements</span>
-            </a>
-            <a href="#" class="admin-nav-item" data-tab="audit">
-              <span class="material-icons-outlined">history</span>
-              <span>Audit Log</span>
-            </a>
-            <a href="#" class="admin-nav-item" data-tab="activity">
-              <span class="material-icons-outlined">timeline</span>
-              <span>Activity</span>
-            </a>
-            <a href="#" class="admin-nav-item" data-tab="settings">
-              <span class="material-icons-outlined">settings</span>
-              <span>Settings</span>
-            </a>
-          </nav>
-        </aside>
-        
-        <main class="admin-main">
-          <div class="admin-content" id="admin-content">
-            <div class="loading-spinner"></div>
-          </div>
-        </main>
-      </div>
-    </div>
-  `;
-  
-  document.querySelectorAll('.admin-nav-item').forEach(item => {
-    item.onclick = (e) => {
-      e.preventDefault();
-      document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      navigateTo(item.dataset.tab);
-    };
-  });
-  
-  loadView();
-}
-
-async function loadView() {
-  const container = document.getElementById('admin-content');
-  const username = localStorage.getItem('username');
-  
-  container.innerHTML = '<div class="loading-spinner"></div>';
-  
-  document.querySelectorAll('.admin-nav-item').forEach(i => {
-    i.classList.toggle('active', i.dataset.tab === currentView.tab);
-  });
-  
-  if (currentView.type === 'detail' && currentView.id) {
-    switch (currentView.tab) {
-      case 'nodes':
-        await renderNodeDetail(container, username, currentView.id);
-        break;
-      case 'servers':
-        await renderServerDetail(container, username, currentView.id);
-        break;
-      case 'users':
-        await renderUserDetail(container, username, currentView.id);
-        break;
-      case 'eggs':
-        await renderEggDetail(container, username, currentView.id);
-        break;
-    }
-  } else {
-    switch (currentView.tab) {
-      case 'nodes':
-        await renderNodesList(container, username);
-        break;
-      case 'servers':
-        await renderServersList(container, username);
-        break;
-      case 'users':
-        await renderUsersList(container, username);
-        break;
-      case 'nests':
-        await renderNestsList(container, username);
-        break;
-      case 'locations':
-        await renderLocationsList(container, username);
-        break;
-      case 'settings':
-        await renderSettingsPage(container, username);
-        break;
-      case 'announcements':
-        await renderAnnouncementsList(container, username);
-        break;
-      case 'audit':
-        await renderAuditLogPage(container, username);
-        break;
-      case 'activity':
-        await renderActivityLogPage(container, username);
-        break;
-    }
-  }
-}
-
-// ============== NODES ==============
-
-async function renderNodesList(container, username) {
-  try {
-    const res = await api(`/api/admin/nodes?page=${currentPage.nodes}&per_page=${itemsPerPage.nodes}`);
+    const res = await api(`/api/admin/nodes?page=${state.currentPage.nodes}&per_page=${state.itemsPerPage.nodes}`);
     const data = await res.json();
     
     container.innerHTML = `
@@ -43266,11 +43137,11 @@ async function renderNodesList(container, username) {
       </div>
     `;
     
-    setupBreadcrumbListeners();
-    setupPaginationListeners('nodes');
+    setupBreadcrumbListeners(navigateTo$8);
+    setupPaginationListeners('nodes', loadView);
     
     document.querySelectorAll('.list-card[data-id]').forEach(card => {
-      card.onclick = () => navigateTo('nodes', card.dataset.id);
+      card.onclick = () => navigateTo$8('nodes', card.dataset.id);
     });
     
     document.getElementById('create-node-btn').onclick = () => createNewNode();
@@ -43309,20 +43180,20 @@ async function renderNodeDetail(container, username, nodeId) {
       </div>
       
       <div class="detail-tabs">
-        <button class="detail-tab ${currentView.subTab === 'about' ? 'active' : ''}" data-subtab="about">About</button>
-        <button class="detail-tab ${currentView.subTab === 'settings' ? 'active' : ''}" data-subtab="settings">Settings</button>
-        <button class="detail-tab ${currentView.subTab === 'configuration' ? 'active' : ''}" data-subtab="configuration">Configuration</button>
-        <button class="detail-tab ${currentView.subTab === 'allocations' ? 'active' : ''}" data-subtab="allocations">Allocations</button>
+        <button class="detail-tab ${state.currentView.subTab === 'about' ? 'active' : ''}" data-subtab="about">About</button>
+        <button class="detail-tab ${state.currentView.subTab === 'settings' ? 'active' : ''}" data-subtab="settings">Settings</button>
+        <button class="detail-tab ${state.currentView.subTab === 'configuration' ? 'active' : ''}" data-subtab="configuration">Configuration</button>
+        <button class="detail-tab ${state.currentView.subTab === 'allocations' ? 'active' : ''}" data-subtab="allocations">Allocations</button>
       </div>
       
       <div class="detail-content" id="node-detail-content"></div>
     `;
     
-    setupBreadcrumbListeners();
+    setupBreadcrumbListeners(navigateTo$8);
     
     document.querySelectorAll('.detail-tab').forEach(tab => {
       tab.onclick = () => {
-        currentView.subTab = tab.dataset.subtab;
+        state.currentView.subTab = tab.dataset.subtab;
         document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         renderNodeSubTab(node, locData.locations, username);
@@ -43337,7 +43208,7 @@ async function renderNodeDetail(container, username, nodeId) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
         });
-        navigateTo('nodes');
+        navigateTo$8('nodes');
       } catch (e) {
         error('Failed to delete node');
       }
@@ -43353,7 +43224,7 @@ async function renderNodeDetail(container, username, nodeId) {
 function renderNodeSubTab(node, locations, username) {
   const content = document.getElementById('node-detail-content');
   
-  switch (currentView.subTab) {
+  switch (state.currentView.subTab) {
     case 'about':
       content.innerHTML = `
         <div class="detail-grid">
@@ -43537,7 +43408,7 @@ function renderNodeSubTab(node, locations, username) {
             body: JSON.stringify({ node: nodeData })
           });
           success('Node updated successfully');
-          navigateTo('nodes', node.id, 'settings');
+          navigateTo$8('nodes', node.id, 'settings');
         } catch (e) {
           error('Failed to update node');
         }
@@ -43684,7 +43555,7 @@ async function createNewNode() {
     
     const data = await res.json();
     if (data.node?.id) {
-      navigateTo('nodes', data.node.id, 'about');
+      navigateTo$8('nodes', data.node.id, 'about');
       info('Configure your new node');
     } else {
       error('Failed to create node');
@@ -43694,11 +43565,11 @@ async function createNewNode() {
   }
 }
 
-// ============== SERVERS ==============
+const navigateTo$7 = (...args) => window.adminNavigate(...args);
 
-async function renderServersList(container, username) {
+async function renderServersList(container, username, loadView) {
   try {
-    const res = await api(`/api/admin/servers?page=${currentPage.servers}&per_page=${itemsPerPage.servers}`);
+    const res = await api(`/api/admin/servers?page=${state.currentPage.servers}&per_page=${state.itemsPerPage.servers}`);
     const data = await res.json();
     
     container.innerHTML = `
@@ -43807,11 +43678,11 @@ async function renderServersList(container, username) {
       </div>
     `;
     
-    setupBreadcrumbListeners();
-    setupPaginationListeners('servers');
+    setupBreadcrumbListeners(navigateTo$7);
+    setupPaginationListeners('servers', loadView);
     
     document.querySelectorAll('.clickable-row[data-id], .list-card[data-id]').forEach(el => {
-      el.onclick = () => navigateTo('servers', el.dataset.id);
+      el.onclick = () => navigateTo$7('servers', el.dataset.id);
     });
     
     document.getElementById('create-server-btn').onclick = () => createNewServer();
@@ -43851,20 +43722,20 @@ async function renderServerDetail(container, username, serverId) {
       </div>
       
       <div class="detail-tabs">
-        <button class="detail-tab ${currentView.subTab === 'details' ? 'active' : ''}" data-subtab="details">Details</button>
-        <button class="detail-tab ${currentView.subTab === 'build' ? 'active' : ''}" data-subtab="build">Build Configuration</button>
-        <button class="detail-tab ${currentView.subTab === 'startup' ? 'active' : ''}" data-subtab="startup">Startup</button>
-        <button class="detail-tab ${currentView.subTab === 'manage' ? 'active' : ''}" data-subtab="manage">Manage</button>
+        <button class="detail-tab ${state.currentView.subTab === 'details' ? 'active' : ''}" data-subtab="details">Details</button>
+        <button class="detail-tab ${state.currentView.subTab === 'build' ? 'active' : ''}" data-subtab="build">Build Configuration</button>
+        <button class="detail-tab ${state.currentView.subTab === 'startup' ? 'active' : ''}" data-subtab="startup">Startup</button>
+        <button class="detail-tab ${state.currentView.subTab === 'manage' ? 'active' : ''}" data-subtab="manage">Manage</button>
       </div>
       
       <div class="detail-content" id="server-detail-content"></div>
     `;
     
-    setupBreadcrumbListeners();
+    setupBreadcrumbListeners(navigateTo$7);
     
     document.querySelectorAll('.detail-tab').forEach(tab => {
       tab.onclick = () => {
-        currentView.subTab = tab.dataset.subtab;
+        state.currentView.subTab = tab.dataset.subtab;
         document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         renderServerSubTab(server, username);
@@ -43879,7 +43750,7 @@ async function renderServerDetail(container, username, serverId) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
         });
-        navigateTo('servers');
+        navigateTo$7('servers');
       } catch (e) {
         error('Failed to delete server');
       }
@@ -43895,7 +43766,7 @@ async function renderServerDetail(container, username, serverId) {
 function renderServerSubTab(server, username) {
   const content = document.getElementById('server-detail-content');
   
-  switch (currentView.subTab) {
+  switch (state.currentView.subTab) {
     case 'details':
       content.innerHTML = `
         <div class="detail-grid">
@@ -44157,7 +44028,7 @@ function renderServerSubTab(server, username) {
             
             if (res.ok) {
               success('Server installation started');
-              navigateTo('servers', server.id, 'manage');
+              navigateTo$7('servers', server.id, 'manage');
             } else {
               const data = await res.json();
               error(data.error || 'Installation failed');
@@ -44198,7 +44069,7 @@ function renderServerSubTab(server, username) {
             body: JSON.stringify({})
           });
           success(`Server ${action}ed`);
-          navigateTo('servers', server.id, 'manage');
+          navigateTo$7('servers', server.id, 'manage');
         } catch (e) {
           error(`Failed to ${action} server`);
         }
@@ -44212,7 +44083,7 @@ function renderServerSubTab(server, username) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
           });
-          navigateTo('servers');
+          navigateTo$7('servers');
         } catch (e) {
           error('Failed to delete server');
         }
@@ -44290,7 +44161,6 @@ function setupOwnerSearch(server) {
     }, 300);
   };
   
-  // Close results when clicking outside
   document.addEventListener('click', (e) => {
     if (!input.contains(e.target) && !resultsContainer.contains(e.target)) {
       resultsContainer.style.display = 'none';
@@ -44450,7 +44320,7 @@ async function createNewServer() {
     
     const data = await res.json();
     if (data.server?.id) {
-      navigateTo('servers', data.server.id, 'details');
+      navigateTo$7('servers', data.server.id, 'details');
       info('Configure your server, then click "Install" when ready');
     } else {
       error(data.error || 'Failed to create server');
@@ -44461,7 +44331,6 @@ async function createNewServer() {
 }
 
 window.suspendServerAdmin = async function(serverId) {
-  const username = localStorage.getItem('username');
   try {
     const res = await api(`/api/servers/${serverId}/suspend`, {
       method: 'POST',
@@ -44469,7 +44338,11 @@ window.suspendServerAdmin = async function(serverId) {
       body: JSON.stringify({})
     });
     if (res.ok) {
-      loadView();
+      // Trigger a reload in the main view. We assume adminNavigate will refresh.
+      // But adminNavigate changes state. To reload current view we can just call the render function again
+      // or re-navigate to same place.
+      const currentTab = state.currentView.tab;
+      navigateTo$7(currentTab);
     } else {
       const data = await res.json();
       error(data.error || 'Failed to suspend');
@@ -44480,7 +44353,6 @@ window.suspendServerAdmin = async function(serverId) {
 };
 
 window.unsuspendServerAdmin = async function(serverId) {
-  const username = localStorage.getItem('username');
   try {
     const res = await api(`/api/servers/${serverId}/unsuspend`, {
       method: 'POST',
@@ -44488,7 +44360,8 @@ window.unsuspendServerAdmin = async function(serverId) {
       body: JSON.stringify({})
     });
     if (res.ok) {
-      loadView();
+      const currentTab = state.currentView.tab;
+      navigateTo$7(currentTab);
     } else {
       const data = await res.json();
       error(data.error || 'Failed to unsuspend');
@@ -44500,24 +44373,24 @@ window.unsuspendServerAdmin = async function(serverId) {
 
 window.deleteServerAdmin = async function(serverId) {
   if (!confirm('Are you sure? This will delete the server from the node.')) return;
-  const username = localStorage.getItem('username');
   try {
     await api(`/api/admin/servers/${serverId}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
     });
-    loadView();
+    const currentTab = state.currentView.tab;
+    navigateTo$7(currentTab);
   } catch (e) {
     error('Failed to delete server');
   }
 };
 
-// ============== USERS ==============
+const navigateTo$6 = (...args) => window.adminNavigate(...args);
 
-async function renderUsersList(container, username) {
+async function renderUsersList(container, username, loadView) {
   try {
-    const res = await api(`/api/admin/users?page=${currentPage.users}&per_page=${itemsPerPage.users}`);
+    const res = await api(`/api/admin/users?page=${state.currentPage.users}&per_page=${state.itemsPerPage.users}`);
     const data = await res.json();
     
     container.innerHTML = `
@@ -44614,11 +44487,11 @@ async function renderUsersList(container, username) {
       </div>
     `;
     
-    setupBreadcrumbListeners();
-    setupPaginationListeners('users');
+    setupBreadcrumbListeners(navigateTo$6);
+    setupPaginationListeners('users', loadView);
     
     document.querySelectorAll('.clickable-row[data-id], .list-card[data-id]').forEach(el => {
-      el.onclick = () => navigateTo('users', el.dataset.id);
+      el.onclick = () => navigateTo$6('users', el.dataset.id);
     });
     
   } catch (e) {
@@ -44646,20 +44519,20 @@ async function renderUserDetail(container, username, userId) {
       </div>
       
       <div class="detail-tabs">
-        <button class="detail-tab ${currentView.subTab === 'overview' ? 'active' : ''}" data-subtab="overview">Overview</button>
-        <button class="detail-tab ${currentView.subTab === 'servers' ? 'active' : ''}" data-subtab="servers">Servers</button>
-        <button class="detail-tab ${currentView.subTab === 'permissions' ? 'active' : ''}" data-subtab="permissions">Permissions</button>
-        <button class="detail-tab ${currentView.subTab === 'limits' ? 'active' : ''}" data-subtab="limits">Resource Limits</button>
+        <button class="detail-tab ${state.currentView.subTab === 'overview' ? 'active' : ''}" data-subtab="overview">Overview</button>
+        <button class="detail-tab ${state.currentView.subTab === 'servers' ? 'active' : ''}" data-subtab="servers">Servers</button>
+        <button class="detail-tab ${state.currentView.subTab === 'permissions' ? 'active' : ''}" data-subtab="permissions">Permissions</button>
+        <button class="detail-tab ${state.currentView.subTab === 'limits' ? 'active' : ''}" data-subtab="limits">Resource Limits</button>
       </div>
       
       <div class="detail-content" id="user-detail-content"></div>
     `;
     
-    setupBreadcrumbListeners();
+    setupBreadcrumbListeners(navigateTo$6);
     
     document.querySelectorAll('.detail-tab').forEach(tab => {
       tab.onclick = async () => {
-        currentView.subTab = tab.dataset.subtab;
+        state.currentView.subTab = tab.dataset.subtab;
         document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         await renderUserSubTab(user, username);
@@ -44676,7 +44549,7 @@ async function renderUserDetail(container, username, userId) {
 async function renderUserSubTab(user, username) {
   const content = document.getElementById('user-detail-content');
   
-  switch (currentView.subTab) {
+  switch (state.currentView.subTab) {
     case 'overview':
       content.innerHTML = `
         <div class="detail-grid">
@@ -44768,7 +44641,7 @@ async function renderUserSubTab(user, username) {
         `;
         
         document.querySelectorAll('.user-server-item').forEach(el => {
-          el.onclick = () => navigateTo('servers', el.dataset.serverId);
+          el.onclick = () => navigateTo$6('servers', el.dataset.serverId);
         });
       } catch (e) {
         content.innerHTML = '<div class="error">Failed to load servers</div>';
@@ -44818,7 +44691,7 @@ async function renderUserSubTab(user, username) {
             body: JSON.stringify({ updates })
           });
           success('Permissions updated');
-          navigateTo('users', user.id, 'permissions');
+          navigateTo$6('users', user.id, 'permissions');
         } catch (e) {
           error('Failed to update permissions');
         }
@@ -44873,7 +44746,7 @@ async function renderUserSubTab(user, username) {
             body: JSON.stringify({ updates: { limits } })
           });
           success('Limits updated');
-          navigateTo('users', user.id, 'limits');
+          navigateTo$6('users', user.id, 'limits');
         } catch (e) {
           error('Failed to update limits');
         }
@@ -44882,7 +44755,7 @@ async function renderUserSubTab(user, username) {
   }
 }
 
-// ============== NESTS ==============
+const navigateTo$5 = (...args) => window.adminNavigate(...args);
 
 function renderAdminEggIcon(egg) {
   if (!egg.icon) {
@@ -44902,7 +44775,7 @@ function renderAdminEggIcon(egg) {
   return '<span class="material-icons-outlined">egg_alt</span>';
 }
 
-async function renderNestsList(container, username) {
+async function renderNestsList(container, username, loadView) {
   try {
     const res = await api('/api/admin/nests');
     const data = await res.json();
@@ -44982,9 +44855,9 @@ async function renderNestsList(container, username) {
       </div>
     `;
     
-    setupBreadcrumbListeners();
+    setupBreadcrumbListeners(navigateTo$5);
     
-    document.getElementById('create-nest-btn').onclick = () => showNestModal(username);
+    document.getElementById('create-nest-btn').onclick = () => showNestModal(username, null, loadView);
     
     const createEggBtn = document.getElementById('create-egg-btn');
     if (createEggBtn) {
@@ -44993,12 +44866,12 @@ async function renderNestsList(container, username) {
     
     const importBtn = document.getElementById('import-egg-btn');
     if (importBtn) {
-      importBtn.onclick = () => showImportEggModal(username, nests);
+      importBtn.onclick = () => showImportEggModal(username, nests, loadView);
     }
     
     // Click on egg card to open detail view
     document.querySelectorAll('.egg-card.clickable').forEach(card => {
-      card.onclick = () => navigateTo('eggs', card.dataset.eggId);
+      card.onclick = () => navigateTo$5('eggs', card.dataset.eggId);
     });
     
   } catch (e) {
@@ -45006,7 +44879,7 @@ async function renderNestsList(container, username) {
   }
 }
 
-function showNestModal(username, nest = null) {
+function showNestModal(username, nest = null, loadView) {
   const modal = document.createElement('div');
   modal.className = 'modal active';
   modal.innerHTML = `
@@ -45059,14 +44932,16 @@ function showNestModal(username, nest = null) {
         });
       }
       modal.remove();
-      loadView();
+      // If loadView is passed, use it, otherwise assume global loadView works via window or we are in a context where reload happens
+      if (typeof loadView === 'function') loadView();
+      else if (typeof window.adminNavigate === 'function') window.adminNavigate(state.currentView.tab);
     } catch (e) {
       error('Failed to save nest');
     }
   };
 }
 
-function showImportEggModal(username, nests) {
+function showImportEggModal(username, nests, loadView) {
   const modal = document.createElement('div');
   modal.className = 'modal active';
   modal.innerHTML = `
@@ -45116,7 +44991,8 @@ function showImportEggModal(username, nests) {
       const data = await res.json();
       if (res.ok) {
         modal.remove();
-        loadView();
+        if (typeof loadView === 'function') loadView();
+        else if (typeof window.adminNavigate === 'function') window.adminNavigate(state.currentView.tab);
         success('Egg imported successfully');
       } else {
         error(data.error || 'Failed to import egg');
@@ -45132,13 +45008,14 @@ window.editNestAdmin = async function(nestId) {
   const data = await res.json();
   const nest = data.nests.find(n => n.id === nestId);
   if (nest) {
-    showNestModal(localStorage.getItem('username'), nest);
+    // We need to trigger showNestModal. Since we don't have loadView reference here easily,
+    // we rely on the modal's save function using adminNavigate or we pass a dummy.
+    showNestModal(localStorage.getItem('username'), nest, () => navigateTo$5('nests'));
   }
 };
 
 window.deleteNestAdmin = async function(nestId) {
   if (!confirm('Delete this nest and all its eggs?')) return;
-  const username = localStorage.getItem('username');
   
   try {
     await api(`/api/admin/nests/${nestId}`, {
@@ -45146,7 +45023,7 @@ window.deleteNestAdmin = async function(nestId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
     });
-    loadView();
+    navigateTo$5('nests');
   } catch (e) {
     error('Failed to delete nest');
   }
@@ -45187,7 +45064,7 @@ async function createNewEgg(nestId = null) {
     
     const createData = await createRes.json();
     if (createData.egg?.id) {
-      navigateTo('eggs', createData.egg.id, 'about');
+      navigateTo$5('eggs', createData.egg.id, 'about');
       info('Configure your new egg');
     } else {
       error(createData.error || 'Failed to create egg');
@@ -45198,12 +45075,11 @@ async function createNewEgg(nestId = null) {
 }
 
 window.editEggAdmin = function(eggId) {
-  navigateTo('eggs', eggId);
+  navigateTo$5('eggs', eggId);
 };
 
 window.deleteEggAdmin = async function(eggId) {
   if (!confirm('Delete this egg?')) return;
-  const username = localStorage.getItem('username');
   
   try {
     await api(`/api/admin/eggs/${eggId}`, {
@@ -45211,197 +45087,11 @@ window.deleteEggAdmin = async function(eggId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
     });
-    loadView();
+    navigateTo$5('nests');
   } catch (e) {
     error('Failed to delete egg');
   }
 };
-
-function showEggModal(username, nests, selectedNestId, egg = null) {
-  let dockerImagesText = '';
-  if (egg?.docker_images && typeof egg.docker_images === 'object') {
-    dockerImagesText = Object.entries(egg.docker_images).map(([k, v]) => `${k}|${v}`).join('\n');
-  } else if (egg?.docker_image) {
-    dockerImagesText = egg.docker_image;
-  }
-  
-  const modal = document.createElement('div');
-  modal.className = 'modal active';
-  modal.innerHTML = `
-    <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
-    <div class="modal-content modal-large">
-      <div class="modal-header">
-        <h2>${egg ? 'Edit Egg' : 'Create Egg'}</h2>
-        <button class="modal-close" onclick="this.closest('.modal').remove()">
-          <span class="material-icons-outlined">close</span>
-        </button>
-      </div>
-      <form id="egg-form" class="modal-form">
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Name</label>
-            <input type="text" name="name" value="${egg ? escapeHtml$4(egg.name) : ''}" required />
-          </div>
-          <div class="form-group">
-            <label>Nest</label>
-            <select name="nest_id" required>
-              ${nests.map(n => `<option value="${n.id}" ${n.id === selectedNestId ? 'selected' : ''}>${escapeHtml$4(n.name)}</option>`).join('')}
-            </select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Description</label>
-          <textarea name="description" rows="2">${egg ? escapeHtml$4(egg.description || '') : ''}</textarea>
-        </div>
-        <div class="form-group">
-          <label>Author</label>
-          <input type="text" name="author" value="${egg ? escapeHtml$4(egg.author || '') : 'admin@sodium.local'}" />
-        </div>
-        <div class="form-group">
-          <label>Docker Images</label>
-          <p class="form-hint">One per line. Format: Label|image:tag</p>
-          <textarea name="docker_images" rows="4" placeholder="Java 17|ghcr.io/pterodactyl/yolks:java_17">${dockerImagesText}</textarea>
-        </div>
-        <div class="form-group">
-          <label>Startup Command</label>
-          <textarea name="startup" rows="3" placeholder="java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}">${egg ? escapeHtml$4(egg.startup || '') : ''}</textarea>
-        </div>
-        <div class="form-group">
-          <label>Stop Command</label>
-          <input type="text" name="stop" value="${egg?.config?.stop || '^C'}" />
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
-          <button type="submit" class="btn btn-primary">${egg ? 'Save' : 'Create'}</button>
-        </div>
-      </form>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  
-  document.getElementById('egg-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.target);
-    
-    const dockerImagesRaw = form.get('docker_images');
-    const docker_images = {};
-    dockerImagesRaw.split('\n').filter(l => l.trim()).forEach(line => {
-      const [label, image] = line.split('|').map(s => s.trim());
-      if (label && image) {
-        docker_images[label] = image;
-      } else if (label) {
-        docker_images[label] = label;
-      }
-    });
-    
-    const eggData = {
-      name: form.get('name'),
-      nest_id: form.get('nest_id'),
-      description: form.get('description'),
-      author: form.get('author'),
-      docker_images,
-      docker_image: Object.values(docker_images)[0] || '',
-      startup: form.get('startup'),
-      config: { stop: form.get('stop') || '^C' }
-    };
-    
-    try {
-      if (egg) {
-        await api(`/api/admin/eggs/${egg.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ egg: eggData })
-        });
-      } else {
-        await api('/api/admin/eggs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ egg: eggData })
-        });
-      }
-      modal.remove();
-      loadView();
-    } catch (e) {
-      error('Failed to save egg');
-    }
-  };
-}
-
-function showQuickEggModal(username, nests) {
-  const modal = document.createElement('div');
-  modal.className = 'modal active';
-  modal.innerHTML = `
-    <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Create New Egg</h2>
-        <button class="modal-close" onclick="this.closest('.modal').remove()">
-          <span class="material-icons-outlined">close</span>
-        </button>
-      </div>
-      <form id="quick-egg-form" class="modal-form">
-        <div class="form-group">
-          <label>Name</label>
-          <input type="text" name="name" placeholder="e.g., Paper 1.20" required />
-        </div>
-        <div class="form-group">
-          <label>Nest</label>
-          <select name="nest_id" required>
-            ${nests.map(n => `<option value="${n.id}">${escapeHtml$4(n.name)}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Docker Image</label>
-          <input type="text" name="docker_image" placeholder="ghcr.io/pterodactyl/yolks:java_17" required />
-        </div>
-        <div class="form-group">
-          <label>Startup Command</label>
-          <textarea name="startup" rows="2" placeholder="java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar" required></textarea>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Create</button>
-        </div>
-      </form>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  
-  document.getElementById('quick-egg-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.target);
-    
-    const eggData = {
-      name: form.get('name'),
-      nest_id: form.get('nest_id'),
-      docker_images: { 'default': form.get('docker_image') },
-      docker_image: form.get('docker_image'),
-      startup: form.get('startup'),
-      author: 'admin@sodium.local',
-      config: { stop: '^C' },
-      variables: []
-    };
-    
-    try {
-      const res = await api('/api/admin/eggs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ egg: eggData })
-      });
-      const data = await res.json();
-      modal.remove();
-      if (data.egg?.id) {
-        navigateTo('eggs', data.egg.id);
-      } else {
-        loadView();
-      }
-    } catch (e) {
-      error('Failed to create egg');
-    }
-  };
-}
-
-// ============== EGG DETAIL ==============
 
 async function renderEggDetail(container, username, eggId) {
   try {
@@ -45417,7 +45107,6 @@ async function renderEggDetail(container, username, eggId) {
     const nestsRes = await api('/api/admin/nests');
     const nestsData = await nestsRes.json();
     const nests = nestsData.nests || [];
-    const currentNest = nests.find(n => n.id === egg.nest_id);
     
     container.innerHTML = `
       <div class="admin-header">
@@ -45438,20 +45127,20 @@ async function renderEggDetail(container, username, eggId) {
       </div>
       
       <div class="detail-tabs">
-        <button class="detail-tab ${currentView.subTab === 'about' ? 'active' : ''}" data-subtab="about">About</button>
-        <button class="detail-tab ${currentView.subTab === 'configuration' ? 'active' : ''}" data-subtab="configuration">Configuration</button>
-        <button class="detail-tab ${currentView.subTab === 'variables' ? 'active' : ''}" data-subtab="variables">Variables</button>
-        <button class="detail-tab ${currentView.subTab === 'install' ? 'active' : ''}" data-subtab="install">Install Script</button>
+        <button class="detail-tab ${state.currentView.subTab === 'about' ? 'active' : ''}" data-subtab="about">About</button>
+        <button class="detail-tab ${state.currentView.subTab === 'configuration' ? 'active' : ''}" data-subtab="configuration">Configuration</button>
+        <button class="detail-tab ${state.currentView.subTab === 'variables' ? 'active' : ''}" data-subtab="variables">Variables</button>
+        <button class="detail-tab ${state.currentView.subTab === 'install' ? 'active' : ''}" data-subtab="install">Install Script</button>
       </div>
       
       <div class="detail-content" id="egg-detail-content"></div>
     `;
     
-    setupBreadcrumbListeners();
+    setupBreadcrumbListeners(navigateTo$5);
     
     document.querySelectorAll('.detail-tab').forEach(tab => {
       tab.onclick = () => {
-        currentView.subTab = tab.dataset.subtab;
+        state.currentView.subTab = tab.dataset.subtab;
         document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         renderEggSubTab(egg, nests, username);
@@ -45466,7 +45155,7 @@ async function renderEggDetail(container, username, eggId) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
         });
-        navigateTo('nests');
+        navigateTo$5('nests');
       } catch (e) {
         error('Failed to delete egg');
       }
@@ -45521,7 +45210,7 @@ async function renderEggDetail(container, username, eggId) {
 function renderEggSubTab(egg, nests, username) {
   const content = document.getElementById('egg-detail-content');
   
-  switch (currentView.subTab) {
+  switch (state.currentView.subTab) {
     case 'about':
       renderEggAboutTab(content, egg, nests, username);
       break;
@@ -45633,7 +45322,7 @@ function renderEggAboutTab(content, egg, nests, username) {
         })
       });
       success('Egg updated');
-      navigateTo('eggs', egg.id, 'about');
+      navigateTo$5('eggs', egg.id, 'about');
     } catch (e) {
       error('Failed to update egg');
     }
@@ -45708,7 +45397,7 @@ function renderEggConfigTab(content, egg, username) {
         })
       });
       success('Startup config updated');
-      navigateTo('eggs', egg.id, 'configuration');
+      navigateTo$5('eggs', egg.id, 'configuration');
     } catch (e) {
       error('Failed to update config');
     }
@@ -45744,7 +45433,7 @@ function renderEggConfigTab(content, egg, username) {
         })
       });
       success('Advanced config updated');
-      navigateTo('eggs', egg.id, 'configuration');
+      navigateTo$5('eggs', egg.id, 'configuration');
     } catch (e) {
       error('Failed to update config');
     }
@@ -45829,7 +45518,7 @@ function renderEggVariablesTab(content, egg, username) {
           body: JSON.stringify({ egg: { variables: newVars } })
         });
         success('Variable deleted');
-        navigateTo('eggs', egg.id, 'variables');
+        navigateTo$5('eggs', egg.id, 'variables');
       } catch (e) {
         error('Failed to delete variable');
       }
@@ -45931,7 +45620,7 @@ function showVariableModal(egg, editIndex, username) {
       });
       modal.remove();
       success(isEdit ? 'Variable updated' : 'Variable added');
-      navigateTo('eggs', egg.id, 'variables');
+      navigateTo$5('eggs', egg.id, 'variables');
     } catch (e) {
       error('Failed to save variable');
     }
@@ -45985,16 +45674,16 @@ function renderEggInstallTab(content, egg, username) {
         })
       });
       success('Install script updated');
-      navigateTo('eggs', egg.id, 'install');
+      navigateTo$5('eggs', egg.id, 'install');
     } catch (e) {
       error('Failed to update install script');
     }
   };
 }
 
-// ============== LOCATIONS ==============
+const navigateTo$4 = (...args) => window.adminNavigate(...args);
 
-async function renderLocationsList(container, username) {
+async function renderLocationsList(container, username, loadView) {
   try {
     const res = await api('/api/admin/locations');
     const data = await res.json();
@@ -46040,16 +45729,16 @@ async function renderLocationsList(container, username) {
       </div>
     `;
     
-    setupBreadcrumbListeners();
+    setupBreadcrumbListeners(navigateTo$4);
     
-    document.getElementById('create-location-btn').onclick = () => showLocationModal(username);
+    document.getElementById('create-location-btn').onclick = () => showLocationModal(username, loadView);
     
   } catch (e) {
     container.innerHTML = `<div class="error">Failed to load locations</div>`;
   }
 }
 
-function showLocationModal(username) {
+function showLocationModal(username, loadView) {
   const modal = document.createElement('div');
   modal.className = 'modal active';
   modal.innerHTML = `
@@ -46096,7 +45785,8 @@ function showLocationModal(username) {
         })
       });
       modal.remove();
-      loadView();
+      if (typeof loadView === 'function') loadView();
+      else if (typeof window.adminNavigate === 'function') window.adminNavigate(state.currentView.tab);
     } catch (e) {
       error('Failed to create location');
     }
@@ -46105,7 +45795,6 @@ function showLocationModal(username) {
 
 window.deleteLocationAdmin = async function(locationId) {
   if (!confirm('Delete this location?')) return;
-  const username = localStorage.getItem('username');
   
   try {
     await api(`/api/admin/locations/${locationId}`, {
@@ -46113,15 +45802,16 @@ window.deleteLocationAdmin = async function(locationId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
     });
-    loadView();
+    // Assume adminNavigate is available to refresh
+    if (typeof window.adminNavigate === 'function') window.adminNavigate(state.currentView.tab);
   } catch (e) {
     error('Failed to delete location');
   }
 };
 
-// ============== SETTINGS ==============
+const navigateTo$3 = (...args) => window.adminNavigate(...args);
 
-async function renderSettingsPage(container, username) {
+async function renderSettingsPage(container, username, loadView) {
   try {
     const res = await api(`/api/admin/settings`);
     const data = await res.json();
@@ -46274,7 +45964,7 @@ async function renderSettingsPage(container, username) {
       </div>
     `;
     
-    setupBreadcrumbListeners();
+    setupBreadcrumbListeners(navigateTo$3);
     loadAppApiKeys();
     setupAppApiKeysHandlers();
     
@@ -46486,46 +46176,9 @@ function setupAppApiKeysHandlers() {
   };
 }
 
-// ============== UTILITIES ==============
+const navigateTo$2 = (...args) => window.adminNavigate(...args);
 
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
-function jsonToYaml(obj, indent = 0) {
-  let yaml = '';
-  const spaces = '  '.repeat(indent);
-  
-  for (const [key, value] of Object.entries(obj)) {
-    if (value === null || value === undefined) {
-      yaml += `${spaces}${key}: null\n`;
-    } else if (typeof value === 'object' && !Array.isArray(value)) {
-      yaml += `${spaces}${key}:\n${jsonToYaml(value, indent + 1)}`;
-    } else if (Array.isArray(value)) {
-      yaml += `${spaces}${key}:\n`;
-      value.forEach(item => {
-        if (typeof item === 'object') {
-          yaml += `${spaces}  -\n${jsonToYaml(item, indent + 2)}`;
-        } else {
-          yaml += `${spaces}  - ${item}\n`;
-        }
-      });
-    } else if (typeof value === 'string') {
-      yaml += `${spaces}${key}: "${value}"\n`;
-    } else {
-      yaml += `${spaces}${key}: ${value}\n`;
-    }
-  }
-  return yaml;
-}
-
-// ============== ANNOUNCEMENTS ==============
-
-async function renderAnnouncementsList(container, username) {
+async function renderAnnouncementsList(container, username, loadView) {
   try {
     const res = await api('/api/announcements');
     
@@ -46673,7 +46326,7 @@ async function renderAnnouncementsList(container, username) {
       </div>
     `;
     
-    setupBreadcrumbListeners();
+    setupBreadcrumbListeners(navigateTo$2);
     
     let editingId = null;
     
@@ -46711,7 +46364,9 @@ async function renderAnnouncementsList(container, username) {
       
       try {
         await api(`/api/announcements/${id}`, { method: 'DELETE' });
-        loadView();
+        // We assume loadView refreshes or adminNavigate does
+        if (typeof loadView === 'function') loadView();
+        else if (typeof window.adminNavigate === 'function') window.adminNavigate(state.currentView.tab);
         success('Announcement deleted');
       } catch (e) {
         error('Failed to delete announcement');
@@ -46748,7 +46403,8 @@ async function renderAnnouncementsList(container, username) {
           messageEl.className = 'message error';
         } else {
           closeAnnouncementModal();
-          loadView();
+          if (typeof loadView === 'function') loadView();
+          else if (typeof window.adminNavigate === 'function') window.adminNavigate(state.currentView.tab);
           success(editingId ? 'Announcement updated' : 'Announcement created');
         }
       } catch (e) {
@@ -46762,61 +46418,19 @@ async function renderAnnouncementsList(container, username) {
   }
 }
 
-// ============== AUDIT LOG ==============
+const navigateTo$1 = (...args) => window.adminNavigate(...args);
 
-async function renderAuditLogPage(container, username) {
-  try {
-    const res = await api('/api/admin/audit-logs?per_page=50');
-    const data = await res.json();
-    
-    container.innerHTML = `
-      <div class="admin-header">
-        ${renderBreadcrumb([{ label: 'Audit Log' }])}
-      </div>
-      
-      <div class="admin-list">
-        ${data.logs.length === 0 ? `
-          <div class="empty-state">
-            <span class="material-icons-outlined">history</span>
-            <h3>No Audit Logs</h3>
-            <p>Admin actions will be logged here</p>
-          </div>
-        ` : `
-          <div class="audit-log-list">
-            ${data.logs.map(log => `
-              <div class="audit-log-item">
-                <div class="audit-log-icon">
-                  <span class="material-icons-outlined">${getAuditIcon(log.action)}</span>
-                </div>
-                <div class="audit-log-content">
-                  <div class="audit-log-action">
-                    <strong>${escapeHtml$4(log.adminUsername)}</strong>
-                    <span>${formatAuditAction(log.action)}</span>
-                    <span class="audit-target">${escapeHtml$4(log.targetType)}${log.details?.title ? `: ${escapeHtml$4(log.details.title)}` : ''}</span>
-                  </div>
-                  <div class="audit-log-meta">
-                    ${log.ip ? `<span class="ip">${escapeHtml$4(log.ip)}</span>` : ''}
-                    <span class="time">${formatTimeAgo(log.createdAt)}</span>
-                  </div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-          
-          ${data.meta.total_pages > 1 ? `
-            <div class="pagination-info">
-              Showing ${data.logs.length} of ${data.meta.total} entries
-            </div>
-          ` : ''}
-        `}
-      </div>
-    `;
-    
-    setupBreadcrumbListeners();
-    
-  } catch (e) {
-    container.innerHTML = '<div class="error">Failed to load audit log</div>';
-  }
+function formatTimeAgo(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diff = now - date;
+  
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+  
+  return date.toLocaleDateString();
 }
 
 function getAuditIcon(action) {
@@ -46867,20 +46481,106 @@ function formatAuditAction(action) {
   return labels[action] || action;
 }
 
-function formatTimeAgo(dateString) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diff = now - date;
-  
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
-  
-  return date.toLocaleDateString();
+async function renderAuditLogPage(container, username) {
+  try {
+    const res = await api('/api/admin/audit-logs?per_page=50');
+    const data = await res.json();
+    
+    container.innerHTML = `
+      <div class="admin-header">
+        ${renderBreadcrumb([{ label: 'Audit Log' }])}
+      </div>
+      
+      <div class="admin-list">
+        ${data.logs.length === 0 ? `
+          <div class="empty-state">
+            <span class="material-icons-outlined">history</span>
+            <h3>No Audit Logs</h3>
+            <p>Admin actions will be logged here</p>
+          </div>
+        ` : `
+          <div class="audit-log-list">
+            ${data.logs.map(log => `
+              <div class="audit-log-item">
+                <div class="audit-log-icon">
+                  <span class="material-icons-outlined">${getAuditIcon(log.action)}</span>
+                </div>
+                <div class="audit-log-content">
+                  <div class="audit-log-action">
+                    <strong>${escapeHtml$4(log.adminUsername)}</strong>
+                    <span>${formatAuditAction(log.action)}</span>
+                    <span class="audit-target">${escapeHtml$4(log.targetType)}${log.details?.title ? `: ${escapeHtml$4(log.details.title)}` : ''}</span>
+                  </div>
+                  <div class="audit-log-meta">
+                    ${log.ip ? `<span class="ip">${escapeHtml$4(log.ip)}</span>` : ''}
+                    <span class="time">${formatTimeAgo(log.createdAt)}</span>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          
+          ${data.meta.total_pages > 1 ? `
+            <div class="pagination-info">
+              Showing ${data.logs.length} of ${data.meta.total} entries
+            </div>
+          ` : ''}
+        `}
+      </div>
+    `;
+    
+    setupBreadcrumbListeners(navigateTo$1);
+    
+  } catch (e) {
+    container.innerHTML = '<div class="error">Failed to load audit log</div>';
+  }
 }
 
-// ============== ACTIVITY LOG (ADMIN VIEW) ==============
+function getActivityIcon(action) {
+  const icons = {
+    'auth:login': 'login',
+    'auth:logout': 'logout',
+    'auth:password_change': 'lock',
+    'user:profile_update': 'person',
+    'api_key:create': 'key',
+    'api_key:delete': 'key_off',
+    'server:create': 'add_circle',
+    'server:delete': 'delete',
+    'server:start': 'play_arrow',
+    'server:stop': 'stop',
+    'server:restart': 'restart_alt',
+    'server:console_command': 'terminal',
+    'file:edit': 'edit',
+    'file:delete': 'delete',
+    'file:upload': 'upload',
+    'subuser:add': 'person_add',
+    'subuser:remove': 'person_remove'
+  };
+  return icons[action] || 'info';
+}
+
+function formatActivityAction(action) {
+  const labels = {
+    'auth:login': 'logged in',
+    'auth:logout': 'logged out',
+    'auth:password_change': 'changed password',
+    'user:profile_update': 'updated profile',
+    'api_key:create': 'created API key',
+    'api_key:delete': 'deleted API key',
+    'server:create': 'created server',
+    'server:delete': 'deleted server',
+    'server:start': 'started server',
+    'server:stop': 'stopped server',
+    'server:restart': 'restarted server',
+    'server:console_command': 'sent console command',
+    'file:edit': 'edited file',
+    'file:delete': 'deleted file',
+    'file:upload': 'uploaded file',
+    'subuser:add': 'added subuser',
+    'subuser:remove': 'removed subuser'
+  };
+  return labels[action] || action;
+}
 
 async function renderActivityLogPage(container, username) {
   try {
@@ -46929,57 +46629,182 @@ async function renderActivityLogPage(container, username) {
       </div>
     `;
     
-    setupBreadcrumbListeners();
+    setupBreadcrumbListeners(navigateTo$1);
     
   } catch (e) {
     container.innerHTML = '<div class="error">Failed to load activity log</div>';
   }
 }
 
-function getActivityIcon(action) {
-  const icons = {
-    'auth:login': 'login',
-    'auth:logout': 'logout',
-    'auth:password_change': 'lock',
-    'user:profile_update': 'person',
-    'api_key:create': 'key',
-    'api_key:delete': 'key_off',
-    'server:create': 'add_circle',
-    'server:delete': 'delete',
-    'server:start': 'play_arrow',
-    'server:stop': 'stop',
-    'server:restart': 'restart_alt',
-    'server:console_command': 'terminal',
-    'file:edit': 'edit',
-    'file:delete': 'delete',
-    'file:upload': 'upload',
-    'subuser:add': 'person_add',
-    'subuser:remove': 'person_remove'
+function navigateTo(tab, id = null, subTab = null) {
+  state.currentView = { 
+    type: id ? 'detail' : 'list', 
+    tab, 
+    id, 
+    subTab: subTab || getDefaultSubTab(tab) 
   };
-  return icons[action] || 'info';
+  loadView();
 }
 
-function formatActivityAction(action) {
-  const labels = {
-    'auth:login': 'logged in',
-    'auth:logout': 'logged out',
-    'auth:password_change': 'changed password',
-    'user:profile_update': 'updated profile',
-    'api_key:create': 'created API key',
-    'api_key:delete': 'deleted API key',
-    'server:create': 'created server',
-    'server:delete': 'deleted server',
-    'server:start': 'started server',
-    'server:stop': 'stopped server',
-    'server:restart': 'restarted server',
-    'server:console_command': 'sent console command',
-    'file:edit': 'edited file',
-    'file:delete': 'deleted file',
-    'file:upload': 'uploaded file',
-    'subuser:add': 'added subuser',
-    'subuser:remove': 'removed subuser'
-  };
-  return labels[action] || action;
+function getDefaultSubTab(tab) {
+  switch (tab) {
+    case 'nodes': return 'about';
+    case 'servers': return 'details';
+    case 'users': return 'overview';
+    case 'eggs': return 'about';
+    default: return null;
+  }
+}
+
+window.adminNavigate = navigateTo;
+
+async function renderAdmin() {
+  const app = document.getElementById('app');
+  const user = getUser();
+  
+  app.innerHTML = '<div class="loading-spinner"></div>';
+  
+  try {
+    if (!user?.isAdmin) {
+      app.innerHTML = `
+        <div class="error-page">
+          <h1>403</h1>
+          <p>Access Denied</p>
+          <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+        </div>
+      `;
+      return;
+    }
+  } catch (e) {
+    app.innerHTML = '<div class="error">Failed to verify permissions</div>';
+    return;
+  }
+  
+  app.innerHTML = `
+    <div class="admin-page">
+      <div class="admin-layout">
+        <aside class="admin-sidebar">
+          <div class="admin-sidebar-header">
+            <span class="material-icons-outlined">admin_panel_settings</span>
+            <span>Admin</span>
+          </div>
+          <nav class="admin-nav">
+            <a href="#" class="admin-nav-item active" data-tab="nodes">
+              <span class="material-icons-outlined">dns</span>
+              <span>Nodes</span>
+            </a>
+            <a href="#" class="admin-nav-item" data-tab="servers">
+              <span class="material-icons-outlined">storage</span>
+              <span>Servers</span>
+            </a>
+            <a href="#" class="admin-nav-item" data-tab="users">
+              <span class="material-icons-outlined">people</span>
+              <span>Users</span>
+            </a>
+            <a href="#" class="admin-nav-item" data-tab="nests">
+              <span class="material-icons-outlined">egg</span>
+              <span>Nests</span>
+            </a>
+            <a href="#" class="admin-nav-item" data-tab="locations">
+              <span class="material-icons-outlined">location_on</span>
+              <span>Locations</span>
+            </a>
+            <a href="#" class="admin-nav-item" data-tab="announcements">
+              <span class="material-icons-outlined">campaign</span>
+              <span>Announcements</span>
+            </a>
+            <a href="#" class="admin-nav-item" data-tab="audit">
+              <span class="material-icons-outlined">history</span>
+              <span>Audit Log</span>
+            </a>
+            <a href="#" class="admin-nav-item" data-tab="activity">
+              <span class="material-icons-outlined">timeline</span>
+              <span>Activity</span>
+            </a>
+            <a href="#" class="admin-nav-item" data-tab="settings">
+              <span class="material-icons-outlined">settings</span>
+              <span>Settings</span>
+            </a>
+          </nav>
+        </aside>
+        
+        <main class="admin-main">
+          <div class="admin-content" id="admin-content">
+            <div class="loading-spinner"></div>
+          </div>
+        </main>
+      </div>
+    </div>
+  `;
+  
+  document.querySelectorAll('.admin-nav-item').forEach(item => {
+    item.onclick = (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      navigateTo(item.dataset.tab);
+    };
+  });
+  
+  loadView();
+}
+
+async function loadView() {
+  const container = document.getElementById('admin-content');
+  const username = localStorage.getItem('username');
+  
+  container.innerHTML = '<div class="loading-spinner"></div>';
+  
+  document.querySelectorAll('.admin-nav-item').forEach(i => {
+    i.classList.toggle('active', i.dataset.tab === state.currentView.tab);
+  });
+  
+  if (state.currentView.type === 'detail' && state.currentView.id) {
+    switch (state.currentView.tab) {
+      case 'nodes':
+        await renderNodeDetail(container, username, state.currentView.id);
+        break;
+      case 'servers':
+        await renderServerDetail(container, username, state.currentView.id);
+        break;
+      case 'users':
+        await renderUserDetail(container, username, state.currentView.id);
+        break;
+      case 'eggs':
+        await renderEggDetail(container, username, state.currentView.id);
+        break;
+    }
+  } else {
+    switch (state.currentView.tab) {
+      case 'nodes':
+        await renderNodesList(container, username, loadView);
+        break;
+      case 'servers':
+        await renderServersList(container, username, loadView);
+        break;
+      case 'users':
+        await renderUsersList(container, username, loadView);
+        break;
+      case 'nests':
+        await renderNestsList(container, username, loadView);
+        break;
+      case 'locations':
+        await renderLocationsList(container, username, loadView);
+        break;
+      case 'settings':
+        await renderSettingsPage(container, username, loadView);
+        break;
+      case 'announcements':
+        await renderAnnouncementsList(container, username, loadView);
+        break;
+      case 'audit':
+        await renderAuditLogPage(container, username);
+        break;
+      case 'activity':
+        await renderActivityLogPage(container, username);
+        break;
+    }
+  }
 }
 
 function cleanupAdmin() {}

@@ -8,7 +8,7 @@ import { renderServers, cleanupServers } from './servers.js';
 import { renderCreateServer, cleanupCreateServer } from './create-server.js';
 import { renderServerPage, cleanupServerPage } from './server/index.js';
 import { renderStatus, cleanupStatus } from './status.js';
-import { renderAdmin, cleanupAdmin } from './admin.js';
+import { renderAdmin, cleanupAdmin } from './admin/index.js';
 import { renderActivityLog } from './activity-log.js';
 
 export const routes = {
