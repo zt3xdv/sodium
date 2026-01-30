@@ -781,6 +781,35 @@ router.post('/:id/files/decompress', authenticateUser, async (req, res) => {
   }
 });
 
+router.post('/:id/files/copy', authenticateUser, async (req, res) => {
+  const { location } = req.body;
+  const result = await getServerAndNode(req.params.id, req.user);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  try {
+    await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/files/copy`, { location });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/:id/files/chmod', authenticateUser, async (req, res) => {
+  const { root, files } = req.body;
+  const result = await getServerAndNode(req.params.id, req.user);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  try {
+    await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/files/chmod`, {
+      root: root || '/',
+      files: files || []
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Allocations
 async function syncAllocationsWithWings(node, server) {
   const allocations = server.allocations || [];

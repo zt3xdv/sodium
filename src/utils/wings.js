@@ -77,6 +77,38 @@ export class WingsClient {
   async installServer(uuid) {
     return this.request('POST', `/api/servers/${uuid}/install`);
   }
+
+  async copyFile(uuid, location) {
+    return this.request('POST', `/api/servers/${uuid}/files/copy`, { location });
+  }
+
+  async chmodFile(uuid, root, files) {
+    return this.request('POST', `/api/servers/${uuid}/files/chmod`, { root, files });
+  }
+
+  async listDirectory(uuid, directory) {
+    return this.request('GET', `/api/servers/${uuid}/files/list-directory?directory=${encodeURIComponent(directory)}`);
+  }
+
+  async renameFiles(uuid, root, files) {
+    return this.request('PUT', `/api/servers/${uuid}/files/rename`, { root, files });
+  }
+
+  async deleteFiles(uuid, root, files) {
+    return this.request('POST', `/api/servers/${uuid}/files/delete`, { root, files });
+  }
+
+  async createDirectory(uuid, name, path) {
+    return this.request('POST', `/api/servers/${uuid}/files/create-directory`, { name, path });
+  }
+
+  async compressFiles(uuid, root, files) {
+    return this.request('POST', `/api/servers/${uuid}/files/compress`, { root, files });
+  }
+
+  async decompressFile(uuid, root, file) {
+    return this.request('POST', `/api/servers/${uuid}/files/decompress`, { root, file });
+  }
 }
 
 export function createWingsClient(node) {

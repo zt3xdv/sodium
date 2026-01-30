@@ -12,17 +12,18 @@ let editingPath = null;
 let selectedFiles = new Set();
 let editorInstance = null;
 
-const EDITABLE_EXTENSIONS = [
-  'txt', 'log', 'md', 'json', 'yml', 'yaml', 'toml', 'xml',
-  'js', 'ts', 'jsx', 'tsx', 'css', 'scss', 'less', 'html', 'htm',
-  'php', 'py', 'rb', 'java', 'c', 'cpp', 'h', 'hpp', 'cs',
-  'sh', 'bash', 'bat', 'ps1', 'cmd',
-  'properties', 'cfg', 'conf', 'ini', 'env',
-  'sql', 'lua', 'go', 'rs', 'swift', 'kt', 'gradle',
-  'dockerfile', 'makefile', 'gitignore', 'htaccess'
+const EDITABLE_MIMETYPES = [
+  'text/', 'application/json', 'application/xml', 'application/javascript',
+  'application/x-yaml', 'application/toml', 'application/x-sh',
+  'application/x-httpd-php', 'application/sql', 'application/x-lua',
+  'inode/x-empty'
 ];
 
-const ARCHIVE_EXTENSIONS = ['zip', 'tar', 'tar.gz', 'tgz', 'gz', 'rar', '7z'];
+const ARCHIVE_MIMETYPES = [
+  'application/zip', 'application/x-tar', 'application/gzip', 
+  'application/x-gzip', 'application/x-rar', 'application/x-7z-compressed',
+  'application/x-compressed-tar', 'application/x-bzip2'
+];
 
 function connectProgressSocket(serverId) {
   if (progressSocket && progressSocket.readyState === WebSocket.OPEN) {
@@ -178,17 +179,84 @@ function showDecompressIndicator(filename) {
   };
 }
 
-function isArchive(filename) {
-  const name = filename.toLowerCase();
-  return ARCHIVE_EXTENSIONS.some(ext => name.endsWith('.' + ext));
+function isArchive(file) {
+  const mime = (file.mimetype || file.mime || '').toLowerCase();
+  
+  // Si hay mimetype, usarlo como fuente de verdad
+  if (mime) {
+    // Si es texto o editable, NO es archivo comprimido aunque tenga extensión .zip
+    if (mime.startsWith('text/') || mime === 'application/json' || mime === 'application/javascript') {
+      return false;
+    }
+    if (ARCHIVE_MIMETYPES.some(m => mime.includes(m.replace('application/', '')))) return true;
+  }
+  
+  // Fallback a extensión solo si no hay mimetype
+  if (!mime) {
+    const name = file.name.toLowerCase();
+    return name.endsWith('.zip') || name.endsWith('.tar') || name.endsWith('.tar.gz') || 
+           name.endsWith('.tgz') || name.endsWith('.gz') || name.endsWith('.rar') || name.endsWith('.7z');
+  }
+  
+  return false;
 }
 
-function isEditable(filename) {
-  const ext = filename.split('.').pop().toLowerCase();
-  const name = filename.toLowerCase();
-  return EDITABLE_EXTENSIONS.includes(ext) || 
-         EDITABLE_EXTENSIONS.includes(name) ||
-         !filename.includes('.');
+function isEditable(file) {
+  const mime = (file.mimetype || file.mime || '').toLowerCase();
+  
+  // Si hay mimetype, usarlo como fuente de verdad
+  if (mime) {
+    // Es editable si es texto o tipos conocidos de texto
+    if (EDITABLE_MIMETYPES.some(m => mime.startsWith(m))) return true;
+    if (mime === 'inode/x-empty') return true;
+    
+    // NO es editable si es binario/comprimido aunque tenga extensión .txt
+    if (ARCHIVE_MIMETYPES.some(m => mime.includes(m.replace('application/', '')))) return false;
+    if (mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('audio/')) return false;
+    if (mime === 'application/octet-stream') return false;
+  }
+  
+  // Fallback a extensión si no hay mimetype o es desconocido
+  const ext = file.name.split('.').pop().toLowerCase();
+  const textExts = ['txt', 'log', 'md', 'json', 'yml', 'yaml', 'toml', 'xml', 'js', 'ts', 'jsx', 'tsx', 
+    'css', 'scss', 'less', 'html', 'htm', 'php', 'py', 'rb', 'java', 'c', 'cpp', 'h', 'hpp', 'cs',
+    'sh', 'bash', 'bat', 'ps1', 'cmd', 'properties', 'cfg', 'conf', 'ini', 'env', 'sql', 'lua', 
+    'go', 'rs', 'swift', 'kt', 'gradle'];
+  return textExts.includes(ext) || !file.name.includes('.');
+}
+
+function getFileIcon(file) {
+  const mime = (file.mimetype || file.mime || '').toLowerCase();
+  const ext = file.name.split('.').pop().toLowerCase();
+  
+  if (mime.startsWith('text/')) {
+    if (mime.includes('html')) return 'html';
+    if (mime.includes('css')) return 'css';
+    if (mime.includes('javascript')) return 'javascript';
+    return 'description';
+  }
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('video/')) return 'movie';
+  if (mime.startsWith('audio/')) return 'audio_file';
+  if (mime === 'application/json') return 'data_object';
+  if (mime === 'application/pdf') return 'picture_as_pdf';
+  if (mime === 'application/zip' || mime.includes('compressed') || mime.includes('tar') || mime.includes('gzip')) return 'folder_zip';
+  if (mime === 'application/java-archive') return 'inventory_2';
+  if (mime === 'application/x-sh' || mime === 'application/x-shellscript') return 'terminal';
+  if (mime.includes('xml') || mime.includes('yaml')) return 'settings';
+  
+  const icons = {
+    'js': 'javascript', 'ts': 'javascript', 'json': 'data_object',
+    'html': 'html', 'css': 'css', 'scss': 'css',
+    'md': 'description', 'txt': 'description', 'log': 'description',
+    'yml': 'settings', 'yaml': 'settings', 'toml': 'settings',
+    'properties': 'settings', 'cfg': 'settings', 'conf': 'settings',
+    'jar': 'inventory_2', 'zip': 'folder_zip', 'tar': 'folder_zip', 'gz': 'folder_zip',
+    'png': 'image', 'jpg': 'image', 'jpeg': 'image', 'gif': 'image', 'svg': 'image',
+    'sh': 'terminal', 'bat': 'terminal', 'ps1': 'terminal',
+    'pdf': 'picture_as_pdf', 'mp3': 'audio_file', 'mp4': 'movie', 'avi': 'movie'
+  };
+  return icons[ext] || 'insert_drive_file';
 }
 
 export function renderFilesTab() {
@@ -361,19 +429,19 @@ function renderFilesList(files, serverId) {
         <input type="checkbox" class="file-checkbox" data-name="${file.name}">
       </div>
       <div class="file-icon">
-        <span class="material-icons-outlined">${isDir ? 'folder' : getFileIcon(file.name)}</span>
+        <span class="material-icons-outlined">${isDir ? 'folder' : getFileIcon(file)}</span>
       </div>
       <div class="file-info">
         <span class="file-name">${file.name}</span>
         <span class="file-meta">${isDir ? '--' : formatBytes(file.size)} • ${formatDate(file.modified_at)}</span>
       </div>
       <div class="file-actions">
-        ${!isDir && isEditable(file.name) ? `
+        ${!isDir && isEditable(file) ? `
           <button class="btn btn-sm btn-ghost btn-edit" title="Edit">
             <span class="material-icons-outlined">edit</span>
           </button>
         ` : ''}
-        ${!isDir && isArchive(file.name) ? `
+        ${!isDir && isArchive(file) ? `
           <button class="btn btn-sm btn-ghost btn-decompress" title="Extract">
             <span class="material-icons-outlined">unarchive</span>
           </button>
@@ -382,7 +450,13 @@ function renderFilesList(files, serverId) {
           <button class="btn btn-sm btn-ghost btn-download" title="Download">
             <span class="material-icons-outlined">download</span>
           </button>
+          <button class="btn btn-sm btn-ghost btn-copy" title="Copy">
+            <span class="material-icons-outlined">content_copy</span>
+          </button>
         ` : ''}
+        <button class="btn btn-sm btn-ghost btn-chmod" title="Permissions">
+          <span class="material-icons-outlined">lock</span>
+        </button>
         <button class="btn btn-sm btn-ghost btn-rename" title="Rename">
           <span class="material-icons-outlined">drive_file_rename_outline</span>
         </button>
@@ -457,21 +531,23 @@ function renderFilesList(files, serverId) {
       showDecompressDialog(serverId, name);
     };
   });
-}
-
-function getFileIcon(filename) {
-  const ext = filename.split('.').pop().toLowerCase();
-  const icons = {
-    'js': 'javascript', 'ts': 'javascript', 'json': 'data_object',
-    'html': 'html', 'css': 'css', 'scss': 'css',
-    'md': 'description', 'txt': 'description', 'log': 'description',
-    'yml': 'settings', 'yaml': 'settings', 'toml': 'settings',
-    'properties': 'settings', 'cfg': 'settings', 'conf': 'settings',
-    'jar': 'inventory_2', 'zip': 'folder_zip', 'tar': 'folder_zip', 'gz': 'folder_zip',
-    'png': 'image', 'jpg': 'image', 'jpeg': 'image', 'gif': 'image', 'svg': 'image',
-    'sh': 'terminal', 'bat': 'terminal', 'ps1': 'terminal'
-  };
-  return icons[ext] || 'insert_drive_file';
+  
+  filesList.querySelectorAll('.file-item .btn-copy').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const name = btn.closest('.file-item').dataset.name;
+      copyFile(serverId, currentPath === '/' ? `/${name}` : `${currentPath}/${name}`);
+    };
+  });
+  
+  filesList.querySelectorAll('.file-item .btn-chmod').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const item = btn.closest('.file-item');
+      const name = item.dataset.name;
+      chmodFile(serverId, name);
+    };
+  });
 }
 
 function formatBytes(bytes) {
@@ -606,14 +682,12 @@ async function renameFile(serverId, oldName) {
   });
   if (!newName || newName === oldName) return;
   
-  const username = localStorage.getItem('username');
   const from = currentPath === '/' ? `/${oldName}` : `${currentPath}/${oldName}`;
   const to = currentPath === '/' ? `/${newName}` : `${currentPath}/${newName}`;
   
   try {
     const res = await api(`/api/servers/${serverId}/files/rename`, {
       method: 'POST',
-      
       body: JSON.stringify({ from, to })
     });
     
@@ -625,6 +699,58 @@ async function renameFile(serverId, oldName) {
     }
   } catch (e) {
     toast.error('Failed to rename');
+  }
+}
+
+async function copyFile(serverId, location) {
+  try {
+    const res = await api(`/api/servers/${serverId}/files/copy`, {
+      method: 'POST',
+      body: JSON.stringify({ location })
+    });
+    
+    if (res.ok) {
+      toast.success('File copied');
+      loadFiles(serverId, currentPath);
+    } else {
+      const data = await res.json();
+      toast.error(data.error || 'Failed to copy');
+    }
+  } catch (e) {
+    toast.error('Failed to copy file');
+  }
+}
+
+async function chmodFile(serverId, name) {
+  const mode = await modal.prompt('Enter permissions (e.g. 755, 644):', {
+    title: 'Change Permissions',
+    placeholder: '755',
+    confirmText: 'Apply'
+  });
+  if (!mode) return;
+  
+  if (!/^[0-7]{3,4}$/.test(mode)) {
+    toast.error('Invalid permission format');
+    return;
+  }
+  
+  try {
+    const res = await api(`/api/servers/${serverId}/files/chmod`, {
+      method: 'POST',
+      body: JSON.stringify({
+        root: currentPath,
+        files: [{ file: name, mode }]
+      })
+    });
+    
+    if (res.ok) {
+      toast.success('Permissions updated');
+    } else {
+      const data = await res.json();
+      toast.error(data.error || 'Failed to change permissions');
+    }
+  } catch (e) {
+    toast.error('Failed to change permissions');
   }
 }
 
