@@ -4,6 +4,7 @@
 
 - Node.js 23 or higher
 - npm
+- (Optional) MySQL/MariaDB, PostgreSQL, or SQLite for external database
 
 ## Panel Installation
 
@@ -31,6 +32,14 @@ Set environment variables (recommended for production):
 ```bash
 export JWT_SECRET="your-secure-secret-key"
 export PORT=3000
+
+# Optional: Use external database (MySQL, PostgreSQL, or SQLite)
+# export DB_TYPE=mysql
+# export DB_HOST=localhost
+# export DB_PORT=3306
+# export DB_NAME=sodium
+# export DB_USER=sodium
+# export DB_PASS=your-password
 ```
 
 Start the server:
@@ -63,6 +72,12 @@ WorkingDirectory=/opt/sodium
 Environment=NODE_ENV=production
 Environment=JWT_SECRET=your-secure-secret-key
 Environment=PORT=3000
+# Optional: External database
+# Environment=DB_TYPE=mysql
+# Environment=DB_HOST=localhost
+# Environment=DB_NAME=sodium
+# Environment=DB_USER=sodium
+# Environment=DB_PASS=your-password
 ExecStart=/usr/bin/node src/server/index.js
 Restart=on-failure
 RestartSec=10
@@ -103,11 +118,57 @@ server {
 ```
 sodium/
 ├── data/              # Database and configuration (gitignored)
-│   ├── sodium.db      # Binary database file
+│   ├── sodium.db      # Binary database file (when using file DB)
+│   ├── sodium.sqlite  # SQLite database (when using sqlite)
 │   └── config.json    # Panel configuration
 ├── dist/              # Built frontend assets
 ├── src/
 │   ├── server/        # Backend (Express.js)
 │   └── ...            # Frontend source
 └── assets/            # Static assets
+```
+
+## External Database Setup
+
+If you prefer using an external database instead of the default file-based storage:
+
+### MySQL / MariaDB
+
+```bash
+npm install mysql2
+
+# Create database
+mysql -u root -p -e "CREATE DATABASE sodium; CREATE USER 'sodium'@'localhost' IDENTIFIED BY 'password'; GRANT ALL ON sodium.* TO 'sodium'@'localhost';"
+
+# Configure
+export DB_TYPE=mysql
+export DB_HOST=localhost
+export DB_NAME=sodium
+export DB_USER=sodium
+export DB_PASS=password
+```
+
+### PostgreSQL
+
+```bash
+npm install pg
+
+# Create database
+sudo -u postgres psql -c "CREATE DATABASE sodium; CREATE USER sodium WITH PASSWORD 'password'; GRANT ALL PRIVILEGES ON DATABASE sodium TO sodium;"
+
+# Configure
+export DB_TYPE=postgresql
+export DB_HOST=localhost
+export DB_NAME=sodium
+export DB_USER=sodium
+export DB_PASS=password
+```
+
+### SQLite
+
+```bash
+npm install better-sqlite3
+
+export DB_TYPE=sqlite
+export DB_FILE=./data/sodium.sqlite
 ```

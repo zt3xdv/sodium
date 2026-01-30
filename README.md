@@ -1,6 +1,6 @@
 # Sodium Panel
 
-A modern control panel which is built to be lightweight and easy to install, without heavy dependencies or "difficult" databases.
+A modern control panel which is built to be lightweight and easy to install. File-based database by default, with optional MySQL, PostgreSQL, and SQLite support for production.
 
 ## Installation
 
@@ -10,6 +10,22 @@ cd sodium
 npm install
 npm run build
 npm start
+```
+
+### Optional: External Database
+
+```bash
+# MySQL
+npm install mysql2
+export DB_TYPE=mysql DB_HOST=localhost DB_NAME=sodium DB_USER=sodium DB_PASS=password
+
+# PostgreSQL
+npm install pg
+export DB_TYPE=postgresql DB_HOST=localhost DB_NAME=sodium DB_USER=sodium DB_PASS=password
+
+# SQLite
+npm install better-sqlite3
+export DB_TYPE=sqlite
 ```
 
 ## Scripts

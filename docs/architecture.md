@@ -9,7 +9,7 @@ Sodium is a game server management panel that communicates with Sodium Reaction 
 │                      Sodium Panel                           │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
 │  │   Frontend  │  │   Backend   │  │      Database       │  │
-│  │  (Vanilla)  │◄─►│ (Express)   │◄─►│    (sodium.db)      │  │
+│  │  (Vanilla)  │◄─►│ (Express)   │◄─►│ (File/MySQL/PG/SQL) │  │
 │  └─────────────┘  └──────┬──────┘  └─────────────────────┘  │
 └──────────────────────────┼──────────────────────────────────┘
                            │ HTTP/WebSocket
@@ -41,7 +41,7 @@ Sodium is a game server management panel that communicates with Sodium Reaction 
 - **Backend**: Express.js 5
   - JWT authentication
   - WebSocket proxy for console
-  - Binary database
+  - Multi-database support (File, MySQL, PostgreSQL, SQLite)
 
 ### Sodium Reaction
 
@@ -78,6 +78,19 @@ Go daemon (fork of Pterodactyl Wings) that handles:
 3. Panel authenticates and verifies permissions
 4. Panel connects to daemon WebSocket
 5. Messages proxied between user and daemon
+
+## Database
+
+Sodium supports multiple database backends:
+
+| Backend | Driver | Use Case |
+|---------|--------|----------|
+| File (default) | Built-in | Development, small deployments |
+| MySQL/MariaDB | `mysql2` | Production, existing MySQL infrastructure |
+| PostgreSQL | `pg` | Production, complex queries |
+| SQLite | `better-sqlite3` | Single-server production |
+
+The database is configured via environment variables (`DB_TYPE`, `DB_HOST`, etc.). See [Configuration](configuration.md) for details.
 
 ## Database Schema
 
