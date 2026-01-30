@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "node src/server/index.js",
-    "build": "node src/bundler/build.js",
-    "fast-build": "node src/bundler/build.js fast",
-    "watch": "node src/bundler/build.js dev",
-    "dev": "node src/bundler/dev.js"
+    "build": "node src/bundler/index.js prod",
+    "prod": "node src/bundler/index.js prod",
+    "fast": "node src/bundler/index.js fast",
+    "watch": "node src/bundler/index.js watch",
+    "dev": "node src/bundler/index.js dev"
   },
   "keywords": [
     "game-server",

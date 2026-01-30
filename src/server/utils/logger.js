@@ -68,10 +68,14 @@ const logger = {
     console.log(`${badge} ${colors.gray}${getTime()}${colors.reset} ${colors.dim}→${colors.reset} ${path} ${statusColor}${status}${colors.reset}`);
   },
 
-  startup(port) {
+  startup(portOrMode) {
     console.log('');
-    console.log(`${colors.infoBg}${colors.infoText}${colors.bold}  SODIUM  ${colors.reset} ${colors.dim}Server started${colors.reset}`);
-    console.log(`${colors.gray}         ${colors.reset} ${colors.dim}→${colors.reset} http://localhost:${port}`);
+    if (typeof portOrMode === 'number') {
+      console.log(`${colors.infoBg}${colors.infoText}${colors.bold}  SODIUM  ${colors.reset} ${colors.dim}Server started${colors.reset}`);
+      console.log(`${colors.gray}         ${colors.reset} ${colors.dim}→${colors.reset} http://localhost:${portOrMode}`);
+    } else {
+      console.log(`${colors.infoBg}${colors.infoText}${colors.bold}  SODIUM  ${colors.reset} ${colors.dim}Bundler (${portOrMode})${colors.reset}`);
+    }
     console.log('');
   }
 };
