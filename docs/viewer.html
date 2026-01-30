@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docs - Sodium</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #09090b;
+            color: #fafafa;
+            line-height: 1.7;
+        }
+
+        a { color: #e07a3a; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        nav {
+            padding: 20px 0;
+            border-bottom: 1px solid #27272a;
+            position: sticky;
+            top: 0;
+            background: #09090b;
+            z-index: 10;
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #fafafa;
+        }
+
+        .logo svg { width: 22px; height: 22px; }
+
+        .back {
+            color: #71717a;
+            font-size: 14px;
+        }
+
+        .back:hover { color: #a1a1aa; text-decoration: none; }
+
+        .content {
+            padding: 48px 0 80px;
+        }
+
+        /* Markdown styles */
+        .markdown h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #27272a;
+        }
+
+        .markdown h2 {
+            font-size: 22px;
+            font-weight: 600;
+            margin: 40px 0 16px;
+            color: #fafafa;
+        }
+
+        .markdown h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin: 32px 0 12px;
+        }
+
+        .markdown p {
+            margin-bottom: 16px;
+            color: #d4d4d8;
+        }
+
+        .markdown ul, .markdown ol {
+            margin: 0 0 16px 24px;
+            color: #d4d4d8;
+        }
+
+        .markdown li {
+            margin-bottom: 8px;
+        }
+
+        .markdown code {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 13px;
+            background: #18181b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #e07a3a;
+        }
+
+        .markdown pre {
+            background: #0a0a0a;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        .markdown pre code {
+            background: none;
+            padding: 0;
+            color: #a1a1aa;
+        }
+
+        .markdown table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .markdown th, .markdown td {
+            text-align: left;
+            padding: 10px 14px;
+            border: 1px solid #27272a;
+        }
+
+        .markdown th {
+            background: #18181b;
+            font-weight: 600;
+        }
+
+        .markdown td {
+            color: #d4d4d8;
+        }
+
+        .markdown blockquote {
+            border-left: 3px solid #e07a3a;
+            padding-left: 16px;
+            margin: 0 0 16px;
+            color: #a1a1aa;
+        }
+
+        .markdown hr {
+            border: none;
+            border-top: 1px solid #27272a;
+            margin: 32px 0;
+        }
+
+        .loading {
+            color: #71717a;
+            text-align: center;
+            padding: 60px 0;
+        }
+
+        .error {
+            color: #ef4444;
+            background: #1c1917;
+            border: 1px solid #7f1d1d;
+            padding: 16px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="index.html" class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#e07a3a">
+                    <path d="M11,21h-1l1-7H7.5c-0.88,0-0.33-0.75-0.31-0.78C8.48,10.94,10.42,7.54,13.01,3h1l-1,7h3.51c0.4,0,0.62,0.19,0.4,0.66C12.97,17.55,11,21,11,21z"/>
+                </svg>
+                Sodium
+            </a>
+            <a href="index.html#docs" class="back">← Back to docs</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="container">
+            <div id="markdown" class="markdown">
+                <p class="loading">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const file = params.get('file');
+        const container = document.getElementById('markdown');
+
+        if (!file) {
+            container.innerHTML = '<p class="error">No file specified. Use ?file=filename.md</p>';
+        } else {
+            fetch(file)
+                .then(res => {
+                    if (!res.ok) throw new Error('File not found');
+                    return res.text();
+                })
+                .then(md => {
+                    container.innerHTML = marked.parse(md);
+                    // Update title
+                    const h1 = container.querySelector('h1');
+                    if (h1) document.title = h1.textContent + ' - Sodium';
+                })
+                .catch(err => {
+                    container.innerHTML = '<p class="error">Could not load: ' + file + '</p>';
+                });
+        }
+    </script>
+</body>
+</html>
