@@ -2,6 +2,7 @@ import { api } from '../../utils/api.js';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
+
 import { getToken } from '../../utils/api.js';
 
 let consoleSocket = null;
@@ -90,8 +91,45 @@ function initTerminal() {
     cursorStyle: 'bar',
     scrollback: 5000,
     convertEol: true,
-    disableStdin: true
+    disableStdin: true,
+    scrollOnUserInput: true,
+    smoothScrollDuration: 100,
+    overviewRuler: {
+      showTopBorder: false
+    }
   });
+  
+  terminal.attachCustomWheelEventHandler(() => false);
+  
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  if (isMobile) {
+    container.style.touchAction = 'pan-y';
+    container.style.overscrollBehavior = 'contain';
+    
+    let touchStartY = 0;
+    let scrolling = false;
+    
+    container.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+      scrolling = true;
+    }, { passive: true });
+    
+    container.addEventListener('touchmove', (e) => {
+      if (!scrolling || !terminal) return;
+      const touchY = e.touches[0].clientY;
+      const delta = touchStartY - touchY;
+      const lines = Math.round(delta / 20);
+      
+      if (lines !== 0) {
+        terminal.scrollLines(lines);
+        touchStartY = touchY;
+      }
+    }, { passive: true });
+    
+    container.addEventListener('touchend', () => {
+      scrolling = false;
+    }, { passive: true });
+  }
   
   fitAddon = new FitAddon();
   terminal.loadAddon(fitAddon);

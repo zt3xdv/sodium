@@ -3271,12 +3271,20 @@ input, textarea, select {
   padding: 0.5rem;
   overflow: hidden;
   max-width: 100%;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .console-terminal .xterm {
   height: 100%;
   width: 100%;
   max-width: 100%;
   padding: 0.5rem;
+}
+.console-terminal .xterm-viewport {
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 .console-terminal .xterm-viewport::-webkit-scrollbar {
   width: 8px;
@@ -3290,6 +3298,14 @@ input, textarea, select {
 }
 .console-terminal .xterm-viewport::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+@media (max-width: 768px) {
+  .console-terminal {
+    min-height: 300px;
+  }
+  .console-terminal .xterm-viewport {
+    overflow-y: auto !important;
+  }
 }
 
 .console-input {

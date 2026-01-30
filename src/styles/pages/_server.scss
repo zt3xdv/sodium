@@ -376,6 +376,9 @@
   padding: 0.5rem;
   overflow: hidden;
   max-width: 100%;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   
   .xterm {
     height: 100%;
@@ -385,6 +388,10 @@
   }
   
   .xterm-viewport {
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    
     &::-webkit-scrollbar {
       width: 8px;
     }
@@ -400,6 +407,14 @@
       &:hover {
         background: rgba(255, 255, 255, 0.2);
       }
+    }
+  }
+  
+  @media (max-width: 768px) {
+    min-height: 300px;
+    
+    .xterm-viewport {
+      overflow-y: auto !important;
     }
   }
 }
