@@ -3693,6 +3693,31 @@ async function renderAnnouncementsList(container, username) {
               </tbody>
             </table>
           </div>
+          
+          <div class="list-cards">
+            ${announcements.map(a => {
+              const content = a.content || '';
+              const title = a.title || 'Untitled';
+              const type = a.type || 'info';
+              return `
+              <div class="list-card">
+                <div class="list-card-header">
+                  <div class="list-card-title">${escapeHtml(title)}</div>
+                  <span class="type-badge type-${type}">${type}</span>
+                </div>
+                <div class="list-card-body">
+                  <p>${escapeHtml(content.substring(0, 100))}${content.length > 100 ? '...' : ''}</p>
+                </div>
+                <div class="list-card-footer">
+                  <span class="status-badge ${a.active ? 'active' : 'inactive'}">${a.active ? 'Active' : 'Inactive'}</span>
+                  <div class="action-buttons">
+                    <button class="btn btn-xs btn-ghost" onclick="editAnnouncement('${a.id}')">Edit</button>
+                    <button class="btn btn-xs btn-danger-ghost" onclick="deleteAnnouncement('${a.id}')">Delete</button>
+                  </div>
+                </div>
+              </div>
+            `}).join('')}
+          </div>
         `}
       </div>
       
