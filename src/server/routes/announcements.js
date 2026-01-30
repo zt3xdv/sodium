@@ -10,7 +10,9 @@ router.get('/', authenticateUser, (req, res) => {
   const data = loadAnnouncements();
   const now = new Date();
   
-  let announcements = data.announcements;
+  let announcements = data.announcements || [];
+  
+  console.log('[Announcements] User:', req.user.username, 'isAdmin:', req.user.isAdmin, 'count:', announcements.length);
   
   if (!req.user.isAdmin) {
     announcements = announcements.filter(a => {
