@@ -40280,8 +40280,9 @@ function renderFilesList(files, serverId) {
   
   filesList.innerHTML = sorted.map(file => {
     const isDir = isDirectory(file);
+    const canEdit = !isDir && isEditable(file);
     return `
-    <div class="file-item ${isDir ? 'directory' : 'file'}" data-name="${file.name}" data-is-dir="${isDir}">
+    <div class="file-item ${isDir ? 'directory' : 'file'}" data-name="${file.name}" data-is-dir="${isDir}" data-editable="${canEdit}">
       <div class="file-select">
         <input type="checkbox" class="file-checkbox" data-name="${file.name}">
       </div>
@@ -40293,11 +40294,6 @@ function renderFilesList(files, serverId) {
         <span class="file-meta">${isDir ? '--' : formatBytes$2(file.size)} • ${formatDate$2(file.modified_at)}</span>
       </div>
       <div class="file-actions">
-        ${!isDir && isEditable(file) ? `
-          <button class="btn btn-sm btn-ghost btn-edit" title="Edit">
-            <span class="material-icons-outlined">edit</span>
-          </button>
-        ` : ''}
         ${!isDir && isArchive(file) ? `
           <button class="btn btn-sm btn-ghost btn-decompress" title="Extract">
             <span class="material-icons-outlined">unarchive</span>
@@ -40349,11 +40345,14 @@ function renderFilesList(files, serverId) {
     };
   });
   
-  filesList.querySelectorAll('.file-item .btn-edit').forEach(btn => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      const name = btn.closest('.file-item').dataset.name;
-      editFile(serverId, currentPath === '/' ? `/${name}` : `${currentPath}/${name}`);
+  filesList.querySelectorAll('.file-item.file .file-info').forEach(info => {
+    info.onclick = () => {
+      const item = info.closest('.file-item');
+      const name = item.dataset.name;
+      const canEdit = item.dataset.editable === 'true';
+      if (canEdit) {
+        editFile(serverId, currentPath === '/' ? `/${name}` : `${currentPath}/${name}`);
+      }
     };
   });
   
