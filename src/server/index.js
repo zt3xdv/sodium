@@ -88,7 +88,7 @@ async function startServer() {
   setupWebSocket(server);
   
   server.listen(PORT, () => {
-    logger.startup(PORT);
+    logger.startup(PORT, !isInstalled());
   });
 }
 

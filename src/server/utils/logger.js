@@ -68,11 +68,16 @@ const logger = {
     console.log(`${badge} ${colors.gray}${getTime()}${colors.reset} ${colors.dim}→${colors.reset} ${path} ${statusColor}${status}${colors.reset}`);
   },
 
-  startup(portOrMode) {
+  startup(portOrMode, needsSetup = false) {
     console.log('');
     if (typeof portOrMode === 'number') {
       console.log(`${colors.infoBg}${colors.infoText}${colors.bold}  SODIUM  ${colors.reset} ${colors.dim}Server started${colors.reset}`);
       console.log(`${colors.gray}         ${colors.reset} ${colors.dim}→${colors.reset} http://localhost:${portOrMode}`);
+      if (needsSetup) {
+        console.log('');
+        console.log(`${colors.warnBg}${colors.warnText}${colors.bold}  SETUP  ${colors.reset} ${colors.dim}Panel not configured${colors.reset}`);
+        console.log(`${colors.gray}         ${colors.reset} ${colors.dim}→${colors.reset} Open http://localhost:${portOrMode}/setup to complete installation`);
+      }
     } else {
       console.log(`${colors.infoBg}${colors.infoText}${colors.bold}  SODIUM  ${colors.reset} ${colors.dim}Bundler (${portOrMode})${colors.reset}`);
     }
