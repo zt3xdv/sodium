@@ -123,7 +123,14 @@ router.post('/test-database', async (req, res) => {
   
   try {
     if (type === 'mysql' || type === 'mariadb') {
-      const mysql = await import('mysql2/promise');
+      let mysql;
+      try {
+        mysql = await import('mysql2/promise');
+      } catch {
+        return res.status(400).json({ 
+          error: 'MySQL driver not installed. Run: npm install mysql2' 
+        });
+      }
       const conn = await mysql.default.createConnection({
         host,
         port: parseInt(port),
@@ -138,7 +145,14 @@ router.post('/test-database', async (req, res) => {
     }
     
     if (type === 'postgresql' || type === 'postgres') {
-      const pg = await import('pg');
+      let pg;
+      try {
+        pg = await import('pg');
+      } catch {
+        return res.status(400).json({ 
+          error: 'PostgreSQL driver not installed. Run: npm install pg' 
+        });
+      }
       const client = new pg.default.Client({
         host,
         port: parseInt(port),
@@ -153,7 +167,16 @@ router.post('/test-database', async (req, res) => {
     }
     
     if (type === 'sqlite') {
-      return res.json({ success: true, message: 'SQLite requires no connection test' });
+      let Database;
+      try {
+        const sqlite = await import('better-sqlite3');
+        Database = sqlite.default;
+      } catch {
+        return res.status(400).json({ 
+          error: 'SQLite driver not installed. Run: npm install better-sqlite3' 
+        });
+      }
+      return res.json({ success: true, message: 'SQLite driver installed' });
     }
     
     res.status(400).json({ error: 'Unknown database type' });
@@ -166,7 +189,15 @@ router.post('/test-redis', async (req, res) => {
   const { host, port, password } = req.body;
   
   try {
-    const redis = await import('redis');
+    let redis;
+    try {
+      redis = await import('redis');
+    } catch {
+      return res.status(400).json({ 
+        error: 'Redis package not installed. Run: npm install redis' 
+      });
+    }
+    
     const client = redis.createClient({
       socket: { host, port: parseInt(port) },
       password: password || undefined
