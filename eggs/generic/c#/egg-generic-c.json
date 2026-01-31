@@ -4,6 +4,7 @@
         "version": "PTDL_v2",
         "update_url": null
     },
+    "icon": "data_object",
     "exported_at": "2024-03-24T14:29:09+01:00",
     "name": "Generic C#",
     "author": "josdekurk@gmail.com",

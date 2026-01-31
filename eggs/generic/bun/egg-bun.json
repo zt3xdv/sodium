@@ -4,6 +4,7 @@
         "version": "PTDL_v2",
         "update_url": null
     },
+    "icon": "bolt",
     "exported_at": "2023-09-13T17:51:41+02:00",
     "name": "Bun",
     "author": "mratox@protonmail.com",

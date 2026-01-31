@@ -4,6 +4,7 @@
         "version": "PTDL_v2",
         "update_url": null
     },
+    "icon": "refresh",
     "exported_at": "2025-05-13T20:53:16+08:00",
     "name": "nodemon",
     "author": "nick@blackforthosting.com",

@@ -4,6 +4,7 @@
         "version": "PTDL_v2",
         "update_url": null
     },
+    "icon": "science",
     "exported_at": "2024-01-08T09:43:11+01:00",
     "name": "Elixir",
     "author": "mravox@proton.me",

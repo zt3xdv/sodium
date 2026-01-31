@@ -4,6 +4,7 @@
         "version": "PTDL_v2",
         "update_url": null
     },
+    "icon": "javascript",
     "exported_at": "2025-10-23T16:46:55+08:00",
     "name": "node.js generic",
     "author": "parker@parkervcp.com",

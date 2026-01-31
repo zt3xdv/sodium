@@ -75,9 +75,7 @@ export function renderAuth() {
           <div id="inject-auth-login-button-after" class="injection-slot"></div>
           
           <!-- injection:auth:login:providers (OAuth buttons) -->
-          <div id="inject-auth-login-providers" class="injection-slot auth-providers">
-            ${renderSlot('auth:login:providers')}
-          </div>
+          <div id="inject-auth-login-providers" class="injection-slot auth-providers"></div>
         </form>
         
         <!-- injection:auth:login:after -->
@@ -133,9 +131,7 @@ export function renderAuth() {
           <div id="inject-auth-register-button-after" class="injection-slot"></div>
           
           <!-- injection:auth:register:providers -->
-          <div id="inject-auth-register-providers" class="injection-slot auth-providers">
-            ${renderSlot('auth:register:providers')}
-          </div>
+          <div id="inject-auth-register-providers" class="injection-slot auth-providers"></div>
         </form>
         
         <!-- injection:auth:register:after -->

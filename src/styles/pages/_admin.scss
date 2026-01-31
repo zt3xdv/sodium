@@ -766,3 +766,86 @@
   
   .material-icons-outlined { font-size: 16px; color: var(--accent); }
 }
+
+// Import egg modal tabs & file upload
+.import-method-tabs {
+  display: flex;
+  gap: 8px;
+  
+  .import-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    
+    .material-icons-outlined { font-size: 20px; }
+    
+    &:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+    
+    &.active {
+      background: var(--accent-muted);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  }
+}
+
+.file-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 20px;
+  background: var(--bg-tertiary);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+  
+  .material-icons-outlined {
+    font-size: 36px;
+    color: var(--text-tertiary);
+  }
+  
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  
+  .file-name {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+    word-break: break-all;
+  }
+  
+  &:hover, &.dragover {
+    border-color: var(--accent);
+    background: var(--accent-muted);
+    
+    .material-icons-outlined { color: var(--accent); }
+  }
+  
+  &.has-file {
+    border-color: var(--success);
+    border-style: solid;
+    
+    .material-icons-outlined { color: var(--success); }
+  }
+}

@@ -4,6 +4,7 @@
         "version": "PLCN_v1",
         "update_url": null
     },
+    "icon": "bolt",
     "exported_at": "2025-02-12T03:43:07+00:00",
     "name": "Velocity",
     "author": "parker@parkervcp.com",

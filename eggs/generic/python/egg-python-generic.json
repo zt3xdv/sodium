@@ -4,6 +4,7 @@
         "version": "PTDL_v2",
         "update_url": null
     },
+    "icon": "code",
     "exported_at": "2025-05-03T00:23:00+00:00",
     "name": "python generic",
     "author": "parker@parkervcp.com",

@@ -4,6 +4,7 @@
         "version": "PTDL_v2",
         "update_url": null
     },
+    "icon": "settings",
     "exported_at": "2022-10-01T18:32:46+01:00",
     "name": "rust generic",
     "author": "ethan@ethancoward.dev",

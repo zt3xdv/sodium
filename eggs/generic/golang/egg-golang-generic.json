@@ -4,6 +4,7 @@
         "version": "PTDL_v2",
         "update_url": null
     },
+    "icon": "terminal",
     "exported_at": "2022-07-25T14:20:37-04:00",
     "name": "golang generic",
     "author": "parker@parkervcp.com",

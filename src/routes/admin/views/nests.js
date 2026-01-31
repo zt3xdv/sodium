@@ -209,10 +209,36 @@ function showImportEggModal(username, nests, loadView) {
             ${nests.map(n => `<option value="${n.id}">${escapeHtml(n.name)}</option>`).join('')}
           </select>
         </div>
+        
         <div class="form-group">
-          <label>Egg JSON</label>
-          <textarea name="eggJson" rows="12" placeholder="Paste Pterodactyl egg JSON here..." required></textarea>
+          <label>Import Method</label>
+          <div class="import-method-tabs">
+            <button type="button" class="import-tab active" data-method="file">
+              <span class="material-icons-outlined">upload_file</span>
+              Upload File
+            </button>
+            <button type="button" class="import-tab" data-method="paste">
+              <span class="material-icons-outlined">content_paste</span>
+              Paste JSON
+            </button>
+          </div>
         </div>
+        
+        <div id="import-file-section" class="form-group">
+          <label>Egg File (.json)</label>
+          <div class="file-upload-area" id="file-upload-area">
+            <input type="file" name="eggFile" id="egg-file-input" accept=".json" hidden />
+            <span class="material-icons-outlined">cloud_upload</span>
+            <p>Click to select or drag & drop egg file</p>
+            <span class="file-name" id="selected-file-name"></span>
+          </div>
+        </div>
+        
+        <div id="import-paste-section" class="form-group" style="display: none;">
+          <label>Egg JSON</label>
+          <textarea name="eggJson" rows="12" placeholder="Paste Pterodactyl egg JSON here..."></textarea>
+        </div>
+        
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
           <button type="submit" class="btn btn-primary">Import</button>
@@ -222,9 +248,99 @@ function showImportEggModal(username, nests, loadView) {
   `;
   document.body.appendChild(modal);
   
+  const fileSection = modal.querySelector('#import-file-section');
+  const pasteSection = modal.querySelector('#import-paste-section');
+  const fileInput = modal.querySelector('#egg-file-input');
+  const uploadArea = modal.querySelector('#file-upload-area');
+  const fileNameSpan = modal.querySelector('#selected-file-name');
+  const tabs = modal.querySelectorAll('.import-tab');
+  
+  let currentMethod = 'file';
+  let fileContent = null;
+  
+  tabs.forEach(tab => {
+    tab.onclick = () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentMethod = tab.dataset.method;
+      
+      if (currentMethod === 'file') {
+        fileSection.style.display = '';
+        pasteSection.style.display = 'none';
+      } else {
+        fileSection.style.display = 'none';
+        pasteSection.style.display = '';
+      }
+    };
+  });
+  
+  uploadArea.onclick = () => fileInput.click();
+  
+  uploadArea.ondragover = (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+  };
+  
+  uploadArea.ondragleave = () => {
+    uploadArea.classList.remove('dragover');
+  };
+  
+  uploadArea.ondrop = (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.json')) {
+      handleFileSelect(file);
+    } else {
+      toast.error('Please select a .json file');
+    }
+  };
+  
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) handleFileSelect(file);
+  };
+  
+  function handleFileSelect(file) {
+    fileNameSpan.textContent = file.name;
+    uploadArea.classList.add('has-file');
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      fileContent = e.target.result;
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read file');
+      fileContent = null;
+    };
+    reader.readAsText(file);
+  }
+  
   document.getElementById('import-egg-form').onsubmit = async (e) => {
     e.preventDefault();
     const form = new FormData(e.target);
+    
+    let eggJson;
+    if (currentMethod === 'file') {
+      if (!fileContent) {
+        toast.error('Please select a file');
+        return;
+      }
+      eggJson = fileContent;
+    } else {
+      eggJson = form.get('eggJson');
+      if (!eggJson || !eggJson.trim()) {
+        toast.error('Please paste egg JSON');
+        return;
+      }
+    }
+    
+    try {
+      JSON.parse(eggJson);
+    } catch {
+      toast.error('Invalid JSON format');
+      return;
+    }
     
     try {
       const res = await api('/api/admin/eggs/import', {
@@ -233,7 +349,7 @@ function showImportEggModal(username, nests, loadView) {
         body: JSON.stringify({
           username,
           nest_id: form.get('nest_id'),
-          eggJson: form.get('eggJson')
+          eggJson
         })
       });
       
