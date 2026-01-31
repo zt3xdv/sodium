@@ -9,6 +9,7 @@
     "prod": "node src/bundler/index.js prod",
     "fast": "node src/bundler/index.js fast",
     "watch": "node src/bundler/index.js watch",
+    "test": "node --test tests/config.test.js tests/auth.test.js tests/db.test.js tests/setup.test.js",
     "dev": "node src/bundler/index.js dev"
   },
   "keywords": [
@@ -41,6 +42,7 @@
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "redis": "^5.10.0",
     "tar": "^7.5.7",
     "ws": "^8.18.3"
   },
