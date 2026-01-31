@@ -12,13 +12,11 @@ import statusRoutes from './routes/status.js';
 import adminRoutes from './routes/admin.js';
 import serverRoutes from './routes/servers.js';
 import remoteRoutes from './routes/remote.js';
-import pluginRoutes from './routes/plugins.js';
 import apiKeysRoutes from './routes/api-keys.js';
 import announcementsRoutes from './routes/announcements.js';
 import auditLogsRoutes from './routes/audit-logs.js';
 import activityLogsRoutes from './routes/activity-logs.js';
 import { setupWebSocket } from './socket.js';
-import pluginManager from './plugins/manager.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -55,7 +53,6 @@ app.use((req, res, next) => {
 // Assets estáticos
 app.use(express.static(path.join(__dirname, '../../dist')));
 app.use(express.static(path.join(__dirname, '../../assets')));
-app.use('/plugins', express.static(path.join(__dirname, '../../plugins')));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -64,33 +61,18 @@ app.use('/api', statusRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api/remote', remoteRoutes);
-app.use('/api/plugins', pluginRoutes);
 app.use('/api/api-keys', apiKeysRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/admin/audit-logs', auditLogsRoutes);
 app.use('/api/activity', activityLogsRoutes);
 
-// Inicializar plugins
-pluginManager.setApp(app);
+// Fallback para SPA
+app.get(/.*/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../../dist', 'index.html'));
+});
 
 async function startServer() {
-  await pluginManager.loadPlugins();
-  
-  await pluginManager.executeHook('server:init', { app, server });
-  
-  pluginManager.applyMiddlewares(app);
-  pluginManager.applyRoutes(app);
-  
-  await pluginManager.executeHook('server:routes', { app });
-  
-  // Fallback para SPA (debe ir después de las rutas de plugins)
-  app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, '../../dist', 'index.html'));
-  });
-  
   setupWebSocket(server);
-  
-  await pluginManager.executeHook('server:ready', { app, server });
   
   server.listen(PORT, () => {
     logger.startup(PORT);

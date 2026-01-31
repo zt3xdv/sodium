@@ -1,5 +1,4 @@
 import { getUser } from '../utils/api.js';
-import { getPluginSidebarItems } from '../utils/plugins.js';
 
 export function renderSidebar() {
   const sidebar = document.createElement('aside');
@@ -83,27 +82,5 @@ async function checkAdminStatus(sidebar, currentPath) {
     }
   } catch (e) {
     console.error('Failed to check admin status:', e);
-  }
-  
-  const pluginItems = getPluginSidebarItems();
-  for (const item of pluginItems) {
-    if (navList.querySelector(`a[href="${item.path}"]`)) continue;
-    
-    const li = document.createElement('li');
-    li.className = 'nav-item plugin-nav-item';
-    li.innerHTML = `
-      <a href="${item.path}" class="nav-link ${currentPath === item.path ? 'active' : ''}">
-        <span class="material-icons-outlined">${item.icon}</span>
-        <span class="nav-text">${item.label}</span>
-      </a>
-    `;
-    
-    if (item.position === 'top') {
-      navList.insertBefore(li, navList.firstChild);
-    } else if (settingsItem) {
-      navList.insertBefore(li, settingsItem);
-    } else {
-      navList.appendChild(li);
-    }
   }
 }

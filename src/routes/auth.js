@@ -1,5 +1,4 @@
 import { setToken, setUser } from '../utils/api.js';
-import { renderSlot, initSlotListeners } from '../utils/plugins.js';
 
 export function renderAuth() {
   const app = document.getElementById('app');

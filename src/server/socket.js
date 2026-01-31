@@ -5,7 +5,6 @@ import { generateUUID } from './utils/helpers.js';
 import { hasPermission } from './utils/permissions.js';
 import { JWT_SECRET } from './utils/auth.js';
 import logger from './utils/logger.js';
-import pluginManager from './plugins/manager.js';
 
 export function setupWebSocket(server) {
   const wss = new WebSocketServer({ server, path: '/ws/console' });
@@ -89,37 +88,10 @@ export function setupWebSocket(server) {
       }));
     });
     
-    wingsWs.on('message', async (data) => {
+    wingsWs.on('message', (data) => {
       if (clientWs.readyState === WebSocket.OPEN) {
         let message = data.toString();
         message = message.replace(/\[Pterodactyl Daemon\]:?/g, 'Sodium Daemon:');
-        
-        try {
-          const parsed = JSON.parse(message);
-          const pluginResult = await pluginManager.handleWebSocketEvent(
-            parsed.event,
-            parsed.args,
-            { user, serverData, clientWs, wingsWs }
-          );
-          
-          if (pluginResult.handled && pluginResult.data) {
-            message = JSON.stringify({ event: parsed.event, args: pluginResult.data });
-          }
-          
-          const hookResult = await pluginManager.executeHook('ws:message', {
-            message: parsed,
-            user,
-            server: serverData
-          });
-          
-          if (hookResult.blocked) return;
-          if (hookResult.message) {
-            message = JSON.stringify(hookResult.message);
-          }
-        } catch {
-          // Plugin hook failed, continue with original message
-        }
-        
         clientWs.send(message);
       }
     });
