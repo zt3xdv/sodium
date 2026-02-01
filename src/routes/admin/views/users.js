@@ -2,18 +2,20 @@ import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
-import { formatBytes, renderPagination, setupPaginationListeners, renderBreadcrumb, setupBreadcrumbListeners } from '../utils/ui.js';
+import { formatBytes, renderPagination, setupPaginationListeners, renderBreadcrumb, setupBreadcrumbListeners, renderSearchBox, setupSearchListeners } from '../utils/ui.js';
 
 const navigateTo = (...args) => window.adminNavigate(...args);
 
 export async function renderUsersList(container, username, loadView) {
   try {
-    const res = await api(`/api/admin/users?page=${state.currentPage.users}&per_page=${state.itemsPerPage.users}`);
+    const search = state.searchQuery.users ? `&search=${encodeURIComponent(state.searchQuery.users)}` : '';
+    const res = await api(`/api/admin/users?page=${state.currentPage.users}&per_page=${state.itemsPerPage.users}${search}`);
     const data = await res.json();
     
     container.innerHTML = `
       <div class="admin-header">
         ${renderBreadcrumb([{ label: 'Users' }])}
+        ${renderSearchBox('users', 'Search by username, ID, or display name...')}
       </div>
       
       <div class="admin-list">
@@ -106,6 +108,7 @@ export async function renderUsersList(container, username, loadView) {
     
     setupBreadcrumbListeners(navigateTo);
     setupPaginationListeners('users', loadView);
+    setupSearchListeners('users', loadView);
     
     document.querySelectorAll('.clickable-row[data-id], .list-card[data-id]').forEach(el => {
       el.onclick = () => navigateTo('users', el.dataset.id);

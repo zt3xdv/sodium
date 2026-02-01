@@ -42897,7 +42897,8 @@ function cleanupStatus() {
 const state = {
   currentView: { type: 'list', tab: 'nodes', id: null, subTab: null },
   currentPage: { nodes: 1, servers: 1, users: 1 },
-  itemsPerPage: { nodes: 10, servers: 10, users: 10 }
+  itemsPerPage: { nodes: 10, servers: 10, users: 10 },
+  searchQuery: { nodes: '', servers: '', users: '' }
 };
 
 function jsonToYaml(obj, indent = 0) {
@@ -43050,16 +43051,54 @@ function setupBreadcrumbListeners(navigateToCallback) {
   });
 }
 
+function renderSearchBox(tab, placeholder) {
+  return `
+    <div class="admin-search">
+      <span class="material-icons-outlined">search</span>
+      <input type="text" id="admin-search-input" placeholder="${placeholder}" value="${escapeHtml(state.searchQuery[tab] || '')}" />
+      ${state.searchQuery[tab] ? `<button class="search-clear" id="admin-search-clear"><span class="material-icons-outlined">close</span></button>` : ''}
+    </div>
+  `;
+}
+
+let searchTimeout = null;
+
+function setupSearchListeners(tab, loadViewCallback) {
+  const input = document.getElementById('admin-search-input');
+  const clearBtn = document.getElementById('admin-search-clear');
+  
+  if (input) {
+    input.oninput = () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        state.searchQuery[tab] = input.value.trim();
+        state.currentPage[tab] = 1;
+        loadViewCallback();
+      }, 300);
+    };
+  }
+  
+  if (clearBtn) {
+    clearBtn.onclick = () => {
+      state.searchQuery[tab] = '';
+      state.currentPage[tab] = 1;
+      loadViewCallback();
+    };
+  }
+}
+
 const navigateTo$8 = (...args) => window.adminNavigate(...args);
 
 async function renderNodesList(container, username, loadView) {
   try {
-    const res = await api(`/api/admin/nodes?page=${state.currentPage.nodes}&per_page=${state.itemsPerPage.nodes}`);
+    const search = state.searchQuery.nodes ? `&search=${encodeURIComponent(state.searchQuery.nodes)}` : '';
+    const res = await api(`/api/admin/nodes?page=${state.currentPage.nodes}&per_page=${state.itemsPerPage.nodes}${search}`);
     const data = await res.json();
     
     container.innerHTML = `
       <div class="admin-header">
         ${renderBreadcrumb([{ label: 'Nodes' }])}
+        ${renderSearchBox('nodes', 'Search by name, IP, or ID...')}
         <div class="admin-header-actions">
           <button class="btn btn-primary" id="create-node-btn">
             <span class="material-icons-outlined">add</span>
@@ -43119,6 +43158,7 @@ async function renderNodesList(container, username, loadView) {
     
     setupBreadcrumbListeners(navigateTo$8);
     setupPaginationListeners('nodes', loadView);
+    setupSearchListeners('nodes', loadView);
     
     document.querySelectorAll('.list-card[data-id]').forEach(card => {
       card.onclick = () => navigateTo$8('nodes', card.dataset.id);
@@ -43549,12 +43589,14 @@ const navigateTo$7 = (...args) => window.adminNavigate(...args);
 
 async function renderServersList(container, username, loadView) {
   try {
-    const res = await api(`/api/admin/servers?page=${state.currentPage.servers}&per_page=${state.itemsPerPage.servers}`);
+    const search = state.searchQuery.servers ? `&search=${encodeURIComponent(state.searchQuery.servers)}` : '';
+    const res = await api(`/api/admin/servers?page=${state.currentPage.servers}&per_page=${state.itemsPerPage.servers}${search}`);
     const data = await res.json();
     
     container.innerHTML = `
       <div class="admin-header">
         ${renderBreadcrumb([{ label: 'Servers' }])}
+        ${renderSearchBox('servers', 'Search by name or ID...')}
         <div class="admin-header-actions">
           <button class="btn btn-primary" id="create-server-btn">
             <span class="material-icons-outlined">add</span>
@@ -43659,6 +43701,7 @@ async function renderServersList(container, username, loadView) {
     
     setupBreadcrumbListeners(navigateTo$7);
     setupPaginationListeners('servers', loadView);
+    setupSearchListeners('servers', loadView);
     
     document.querySelectorAll('.clickable-row[data-id], .list-card[data-id]').forEach(el => {
       el.onclick = () => navigateTo$7('servers', el.dataset.id);
@@ -44369,12 +44412,14 @@ const navigateTo$6 = (...args) => window.adminNavigate(...args);
 
 async function renderUsersList(container, username, loadView) {
   try {
-    const res = await api(`/api/admin/users?page=${state.currentPage.users}&per_page=${state.itemsPerPage.users}`);
+    const search = state.searchQuery.users ? `&search=${encodeURIComponent(state.searchQuery.users)}` : '';
+    const res = await api(`/api/admin/users?page=${state.currentPage.users}&per_page=${state.itemsPerPage.users}${search}`);
     const data = await res.json();
     
     container.innerHTML = `
       <div class="admin-header">
         ${renderBreadcrumb([{ label: 'Users' }])}
+        ${renderSearchBox('users', 'Search by username, ID, or display name...')}
       </div>
       
       <div class="admin-list">
@@ -44467,6 +44512,7 @@ async function renderUsersList(container, username, loadView) {
     
     setupBreadcrumbListeners(navigateTo$6);
     setupPaginationListeners('users', loadView);
+    setupSearchListeners('users', loadView);
     
     document.querySelectorAll('.clickable-row[data-id], .list-card[data-id]').forEach(el => {
       el.onclick = () => navigateTo$6('users', el.dataset.id);

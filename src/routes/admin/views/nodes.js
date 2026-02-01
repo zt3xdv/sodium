@@ -2,18 +2,20 @@ import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
-import { formatBytes, renderPagination, setupPaginationListeners, renderBreadcrumb, setupBreadcrumbListeners, jsonToYaml } from '../utils/ui.js';
+import { formatBytes, renderPagination, setupPaginationListeners, renderBreadcrumb, setupBreadcrumbListeners, jsonToYaml, renderSearchBox, setupSearchListeners } from '../utils/ui.js';
 
 const navigateTo = (...args) => window.adminNavigate(...args);
 
 export async function renderNodesList(container, username, loadView) {
   try {
-    const res = await api(`/api/admin/nodes?page=${state.currentPage.nodes}&per_page=${state.itemsPerPage.nodes}`);
+    const search = state.searchQuery.nodes ? `&search=${encodeURIComponent(state.searchQuery.nodes)}` : '';
+    const res = await api(`/api/admin/nodes?page=${state.currentPage.nodes}&per_page=${state.itemsPerPage.nodes}${search}`);
     const data = await res.json();
     
     container.innerHTML = `
       <div class="admin-header">
         ${renderBreadcrumb([{ label: 'Nodes' }])}
+        ${renderSearchBox('nodes', 'Search by name, IP, or ID...')}
         <div class="admin-header-actions">
           <button class="btn btn-primary" id="create-node-btn">
             <span class="material-icons-outlined">add</span>
@@ -73,6 +75,7 @@ export async function renderNodesList(container, username, loadView) {
     
     setupBreadcrumbListeners(navigateTo);
     setupPaginationListeners('nodes', loadView);
+    setupSearchListeners('nodes', loadView);
     
     document.querySelectorAll('.list-card[data-id]').forEach(card => {
       card.onclick = () => navigateTo('nodes', card.dataset.id);

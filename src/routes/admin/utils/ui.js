@@ -153,3 +153,39 @@ export function setupBreadcrumbListeners(navigateToCallback) {
     };
   });
 }
+
+export function renderSearchBox(tab, placeholder) {
+  return `
+    <div class="admin-search">
+      <span class="material-icons-outlined">search</span>
+      <input type="text" id="admin-search-input" placeholder="${placeholder}" value="${escapeHtml(state.searchQuery[tab] || '')}" />
+      ${state.searchQuery[tab] ? `<button class="search-clear" id="admin-search-clear"><span class="material-icons-outlined">close</span></button>` : ''}
+    </div>
+  `;
+}
+
+let searchTimeout = null;
+
+export function setupSearchListeners(tab, loadViewCallback) {
+  const input = document.getElementById('admin-search-input');
+  const clearBtn = document.getElementById('admin-search-clear');
+  
+  if (input) {
+    input.oninput = () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        state.searchQuery[tab] = input.value.trim();
+        state.currentPage[tab] = 1;
+        loadViewCallback();
+      }, 300);
+    };
+  }
+  
+  if (clearBtn) {
+    clearBtn.onclick = () => {
+      state.searchQuery[tab] = '';
+      state.currentPage[tab] = 1;
+      loadViewCallback();
+    };
+  }
+}

@@ -2,18 +2,20 @@ import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
-import { renderPagination, setupPaginationListeners, renderBreadcrumb, setupBreadcrumbListeners } from '../utils/ui.js';
+import { renderPagination, setupPaginationListeners, renderBreadcrumb, setupBreadcrumbListeners, renderSearchBox, setupSearchListeners } from '../utils/ui.js';
 
 const navigateTo = (...args) => window.adminNavigate(...args);
 
 export async function renderServersList(container, username, loadView) {
   try {
-    const res = await api(`/api/admin/servers?page=${state.currentPage.servers}&per_page=${state.itemsPerPage.servers}`);
+    const search = state.searchQuery.servers ? `&search=${encodeURIComponent(state.searchQuery.servers)}` : '';
+    const res = await api(`/api/admin/servers?page=${state.currentPage.servers}&per_page=${state.itemsPerPage.servers}${search}`);
     const data = await res.json();
     
     container.innerHTML = `
       <div class="admin-header">
         ${renderBreadcrumb([{ label: 'Servers' }])}
+        ${renderSearchBox('servers', 'Search by name or ID...')}
         <div class="admin-header-actions">
           <button class="btn btn-primary" id="create-server-btn">
             <span class="material-icons-outlined">add</span>
@@ -118,6 +120,7 @@ export async function renderServersList(container, username, loadView) {
     
     setupBreadcrumbListeners(navigateTo);
     setupPaginationListeners('servers', loadView);
+    setupSearchListeners('servers', loadView);
     
     document.querySelectorAll('.clickable-row[data-id], .list-card[data-id]').forEach(el => {
       el.onclick = () => navigateTo('servers', el.dataset.id);
