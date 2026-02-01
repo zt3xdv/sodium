@@ -9,7 +9,7 @@
     "prod": "node src/bundler/index.js prod",
     "fast": "node src/bundler/index.js fast",
     "watch": "node src/bundler/index.js watch",
-    "test": "node --test tests/config.test.js tests/auth.test.js tests/db.test.js tests/setup.test.js",
+    "test": "node --test tests/*.test.js",
     "dev": "node src/bundler/index.js dev"
   },
   "keywords": [
