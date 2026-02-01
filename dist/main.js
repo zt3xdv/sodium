@@ -73,14 +73,8 @@ function renderAuth() {
   app.className = 'auth-page';
   
   app.innerHTML = `
-    <!-- injection:auth:container:before -->
-    <div id="inject-auth-container-before" class="injection-slot"></div>
-    
     <div class="auth-container" id="auth-container">
       <div class="auth-card" id="auth-card">
-        <!-- injection:auth:header:before -->
-        <div id="inject-auth-header-before" class="injection-slot"></div>
-        
         <div class="auth-header" id="auth-header">
           <div class="logo">
             <span class="material-icons-outlined">bolt</span>
@@ -89,27 +83,12 @@ function renderAuth() {
           <p class="auth-subtitle">Welcome back</p>
         </div>
         
-        <!-- injection:auth:header:after -->
-        <div id="inject-auth-header-after" class="injection-slot"></div>
-        
-        <!-- injection:auth:tabs:before -->
-        <div id="inject-auth-tabs-before" class="injection-slot"></div>
-        
         <div class="auth-tabs" id="auth-tabs">
           <button class="tab-btn active" data-tab="login">Sign In</button>
           <button class="tab-btn" data-tab="register">Sign Up</button>
         </div>
         
-        <!-- injection:auth:tabs:after -->
-        <div id="inject-auth-tabs-after" class="injection-slot"></div>
-        
-        <!-- injection:auth:login:before -->
-        <div id="inject-auth-login-before" class="injection-slot"></div>
-        
         <form id="login-form" class="auth-form active">
-          <!-- injection:auth:login:fields:before -->
-          <div id="inject-auth-login-fields-before" class="injection-slot"></div>
-          
           <div class="form-group">
             <label for="login-username">Username</label>
             <div class="input-wrapper">
@@ -126,36 +105,15 @@ function renderAuth() {
             </div>
           </div>
           
-          <!-- injection:auth:login:fields:after -->
-          <div id="inject-auth-login-fields-after" class="injection-slot"></div>
-          
           <div class="error-message" id="login-error"></div>
-          
-          <!-- injection:auth:login:button:before -->
-          <div id="inject-auth-login-button-before" class="injection-slot"></div>
           
           <button type="submit" class="btn btn-primary btn-full" id="login-submit-btn">
             <span>Sign In</span>
             <span class="material-icons-outlined">arrow_forward</span>
           </button>
-          
-          <!-- injection:auth:login:button:after -->
-          <div id="inject-auth-login-button-after" class="injection-slot"></div>
-          
-          <!-- injection:auth:login:providers (OAuth buttons) -->
-          <div id="inject-auth-login-providers" class="injection-slot auth-providers"></div>
         </form>
         
-        <!-- injection:auth:login:after -->
-        <div id="inject-auth-login-after" class="injection-slot"></div>
-        
-        <!-- injection:auth:register:before -->
-        <div id="inject-auth-register-before" class="injection-slot"></div>
-        
         <form id="register-form" class="auth-form">
-          <!-- injection:auth:register:fields:before -->
-          <div id="inject-auth-register-fields-before" class="injection-slot"></div>
-          
           <div class="form-group">
             <label for="register-username">Username</label>
             <div class="input-wrapper">
@@ -182,33 +140,15 @@ function renderAuth() {
             </div>
           </div>
           
-          <!-- injection:auth:register:fields:after -->
-          <div id="inject-auth-register-fields-after" class="injection-slot"></div>
-          
           <div class="error-message" id="register-error"></div>
-          
-          <!-- injection:auth:register:button:before -->
-          <div id="inject-auth-register-button-before" class="injection-slot"></div>
           
           <button type="submit" class="btn btn-primary btn-full" id="register-submit-btn">
             <span>Create Account</span>
             <span class="material-icons-outlined">arrow_forward</span>
           </button>
-          
-          <!-- injection:auth:register:button:after -->
-          <div id="inject-auth-register-button-after" class="injection-slot"></div>
-          
-          <!-- injection:auth:register:providers -->
-          <div id="inject-auth-register-providers" class="injection-slot auth-providers"></div>
         </form>
-        
-        <!-- injection:auth:register:after -->
-        <div id="inject-auth-register-after" class="injection-slot"></div>
       </div>
     </div>
-    
-    <!-- injection:auth:container:after -->
-    <div id="inject-auth-container-after" class="injection-slot"></div>
   `;
   
   const tabs = app.querySelectorAll('.tab-btn');
