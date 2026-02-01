@@ -121,9 +121,8 @@ async function loadStatus() {
     if (data.nodes.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <span class="material-icons-outlined icon">cloud_off</span>
-          <h3>No Nodes Available</h3>
-          <p>No nodes have been configured yet. Contact an administrator.</p>
+          <span class="material-icons-outlined">cloud_off</span>
+          <p>No nodes configured</p>
         </div>
       `;
       return;
@@ -136,7 +135,7 @@ async function loadStatus() {
       const diskAllocClass = diskAllocPercent > 80 ? 'high' : diskAllocPercent > 60 ? 'medium' : '';
       
       return `
-        <div class="node-status-card card ${node.status}">
+        <div class="node-status-card ${node.status}">
           <div class="node-header">
             <div class="node-info">
               <span class="node-indicator ${node.status}"></span>
@@ -182,9 +181,8 @@ async function loadStatus() {
   } catch (e) {
     container.innerHTML = `
       <div class="error-state">
-        <span class="material-icons-outlined icon">error_outline</span>
-        <h3>Connection Error</h3>
-        <p>Unable to fetch status. Retrying...</p>
+        <span class="material-icons-outlined">error_outline</span>
+        <p>Connection error. Retrying...</p>
       </div>
     `;
   } finally {

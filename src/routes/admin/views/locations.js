@@ -26,8 +26,7 @@ export async function renderLocationsList(container, username, loadView) {
         ${data.locations.length === 0 ? `
           <div class="empty-state">
             <span class="material-icons-outlined">location_on</span>
-            <h3>No Locations</h3>
-            <p>Create a location to organize your nodes</p>
+            <p>No locations yet</p>
           </div>
         ` : `
           <div class="locations-grid">

@@ -1437,8 +1437,7 @@ async function loadUserProfile(targetUsername) {
       container.innerHTML = `
         <div class="error-state">
           <span class="material-icons-outlined">error</span>
-          <h2>User Not Found</h2>
-          <p>The user you're looking for doesn't exist.</p>
+          <p>User not found</p>
           <a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>
         </div>
       `;
@@ -1534,8 +1533,7 @@ async function loadUserProfile(targetUsername) {
     container.innerHTML = `
       <div class="error-state">
         <span class="material-icons-outlined">wifi_off</span>
-        <h2>Connection Error</h2>
-        <p>Unable to load profile. Please try again.</p>
+        <p>Connection error. Please try again.</p>
         <a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>
       </div>
     `;
@@ -1630,14 +1628,14 @@ function renderServers() {
       
       <div class="section-divider"></div>
       
-      <div class="settings-section resource-limits">
+      <div class="resource-limits">
         <div class="section-header">
           <span class="material-icons-outlined">analytics</span>
-          <h3>Resource Usage</h3>
+          <h2>Resource Usage</h2>
         </div>
         <div class="limits-grid" id="limits-display">
           <div class="limit-item">
-            <span class="label">Loading servers...</span>
+            <span class="label">Loading...</span>
           </div>
         </div>
       </div>
@@ -1705,16 +1703,15 @@ async function loadServers() {
     if (data.servers.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <span class="material-icons-outlined icon">dns</span>
-          <h3>No Servers</h3>
-          <p>You don't have any servers yet.</p>
+          <span class="material-icons-outlined">dns</span>
+          <p>No servers yet</p>
         </div>
       `;
       return;
     }
     
     container.innerHTML = data.servers.map(server => `
-      <div class="settings-section server-card" data-id="${server.id}">
+      <div class="server-card" data-id="${server.id}">
         <div class="section-header">
           <span class="material-icons-outlined">dns</span>
           <h3>${escapeHtml(server.name)}</h3>
@@ -1817,8 +1814,7 @@ async function renderCreateServer() {
       document.querySelector('.create-server-content').innerHTML = `
         <div class="empty-state">
           <span class="material-icons-outlined">egg_alt</span>
-          <h3>No Eggs Available</h3>
-          <p>There are no eggs configured. Please contact an administrator.</p>
+          <p>No eggs configured. Contact an administrator.</p>
           <a href="/servers" class="btn btn-primary">Go Back</a>
         </div>
       `;
@@ -1836,8 +1832,7 @@ async function renderCreateServer() {
       document.querySelector('.create-server-content').innerHTML = `
         <div class="empty-state">
           <span class="material-icons-outlined">block</span>
-          <h3>Server Limit Reached</h3>
-          <p>You have reached your maximum server limit (${limitsData.limits.servers}).</p>
+          <p>Server limit reached (${limitsData.limits.servers} max)</p>
           <a href="/servers" class="btn btn-primary">Go Back</a>
         </div>
       `;
@@ -42741,9 +42736,8 @@ async function loadStatus() {
     if (data.nodes.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <span class="material-icons-outlined icon">cloud_off</span>
-          <h3>No Nodes Available</h3>
-          <p>No nodes have been configured yet. Contact an administrator.</p>
+          <span class="material-icons-outlined">cloud_off</span>
+          <p>No nodes configured</p>
         </div>
       `;
       return;
@@ -42756,7 +42750,7 @@ async function loadStatus() {
       const diskAllocClass = diskAllocPercent > 80 ? 'high' : diskAllocPercent > 60 ? 'medium' : '';
       
       return `
-        <div class="node-status-card card ${node.status}">
+        <div class="node-status-card ${node.status}">
           <div class="node-header">
             <div class="node-info">
               <span class="node-indicator ${node.status}"></span>
@@ -42802,9 +42796,8 @@ async function loadStatus() {
   } catch (e) {
     container.innerHTML = `
       <div class="error-state">
-        <span class="material-icons-outlined icon">error_outline</span>
-        <h3>Connection Error</h3>
-        <p>Unable to fetch status. Retrying...</p>
+        <span class="material-icons-outlined">error_outline</span>
+        <p>Connection error. Retrying...</p>
       </div>
     `;
   } finally {
@@ -43494,8 +43487,7 @@ async function renderServersList(container, username, loadView) {
         ${data.servers.length === 0 ? `
           <div class="empty-state">
             <span class="material-icons-outlined">storage</span>
-            <h3>No Servers</h3>
-            <p>No servers have been created yet</p>
+            <p>No servers yet</p>
           </div>
         ` : `
           <div class="list-table">
@@ -44309,8 +44301,7 @@ async function renderUsersList(container, username, loadView) {
         ${data.users.length === 0 ? `
           <div class="empty-state">
             <span class="material-icons-outlined">people</span>
-            <h3>No Users</h3>
-            <p>No users have been created yet</p>
+            <p>No users yet</p>
           </div>
         ` : `
           <div class="list-table">
@@ -44713,8 +44704,7 @@ async function renderNestsList(container, username, loadView) {
         ${nests.length === 0 ? `
           <div class="empty-state">
             <span class="material-icons-outlined">egg</span>
-            <h3>No Nests</h3>
-            <p>Create a nest to organize your eggs</p>
+            <p>No nests yet. Create one to organize your eggs.</p>
           </div>
         ` : `
           <div class="nests-list">
@@ -45726,8 +45716,7 @@ async function renderLocationsList(container, username, loadView) {
         ${data.locations.length === 0 ? `
           <div class="empty-state">
             <span class="material-icons-outlined">location_on</span>
-            <h3>No Locations</h3>
-            <p>Create a location to organize your nodes</p>
+            <p>No locations yet</p>
           </div>
         ` : `
           <div class="locations-grid">
@@ -46253,8 +46242,7 @@ async function renderAnnouncementsList(container, username, loadView) {
         ${announcements.length === 0 ? `
           <div class="empty-state">
             <span class="material-icons-outlined">campaign</span>
-            <h3>No Announcements</h3>
-            <p>Create announcements to notify users</p>
+            <p>No announcements yet</p>
           </div>
         ` : `
           <div class="list-table">
@@ -46894,8 +46882,7 @@ async function renderActivityLog() {
           ${data.logs.length === 0 ? `
             <div class="empty-state">
               <span class="material-icons-outlined">history</span>
-              <h3>No Activity</h3>
-              <p>Your activity will appear here</p>
+              <p>No activity yet</p>
             </div>
           ` : data.logs.map(log => {
             const info = getActivityInfo(log.action);

@@ -61,8 +61,7 @@ export async function renderActivityLog() {
           ${data.logs.length === 0 ? `
             <div class="empty-state">
               <span class="material-icons-outlined">history</span>
-              <h3>No Activity</h3>
-              <p>Your activity will appear here</p>
+              <p>No activity yet</p>
             </div>
           ` : data.logs.map(log => {
             const info = getActivityInfo(log.action);

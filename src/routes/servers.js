@@ -24,14 +24,14 @@ export function renderServers() {
       
       <div class="section-divider"></div>
       
-      <div class="settings-section resource-limits">
+      <div class="resource-limits">
         <div class="section-header">
           <span class="material-icons-outlined">analytics</span>
-          <h3>Resource Usage</h3>
+          <h2>Resource Usage</h2>
         </div>
         <div class="limits-grid" id="limits-display">
           <div class="limit-item">
-            <span class="label">Loading servers...</span>
+            <span class="label">Loading...</span>
           </div>
         </div>
       </div>
@@ -99,16 +99,15 @@ async function loadServers() {
     if (data.servers.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <span class="material-icons-outlined icon">dns</span>
-          <h3>No Servers</h3>
-          <p>You don't have any servers yet.</p>
+          <span class="material-icons-outlined">dns</span>
+          <p>No servers yet</p>
         </div>
       `;
       return;
     }
     
     container.innerHTML = data.servers.map(server => `
-      <div class="settings-section server-card" data-id="${server.id}">
+      <div class="server-card" data-id="${server.id}">
         <div class="section-header">
           <span class="material-icons-outlined">dns</span>
           <h3>${escapeHtml(server.name)}</h3>

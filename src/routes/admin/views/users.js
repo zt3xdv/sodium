@@ -20,8 +20,7 @@ export async function renderUsersList(container, username, loadView) {
         ${data.users.length === 0 ? `
           <div class="empty-state">
             <span class="material-icons-outlined">people</span>
-            <h3>No Users</h3>
-            <p>No users have been created yet</p>
+            <p>No users yet</p>
           </div>
         ` : `
           <div class="list-table">

@@ -39,8 +39,7 @@ export async function renderCreateServer() {
       document.querySelector('.create-server-content').innerHTML = `
         <div class="empty-state">
           <span class="material-icons-outlined">egg_alt</span>
-          <h3>No Eggs Available</h3>
-          <p>There are no eggs configured. Please contact an administrator.</p>
+          <p>No eggs configured. Contact an administrator.</p>
           <a href="/servers" class="btn btn-primary">Go Back</a>
         </div>
       `;
@@ -58,8 +57,7 @@ export async function renderCreateServer() {
       document.querySelector('.create-server-content').innerHTML = `
         <div class="empty-state">
           <span class="material-icons-outlined">block</span>
-          <h3>Server Limit Reached</h3>
-          <p>You have reached your maximum server limit (${limitsData.limits.servers}).</p>
+          <p>Server limit reached (${limitsData.limits.servers} max)</p>
           <a href="/servers" class="btn btn-primary">Go Back</a>
         </div>
       `;

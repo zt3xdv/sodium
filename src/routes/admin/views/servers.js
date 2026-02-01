@@ -26,8 +26,7 @@ export async function renderServersList(container, username, loadView) {
         ${data.servers.length === 0 ? `
           <div class="empty-state">
             <span class="material-icons-outlined">storage</span>
-            <h3>No Servers</h3>
-            <p>No servers have been created yet</p>
+            <p>No servers yet</p>
           </div>
         ` : `
           <div class="list-table">

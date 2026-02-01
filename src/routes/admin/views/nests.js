@@ -55,8 +55,7 @@ export async function renderNestsList(container, username, loadView) {
         ${nests.length === 0 ? `
           <div class="empty-state">
             <span class="material-icons-outlined">egg</span>
-            <h3>No Nests</h3>
-            <p>Create a nest to organize your eggs</p>
+            <p>No nests yet. Create one to organize your eggs.</p>
           </div>
         ` : `
           <div class="nests-list">

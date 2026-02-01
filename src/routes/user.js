@@ -28,8 +28,7 @@ async function loadUserProfile(targetUsername) {
       container.innerHTML = `
         <div class="error-state">
           <span class="material-icons-outlined">error</span>
-          <h2>User Not Found</h2>
-          <p>The user you're looking for doesn't exist.</p>
+          <p>User not found</p>
           <a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>
         </div>
       `;
@@ -125,8 +124,7 @@ async function loadUserProfile(targetUsername) {
     container.innerHTML = `
       <div class="error-state">
         <span class="material-icons-outlined">wifi_off</span>
-        <h2>Connection Error</h2>
-        <p>Unable to load profile. Please try again.</p>
+        <p>Connection error. Please try again.</p>
         <a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>
       </div>
     `;

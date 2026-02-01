@@ -58,8 +58,7 @@ export async function renderAnnouncementsList(container, username, loadView) {
         ${announcements.length === 0 ? `
           <div class="empty-state">
             <span class="material-icons-outlined">campaign</span>
-            <h3>No Announcements</h3>
-            <p>Create announcements to notify users</p>
+            <p>No announcements yet</p>
           </div>
         ` : `
           <div class="list-table">
