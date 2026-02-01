@@ -421,14 +421,14 @@ function renderDashboard() {
     </div>
   `;
   
-  loadLimits$1();
+  loadLimits();
   loadServers$1();
   loadAnnouncements();
   loadQuickStats();
   
   pollInterval$2 = setInterval(() => {
     loadServers$1();
-    loadLimits$1();
+    loadLimits();
     loadQuickStats();
   }, 10000);
 }
@@ -466,7 +466,7 @@ async function loadQuickStats() {
   }
 }
 
-async function loadLimits$1() {
+async function loadLimits() {
   const username = localStorage.getItem('username');
   const container = document.getElementById('limits-display');
   if (!container) return;
@@ -1726,70 +1726,13 @@ function renderServers() {
         <div class="loading-spinner"></div>
       </div>
       
-      <div class="section-divider"></div>
-      
-      <div class="resource-limits">
-        <div class="section-header">
-          <span class="material-icons-outlined">analytics</span>
-          <h2>Resource Usage</h2>
-        </div>
-        <div class="limits-grid" id="limits-display">
-          <div class="limit-item">
-            <span class="label">Loading...</span>
-          </div>
-        </div>
-      </div>
+
     </div>
   `;
   
   loadServers();
-  loadLimits();
   
   pollInterval$1 = setInterval(loadServers, 10000);
-}
-
-async function loadLimits() {
-  const username = localStorage.getItem('username');
-  try {
-    const res = await fetch(`/api/user/limits?username=${encodeURIComponent(username)}`);
-    const data = await res.json();
-    
-    const container = document.getElementById('limits-display');
-    if (!container) return;
-    
-    container.innerHTML = `
-      <div class="limit-item">
-        <span class="label">Servers</span>
-        <div class="progress-bar">
-          <div class="progress" style="width: ${(data.used.servers / data.limits.servers) * 100}%"></div>
-        </div>
-        <span class="value">${data.used.servers} / ${data.limits.servers}</span>
-      </div>
-      <div class="limit-item">
-        <span class="label">Memory</span>
-        <div class="progress-bar">
-          <div class="progress" style="width: ${(data.used.memory / data.limits.memory) * 100}%"></div>
-        </div>
-        <span class="value">${data.used.memory} / ${data.limits.memory} MB</span>
-      </div>
-      <div class="limit-item">
-        <span class="label">Disk</span>
-        <div class="progress-bar">
-          <div class="progress" style="width: ${(data.used.disk / data.limits.disk) * 100}%"></div>
-        </div>
-        <span class="value">${data.used.disk} / ${data.limits.disk} MB</span>
-      </div>
-      <div class="limit-item">
-        <span class="label">CPU</span>
-        <div class="progress-bar">
-          <div class="progress" style="width: ${(data.used.cpu / data.limits.cpu) * 100}%"></div>
-        </div>
-        <span class="value">${data.used.cpu} / ${data.limits.cpu}%</span>
-      </div>
-    `;
-  } catch (e) {
-    console.error('Failed to load limits:', e);
-  }
 }
 
 async function loadServers() {
