@@ -108,6 +108,11 @@ export const routes = {
     cleanup: cleanupAdmin,
     options: { title: 'Panel Settings', auth: true, sidebar: true }
   },
+  '/admin/billing': {
+    render: (params) => renderAdmin('billing', params),
+    cleanup: cleanupAdmin,
+    options: { title: 'Billing', auth: true, sidebar: true }
+  },
   '/profile': {
     render: renderProfile,
     options: {

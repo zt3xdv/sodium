@@ -28,7 +28,10 @@ const COLLECTIONS = {
   apiKeys: 7,
   announcements: 8,
   auditLogs: 9,
-  activityLogs: 10
+  activityLogs: 10,
+  billingPlans: 11,
+  subscriptions: 12,
+  payments: 13
 };
 
 let cache = {
@@ -41,7 +44,10 @@ let cache = {
   apiKeys: [],
   announcements: [],
   auditLogs: [],
-  activityLogs: []
+  activityLogs: [],
+  billingPlans: [],
+  subscriptions: [],
+  payments: []
 };
 
 let dbConnection = null;
@@ -353,6 +359,9 @@ const apiKeysAccessors = createCollectionAccessors('apiKeys');
 const announcementsAccessors = createCollectionAccessors('announcements');
 const auditLogsAccessors = createCollectionAccessors('auditLogs');
 const activityLogsAccessors = createCollectionAccessors('activityLogs');
+const billingPlansAccessors = createCollectionAccessors('billingPlans');
+const subscriptionsAccessors = createCollectionAccessors('subscriptions');
+const paymentsAccessors = createCollectionAccessors('payments');
 
 export const loadUsers = usersAccessors.load;
 export const saveUsers = usersAccessors.save;
@@ -374,6 +383,12 @@ export const loadAuditLogs = auditLogsAccessors.load;
 export const saveAuditLogs = auditLogsAccessors.save;
 export const loadActivityLogs = activityLogsAccessors.load;
 export const saveActivityLogs = activityLogsAccessors.save;
+export const loadBillingPlans = billingPlansAccessors.load;
+export const saveBillingPlans = billingPlansAccessors.save;
+export const loadSubscriptions = subscriptionsAccessors.load;
+export const saveSubscriptions = subscriptionsAccessors.save;
+export const loadPayments = paymentsAccessors.load;
+export const savePayments = paymentsAccessors.save;
 
 export function loadConfig() {
   return loadFullConfig();

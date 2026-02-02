@@ -5918,6 +5918,208 @@ input, textarea, select {
   }
 }
 
+.billing-status-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  border-left: 4px solid var(--text-tertiary);
+}
+.billing-status-card.enabled {
+  border-left-color: var(--success);
+}
+.billing-status-card.disabled {
+  border-left-color: var(--warning);
+}
+.billing-status-card .billing-status-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.billing-status-card .billing-status-icon .material-icons-outlined {
+  font-size: 24px;
+  color: var(--text-secondary);
+}
+.billing-status-card .billing-status-info {
+  flex: 1;
+}
+.billing-status-card .billing-status-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.billing-status-card .billing-status-info p {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+@media (max-width: 600px) {
+  .billing-status-card {
+    flex-wrap: wrap;
+  }
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.plan-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  position: relative;
+  border: 1px solid var(--border);
+  transition: all var(--transition-fast);
+}
+.plan-card:hover {
+  border-color: var(--accent);
+}
+.plan-card.popular {
+  border-color: var(--accent);
+}
+.plan-card.popular .popular-badge {
+  position: absolute;
+  top: -10px;
+  right: 16px;
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+.plan-card .plan-header {
+  margin-bottom: 12px;
+}
+.plan-card .plan-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.plan-card .plan-header .plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.plan-card .plan-header .plan-price .currency {
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+.plan-card .plan-header .plan-price .amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.plan-card .plan-header .plan-price .period {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.plan-card .plan-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  min-height: 36px;
+}
+.plan-card .plan-limits {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+.plan-card .plan-limits .limit-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.plan-card .plan-limits .limit-item .material-icons-outlined {
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+.plan-card .plan-features {
+  margin-bottom: 16px;
+}
+.plan-card .plan-features .feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+.plan-card .plan-features .feature-item .material-icons-outlined {
+  font-size: 16px;
+  color: var(--success);
+}
+.plan-card .plan-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.plan-card .plan-actions .status-badge {
+  margin-right: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.admin-table th, .admin-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.admin-table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+.admin-table td {
+  font-size: 13px;
+}
+.admin-table tr:hover td {
+  background: var(--bg-tertiary);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+}
+.status-badge.active, .status-badge.status-active {
+  background: rgba(var(--success-rgb), 0.15);
+  color: var(--success);
+}
+.status-badge.inactive, .status-badge.status-inactive {
+  background: rgba(var(--text-tertiary-rgb), 0.15);
+  color: var(--text-tertiary);
+}
+.status-badge.status-pending {
+  background: rgba(var(--warning-rgb), 0.15);
+  color: var(--warning);
+}
+.status-badge.status-cancelled, .status-badge.status-rejected {
+  background: rgba(var(--danger-rgb), 0.15);
+  color: var(--danger);
+}
+
 .activity-page {
   max-width: 750px;
   margin: 0 auto;
