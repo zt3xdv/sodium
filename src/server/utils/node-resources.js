@@ -27,11 +27,26 @@ export function getNodeAvailableResources(nodeId) {
     }
   }
   
+  // Apply overallocation percentages
+  const memoryOverallocation = node.memory_overallocation || 0;
+  const diskOverallocation = node.disk_overallocation || 0;
+  
+  const effectiveMemory = Math.floor(node.memory * (1 + memoryOverallocation / 100));
+  const effectiveDisk = Math.floor(node.disk * (1 + diskOverallocation / 100));
+  
   return {
-    available_memory: node.memory - usedMemory,
-    available_disk: node.disk - usedDisk,
+    total_memory: node.memory,
+    total_disk: node.disk,
+    effective_memory: effectiveMemory,
+    effective_disk: effectiveDisk,
+    used_memory: usedMemory,
+    used_disk: usedDisk,
+    available_memory: effectiveMemory - usedMemory,
+    available_disk: effectiveDisk - usedDisk,
     available_ports: availablePorts,
     allocation_start: allocationStart,
-    allocation_end: allocationEnd
+    allocation_end: allocationEnd,
+    memory_overallocation: memoryOverallocation,
+    disk_overallocation: diskOverallocation
   };
 }

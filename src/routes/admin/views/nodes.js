@@ -305,6 +305,23 @@ function renderNodeSubTab(node, locations, username) {
             </div>
             
             <div class="form-section">
+              <h4>Resource Overallocation</h4>
+              <p class="form-hint">Allow the node to allocate more resources than physically available. Use with caution.</p>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Memory Overallocation (%)</label>
+                  <input type="number" name="memory_overallocation" value="${node.memory_overallocation || 0}" min="0" max="100" />
+                  <small class="form-hint">0% = No overallocation, 100% = Double the available memory</small>
+                </div>
+                <div class="form-group">
+                  <label>Disk Overallocation (%)</label>
+                  <input type="number" name="disk_overallocation" value="${node.disk_overallocation || 0}" min="0" max="100" />
+                  <small class="form-hint">0% = No overallocation, 100% = Double the available disk</small>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-section">
               <h4>Options</h4>
               <div class="form-toggles">
                 <label class="toggle-item">

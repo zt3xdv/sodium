@@ -833,3 +833,341 @@
   
   @media (max-width: 768px) { max-width: 100%; order: 3; width: 100%; }
 }
+
+// ==================== SETTINGS LAYOUT ====================
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.settings-sidebar {
+  @media (max-width: 900px) {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    overflow-x: auto;
+  }
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 20px;
+  
+  @media (max-width: 900px) {
+    flex-direction: row;
+    position: static;
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  text-align: left;
+  white-space: nowrap;
+  
+  .material-icons-outlined { font-size: 18px; }
+  
+  &:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+  
+  &.active {
+    background: var(--accent);
+    color: #fff;
+    
+    .material-icons-outlined { color: inherit; }
+  }
+}
+
+.settings-content {
+  min-width: 0;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-section-header {
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  
+  p {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+}
+
+.settings-section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  
+  @media (max-width: 600px) {
+    flex-direction: column;
+  }
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// ==================== OAUTH PROVIDER CARDS ====================
+
+.oauth-providers-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.oauth-provider-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.oauth-provider-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-left: 4px solid;
+}
+
+.oauth-provider-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .material-icons-outlined {
+    font-size: 20px;
+    color: #fff;
+  }
+}
+
+.oauth-provider-card .oauth-provider-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.oauth-provider-card .oauth-provider-name {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.oauth-provider-card .oauth-provider-type {
+  display: block;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.oauth-provider-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-color);
+}
+
+.oauth-provider-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  
+  .material-icons-outlined { font-size: 14px; }
+}
+
+.oauth-provider-actions {
+  display: flex;
+  gap: 8px;
+}
+
+// ==================== API KEY CARDS ====================
+
+.api-key-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  
+  @media (max-width: 600px) {
+    flex-wrap: wrap;
+  }
+}
+
+.api-key-card-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.api-key-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .material-icons-outlined {
+    font-size: 20px;
+    color: var(--accent);
+  }
+}
+
+.api-key-card .api-key-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.api-key-card .api-key-name {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.api-key-card .api-key-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.api-key-card .api-key-permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  
+  @media (max-width: 600px) {
+    order: 3;
+    width: 100%;
+  }
+}
+
+// ==================== EMPTY STATE CARD ====================
+
+.empty-state-card {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--border-color);
+  
+  .material-icons-outlined {
+    font-size: 48px;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  
+  p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+// ==================== DANGER CARD ====================
+
+.danger-card {
+  border-color: var(--danger) !important;
+  
+  h3 { color: var(--danger); }
+}
+
+.danger-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.danger-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.05);
+  border-radius: var(--radius-md);
+  
+  @media (max-width: 500px) {
+    flex-direction: column;
+    align-items: flex-start;
+    
+    .btn { width: 100%; justify-content: center; }
+  }
+}
+
+.danger-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.danger-title {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.danger-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}

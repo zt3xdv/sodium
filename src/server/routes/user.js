@@ -1,7 +1,8 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { loadUsers, saveUsers, loadServers } from '../db.js';
-import { validateUsername, sanitizeText, sanitizeUrl, sanitizeLinks } from '../utils/helpers.js';
+import { validateUsername, sanitizeText, sanitizeUrl, sanitizeLinks, generateUUID } from '../utils/helpers.js';
 import { authenticateUser } from '../utils/auth.js';
 
 const router = express.Router();
@@ -149,6 +150,122 @@ router.get('/limits', (req, res) => {
   const limits = user.limits || { servers: 2, memory: 2048, disk: 10240, cpu: 200 };
   
   res.json({ limits, used });
+});
+
+// ==================== SSH KEYS ====================
+
+// List user's SSH keys
+router.get('/ssh-keys', authenticateUser, (req, res) => {
+  const data = loadUsers();
+  const user = data.users.find(u => u.id === req.user.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  
+  const keys = (user.ssh_keys || []).map(k => ({
+    id: k.id,
+    name: k.name,
+    fingerprint: k.fingerprint,
+    created_at: k.created_at,
+    last_used: k.last_used
+  }));
+  
+  res.json({ keys });
+});
+
+// Add SSH key
+router.post('/ssh-keys', authenticateUser, (req, res) => {
+  const { name, public_key } = req.body;
+  
+  if (!name || !public_key) {
+    return res.status(400).json({ error: 'Name and public key are required' });
+  }
+  
+  // Validate SSH key format
+  const keyPattern = /^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521)\s+[A-Za-z0-9+/=]+/;
+  if (!keyPattern.test(public_key.trim())) {
+    return res.status(400).json({ error: 'Invalid SSH public key format' });
+  }
+  
+  const data = loadUsers();
+  const userIdx = data.users.findIndex(u => u.id === req.user.id);
+  if (userIdx === -1) return res.status(404).json({ error: 'User not found' });
+  
+  if (!data.users[userIdx].ssh_keys) {
+    data.users[userIdx].ssh_keys = [];
+  }
+  
+  // Check for duplicate key
+  const keyData = public_key.trim().split(' ')[1];
+  if (data.users[userIdx].ssh_keys.some(k => k.public_key.includes(keyData))) {
+    return res.status(400).json({ error: 'This SSH key is already added' });
+  }
+  
+  // Generate fingerprint
+  const keyBuffer = Buffer.from(keyData, 'base64');
+  const hash = crypto.createHash('sha256').update(keyBuffer).digest('base64');
+  const fingerprint = `SHA256:${hash.replace(/=+$/, '')}`;
+  
+  const newKey = {
+    id: generateUUID(),
+    name: sanitizeText(name.slice(0, 50)),
+    public_key: public_key.trim(),
+    fingerprint,
+    created_at: new Date().toISOString(),
+    last_used: null
+  };
+  
+  data.users[userIdx].ssh_keys.push(newKey);
+  saveUsers(data);
+  
+  res.json({ 
+    success: true, 
+    key: {
+      id: newKey.id,
+      name: newKey.name,
+      fingerprint: newKey.fingerprint,
+      created_at: newKey.created_at
+    }
+  });
+});
+
+// Delete SSH key
+router.delete('/ssh-keys/:id', authenticateUser, (req, res) => {
+  const data = loadUsers();
+  const userIdx = data.users.findIndex(u => u.id === req.user.id);
+  if (userIdx === -1) return res.status(404).json({ error: 'User not found' });
+  
+  const keys = data.users[userIdx].ssh_keys || [];
+  const keyIdx = keys.findIndex(k => k.id === req.params.id);
+  
+  if (keyIdx === -1) {
+    return res.status(404).json({ error: 'SSH key not found' });
+  }
+  
+  data.users[userIdx].ssh_keys.splice(keyIdx, 1);
+  saveUsers(data);
+  
+  res.json({ success: true });
+});
+
+// Rename SSH key
+router.put('/ssh-keys/:id', authenticateUser, (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+  
+  const data = loadUsers();
+  const userIdx = data.users.findIndex(u => u.id === req.user.id);
+  if (userIdx === -1) return res.status(404).json({ error: 'User not found' });
+  
+  const keys = data.users[userIdx].ssh_keys || [];
+  const keyIdx = keys.findIndex(k => k.id === req.params.id);
+  
+  if (keyIdx === -1) {
+    return res.status(404).json({ error: 'SSH key not found' });
+  }
+  
+  data.users[userIdx].ssh_keys[keyIdx].name = sanitizeText(name.slice(0, 50));
+  saveUsers(data);
+  
+  res.json({ success: true });
 });
 
 export default router;

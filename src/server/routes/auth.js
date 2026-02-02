@@ -9,6 +9,94 @@ import { logActivity, ACTIVITY_TYPES } from '../utils/activity.js';
 
 const router = express.Router();
 
+// OAuth provider configurations
+const OAUTH_CONFIGS = {
+  discord: {
+    authorize_url: 'https://discord.com/api/oauth2/authorize',
+    token_url: 'https://discord.com/api/oauth2/token',
+    userinfo_url: 'https://discord.com/api/users/@me',
+    scopes: 'identify email'
+  },
+  google: {
+    authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth',
+    token_url: 'https://oauth2.googleapis.com/token',
+    userinfo_url: 'https://www.googleapis.com/oauth2/v2/userinfo',
+    scopes: 'openid email profile'
+  },
+  github: {
+    authorize_url: 'https://github.com/login/oauth/authorize',
+    token_url: 'https://github.com/login/oauth/access_token',
+    userinfo_url: 'https://api.github.com/user',
+    scopes: 'read:user user:email'
+  },
+  gitlab: {
+    authorize_url: 'https://gitlab.com/oauth/authorize',
+    token_url: 'https://gitlab.com/oauth/token',
+    userinfo_url: 'https://gitlab.com/api/v4/user',
+    scopes: 'read_user'
+  },
+  microsoft: {
+    authorize_url: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+    token_url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+    userinfo_url: 'https://graph.microsoft.com/v1.0/me',
+    scopes: 'openid email profile User.Read'
+  },
+  twitter: {
+    authorize_url: 'https://twitter.com/i/oauth2/authorize',
+    token_url: 'https://api.twitter.com/2/oauth2/token',
+    userinfo_url: 'https://api.twitter.com/2/users/me',
+    scopes: 'users.read tweet.read'
+  },
+  facebook: {
+    authorize_url: 'https://www.facebook.com/v18.0/dialog/oauth',
+    token_url: 'https://graph.facebook.com/v18.0/oauth/access_token',
+    userinfo_url: 'https://graph.facebook.com/v18.0/me?fields=id,name,email,picture',
+    scopes: 'email public_profile'
+  },
+  apple: {
+    authorize_url: 'https://appleid.apple.com/auth/authorize',
+    token_url: 'https://appleid.apple.com/auth/token',
+    userinfo_url: null,
+    scopes: 'name email'
+  },
+  twitch: {
+    authorize_url: 'https://id.twitch.tv/oauth2/authorize',
+    token_url: 'https://id.twitch.tv/oauth2/token',
+    userinfo_url: 'https://api.twitch.tv/helix/users',
+    scopes: 'user:read:email'
+  },
+  slack: {
+    authorize_url: 'https://slack.com/oauth/v2/authorize',
+    token_url: 'https://slack.com/api/oauth.v2.access',
+    userinfo_url: 'https://slack.com/api/users.identity',
+    scopes: 'identity.basic identity.email identity.avatar'
+  },
+  linkedin: {
+    authorize_url: 'https://www.linkedin.com/oauth/v2/authorization',
+    token_url: 'https://www.linkedin.com/oauth/v2/accessToken',
+    userinfo_url: 'https://api.linkedin.com/v2/userinfo',
+    scopes: 'openid profile email'
+  },
+  spotify: {
+    authorize_url: 'https://accounts.spotify.com/authorize',
+    token_url: 'https://accounts.spotify.com/api/token',
+    userinfo_url: 'https://api.spotify.com/v1/me',
+    scopes: 'user-read-email user-read-private'
+  },
+  reddit: {
+    authorize_url: 'https://www.reddit.com/api/v1/authorize',
+    token_url: 'https://www.reddit.com/api/v1/access_token',
+    userinfo_url: 'https://oauth.reddit.com/api/v1/me',
+    scopes: 'identity'
+  },
+  bitbucket: {
+    authorize_url: 'https://bitbucket.org/site/oauth2/authorize',
+    token_url: 'https://bitbucket.org/site/oauth2/access_token',
+    userinfo_url: 'https://api.bitbucket.org/2.0/user',
+    scopes: 'account email'
+  }
+};
+
 const authLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many attempts, try again later' });
 
 router.post('/register', authLimiter, async (req, res) => {
@@ -109,6 +197,323 @@ router.post('/login', authLimiter, async (req, res) => {
   logActivity(user.id, ACTIVITY_TYPES.LOGIN, { method: 'password' }, req.ip);
   
   res.json({ success: true, user: userWithoutPassword, token });
+});
+
+// ==================== OAUTH ====================
+
+// Get enabled OAuth providers for login page
+router.get('/oauth/providers', (req, res) => {
+  const config = loadConfig();
+  const providers = (config.oauth?.providers || []).filter(p => p.enabled);
+  
+  res.json({
+    providers: providers.map(p => ({
+      id: p.id,
+      name: p.name,
+      type: p.type
+    }))
+  });
+});
+
+// Initiate OAuth flow
+router.get('/oauth/:providerId', (req, res) => {
+  const config = loadConfig();
+  const provider = (config.oauth?.providers || []).find(p => p.id === req.params.providerId && p.enabled);
+  
+  if (!provider) {
+    return res.status(404).json({ error: 'OAuth provider not found or disabled' });
+  }
+  
+  const oauthConfig = OAUTH_CONFIGS[provider.type] || {};
+  const authorizeUrl = provider.authorize_url || oauthConfig.authorize_url;
+  const scopes = provider.scopes || oauthConfig.scopes;
+  
+  if (!authorizeUrl || !provider.client_id) {
+    return res.status(400).json({ error: 'OAuth provider not configured properly' });
+  }
+  
+  const panelUrl = config.panel?.url || `${req.protocol}://${req.get('host')}`;
+  const redirectUri = `${panelUrl}/api/auth/oauth/${provider.id}/callback`;
+  const state = generateUUID();
+  
+  // Store state in session or temporary storage
+  res.cookie('oauth_state', state, { httpOnly: true, maxAge: 600000 });
+  
+  const params = new URLSearchParams({
+    client_id: provider.client_id,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: scopes,
+    state: state
+  });
+  
+  res.redirect(`${authorizeUrl}?${params.toString()}`);
+});
+
+// OAuth callback
+router.get('/oauth/:providerId/callback', async (req, res) => {
+  const { code, state } = req.query;
+  const storedState = req.cookies?.oauth_state;
+  
+  if (!code) {
+    return res.redirect('/auth?error=oauth_failed');
+  }
+  
+  if (state !== storedState) {
+    return res.redirect('/auth?error=invalid_state');
+  }
+  
+  const config = loadConfig();
+  const provider = (config.oauth?.providers || []).find(p => p.id === req.params.providerId && p.enabled);
+  
+  if (!provider) {
+    return res.redirect('/auth?error=provider_not_found');
+  }
+  
+  const oauthConfig = OAUTH_CONFIGS[provider.type] || {};
+  const tokenUrl = provider.token_url || oauthConfig.token_url;
+  const userinfoUrl = provider.userinfo_url || oauthConfig.userinfo_url;
+  const panelUrl = config.panel?.url || `${req.protocol}://${req.get('host')}`;
+  const redirectUri = `${panelUrl}/api/auth/oauth/${provider.id}/callback`;
+  
+  try {
+    // Exchange code for token
+    const tokenRes = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: new URLSearchParams({
+        client_id: provider.client_id,
+        client_secret: provider.client_secret,
+        code: code,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code'
+      })
+    });
+    
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+    
+    if (!accessToken) {
+      return res.redirect('/auth?error=token_failed');
+    }
+    
+    // Get user info
+    const userRes = await fetch(userinfoUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json'
+      }
+    });
+    
+    const userData = await userRes.json();
+    
+    // Extract user info based on provider type
+    let oauthId, email, username, displayName, avatar;
+    
+    switch (provider.type) {
+      case 'discord':
+        oauthId = userData.id;
+        email = userData.email;
+        username = userData.username;
+        displayName = userData.global_name || userData.username;
+        avatar = userData.avatar ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png` : null;
+        break;
+      case 'google':
+        oauthId = userData.id;
+        email = userData.email;
+        username = userData.email?.split('@')[0];
+        displayName = userData.name;
+        avatar = userData.picture;
+        break;
+      case 'github':
+        oauthId = String(userData.id);
+        email = userData.email;
+        username = userData.login;
+        displayName = userData.name || userData.login;
+        avatar = userData.avatar_url;
+        break;
+      case 'gitlab':
+        oauthId = String(userData.id);
+        email = userData.email;
+        username = userData.username;
+        displayName = userData.name;
+        avatar = userData.avatar_url;
+        break;
+      case 'microsoft':
+        oauthId = userData.id;
+        email = userData.mail || userData.userPrincipalName;
+        username = userData.userPrincipalName?.split('@')[0] || userData.displayName;
+        displayName = userData.displayName;
+        avatar = null;
+        break;
+      case 'twitter':
+        oauthId = userData.data?.id;
+        email = null;
+        username = userData.data?.username;
+        displayName = userData.data?.name;
+        avatar = userData.data?.profile_image_url;
+        break;
+      case 'facebook':
+        oauthId = userData.id;
+        email = userData.email;
+        username = userData.email?.split('@')[0] || `fb_${userData.id}`;
+        displayName = userData.name;
+        avatar = userData.picture?.data?.url;
+        break;
+      case 'apple':
+        oauthId = userData.sub;
+        email = userData.email;
+        username = userData.email?.split('@')[0] || `apple_${userData.sub?.substring(0, 8)}`;
+        displayName = userData.name ? `${userData.name.firstName} ${userData.name.lastName}` : username;
+        avatar = null;
+        break;
+      case 'twitch':
+        oauthId = userData.data?.[0]?.id;
+        email = userData.data?.[0]?.email;
+        username = userData.data?.[0]?.login;
+        displayName = userData.data?.[0]?.display_name;
+        avatar = userData.data?.[0]?.profile_image_url;
+        break;
+      case 'slack':
+        oauthId = userData.user?.id;
+        email = userData.user?.email;
+        username = userData.user?.name;
+        displayName = userData.user?.real_name || userData.user?.name;
+        avatar = userData.user?.image_192;
+        break;
+      case 'linkedin':
+        oauthId = userData.sub;
+        email = userData.email;
+        username = userData.email?.split('@')[0];
+        displayName = userData.name;
+        avatar = userData.picture;
+        break;
+      case 'spotify':
+        oauthId = userData.id;
+        email = userData.email;
+        username = userData.id;
+        displayName = userData.display_name;
+        avatar = userData.images?.[0]?.url;
+        break;
+      case 'reddit':
+        oauthId = userData.id;
+        email = null;
+        username = userData.name;
+        displayName = userData.subreddit?.title || userData.name;
+        avatar = userData.icon_img?.split('?')[0];
+        break;
+      case 'bitbucket':
+        oauthId = userData.uuid;
+        email = null;
+        username = userData.username;
+        displayName = userData.display_name;
+        avatar = userData.links?.avatar?.href;
+        break;
+      default:
+        oauthId = userData.id || userData.sub;
+        email = userData.email;
+        username = userData.username || userData.login || userData.preferred_username;
+        displayName = userData.name || userData.display_name || username;
+        avatar = userData.avatar || userData.picture || userData.avatar_url;
+    }
+    
+    if (!oauthId) {
+      return res.redirect('/auth?error=userinfo_failed');
+    }
+    
+    const data = loadUsers();
+    
+    // Check if user exists with this OAuth connection
+    let user = data.users.find(u => 
+      u.oauth_connections?.some(c => c.provider_id === provider.id && c.oauth_id === oauthId)
+    );
+    
+    if (!user && email) {
+      // Check if user exists with this email (for linking)
+      user = data.users.find(u => u.email === email);
+    }
+    
+    if (user) {
+      // Update OAuth connection if needed
+      if (!user.oauth_connections) user.oauth_connections = [];
+      const existingConnection = user.oauth_connections.find(c => c.provider_id === provider.id);
+      if (!existingConnection) {
+        user.oauth_connections.push({
+          provider_id: provider.id,
+          provider_type: provider.type,
+          oauth_id: oauthId,
+          connected_at: new Date().toISOString()
+        });
+        saveUsers(data);
+      }
+    } else {
+      // Create new user
+      const defaults = config.defaults || {};
+      const safeUsername = sanitizeText(username || `user_${oauthId.substring(0, 8)}`);
+      
+      // Ensure unique username
+      let finalUsername = safeUsername;
+      let counter = 1;
+      while (data.users.some(u => u.username.toLowerCase() === finalUsername.toLowerCase())) {
+        finalUsername = `${safeUsername}${counter++}`;
+      }
+      
+      user = {
+        id: generateUUID(),
+        username: finalUsername,
+        password: null, // OAuth users don't have password
+        email: email || null,
+        displayName: sanitizeText(displayName || finalUsername),
+        avatar: avatar || '',
+        bio: '',
+        links: {},
+        isAdmin: data.users.length === 0,
+        limits: {
+          servers: defaults.servers || 2,
+          memory: defaults.memory || 2048,
+          disk: defaults.disk || 10240,
+          cpu: defaults.cpu || 200
+        },
+        oauth_connections: [{
+          provider_id: provider.id,
+          provider_type: provider.type,
+          oauth_id: oauthId,
+          connected_at: new Date().toISOString()
+        }],
+        createdAt: new Date().toISOString(),
+        settings: {
+          theme: 'dark',
+          notifications: true,
+          privacy: 'public'
+        }
+      };
+      
+      data.users.push(user);
+      saveUsers(data);
+    }
+    
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user.id, username: user.username, isAdmin: user.isAdmin },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    logActivity(user.id, ACTIVITY_TYPES.LOGIN, { method: 'oauth', provider: provider.name }, req.ip);
+    
+    // Clear oauth state cookie
+    res.clearCookie('oauth_state');
+    
+    // Redirect to frontend with token
+    res.redirect(`/auth/callback?token=${token}`);
+    
+  } catch (e) {
+    console.error('OAuth error:', e);
+    res.redirect('/auth?error=oauth_failed');
+  }
 });
 
 export default router;

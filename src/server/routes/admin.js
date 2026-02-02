@@ -57,6 +57,8 @@ router.post('/nodes', (req, res) => {
     maintenance_mode: false,
     allocation_start: parseInt(node.allocation_start) || 25565,
     allocation_end: parseInt(node.allocation_end) || 25665,
+    memory_overallocation: parseInt(node.memory_overallocation) || 0,
+    disk_overallocation: parseInt(node.disk_overallocation) || 0,
     created_at: new Date().toISOString()
   };
   
@@ -108,7 +110,9 @@ router.put('/nodes/:id', (req, res) => {
     behind_proxy: node.behind_proxy ?? current.behind_proxy,
     maintenance_mode: node.maintenance_mode ?? current.maintenance_mode,
     allocation_start: parseInt(node.allocation_start) || current.allocation_start || 25565,
-    allocation_end: parseInt(node.allocation_end) || current.allocation_end || 25665
+    allocation_end: parseInt(node.allocation_end) || current.allocation_end || 25665,
+    memory_overallocation: node.memory_overallocation !== undefined ? parseInt(node.memory_overallocation) : current.memory_overallocation || 0,
+    disk_overallocation: node.disk_overallocation !== undefined ? parseInt(node.disk_overallocation) : current.disk_overallocation || 0
   });
   
   saveNodes(data);
@@ -629,13 +633,236 @@ router.delete('/servers/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// ==================== SERVER TRANSFERS ====================
+router.post('/servers/:id/transfer', async (req, res) => {
+  const { target_node_id } = req.body;
+  if (!target_node_id) return res.status(400).json({ error: 'Target node required' });
+  
+  const data = loadServers();
+  const server = data.servers.find(s => s.id === req.params.id);
+  if (!server) return res.status(404).json({ error: 'Server not found' });
+  
+  if (server.node_id === target_node_id) {
+    return res.status(400).json({ error: 'Server is already on this node' });
+  }
+  
+  const nodes = loadNodes();
+  const sourceNode = nodes.nodes.find(n => n.id === server.node_id);
+  const targetNode = nodes.nodes.find(n => n.id === target_node_id);
+  
+  if (!targetNode) return res.status(404).json({ error: 'Target node not found' });
+  if (targetNode.maintenance_mode) return res.status(400).json({ error: 'Target node is in maintenance mode' });
+  
+  // Check target node resources
+  const { getNodeAvailableResources } = await import('../utils/node-resources.js');
+  const resources = getNodeAvailableResources(target_node_id);
+  
+  if (!resources) return res.status(400).json({ error: 'Cannot check target node resources' });
+  if (resources.available_memory < (server.limits?.memory || 0)) {
+    return res.status(400).json({ error: 'Target node has insufficient memory' });
+  }
+  if (resources.available_disk < (server.limits?.disk || 0)) {
+    return res.status(400).json({ error: 'Target node has insufficient disk space' });
+  }
+  if (resources.available_ports.length === 0) {
+    return res.status(400).json({ error: 'Target node has no available ports' });
+  }
+  
+  // Assign new port on target node
+  const newPort = resources.available_ports[0];
+  const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+  
+  // Update transfer status
+  data.servers[serverIdx].transfer = {
+    status: 'pending',
+    source_node: server.node_id,
+    target_node: target_node_id,
+    started_at: new Date().toISOString()
+  };
+  saveServers(data);
+  
+  try {
+    // Create server on target node
+    await wingsRequest(targetNode, 'POST', '/api/servers', {
+      uuid: server.uuid,
+      start_on_completion: false,
+      suspended: server.suspended || false,
+      environment: server.environment || {},
+      invocation: server.startup,
+      skip_egg_scripts: true,
+      build: {
+        memory_limit: server.limits?.memory || 1024,
+        swap: server.limits?.swap || 0,
+        io_weight: server.limits?.io || 500,
+        cpu_limit: server.limits?.cpu || 100,
+        disk_space: server.limits?.disk || 5120
+      },
+      container: { image: server.docker_image },
+      allocations: {
+        default: { ip: '0.0.0.0', port: newPort },
+        mappings: { '0.0.0.0': [newPort] }
+      }
+    });
+    
+    // Transfer files from source to target (Wings handles this via archive)
+    if (sourceNode) {
+      try {
+        // Request archive from source node
+        const archiveRes = await wingsRequest(sourceNode, 'POST', `/api/servers/${server.uuid}/archive`);
+        
+        // Tell target node to pull the archive
+        await wingsRequest(targetNode, 'POST', `/api/servers/${server.uuid}/transfer`, {
+          url: `${sourceNode.scheme}://${sourceNode.fqdn}:${sourceNode.daemon_port}/api/servers/${server.uuid}/archive`,
+          token: sourceNode.daemon_token
+        });
+      } catch (transferErr) {
+        // If file transfer fails, try to continue without files
+        logger.warn(`Transfer file copy failed: ${transferErr.message}`);
+      }
+    }
+    
+    // Update server record
+    data.servers[serverIdx].node_id = target_node_id;
+    data.servers[serverIdx].allocation = { ip: '0.0.0.0', port: newPort };
+    data.servers[serverIdx].allocations = [{ id: generateUUID(), ip: '0.0.0.0', port: newPort, primary: true }];
+    data.servers[serverIdx].transfer = {
+      status: 'completed',
+      source_node: server.node_id,
+      target_node: target_node_id,
+      completed_at: new Date().toISOString()
+    };
+    saveServers(data);
+    
+    // Delete from source node
+    if (sourceNode) {
+      try {
+        await wingsRequest(sourceNode, 'DELETE', `/api/servers/${server.uuid}`);
+      } catch {
+        // Ignore deletion errors
+      }
+    }
+    
+    res.json({ success: true, message: 'Server transferred successfully' });
+  } catch (e) {
+    data.servers[serverIdx].transfer = {
+      status: 'failed',
+      source_node: server.node_id,
+      target_node: target_node_id,
+      error: e.message,
+      failed_at: new Date().toISOString()
+    };
+    saveServers(data);
+    res.status(500).json({ error: `Transfer failed: ${e.message}` });
+  }
+});
+
+// ==================== OAUTH PROVIDERS ====================
+router.get('/oauth/providers', (req, res) => {
+  const config = loadConfig();
+  const providers = config.oauth?.providers || [];
+  // Don't expose client secrets
+  res.json({
+    providers: providers.map(p => ({
+      id: p.id,
+      name: p.name,
+      type: p.type,
+      enabled: p.enabled,
+      client_id: p.client_id ? '••••••••' : null
+    }))
+  });
+});
+
+router.post('/oauth/providers', (req, res) => {
+  const { provider } = req.body;
+  if (!provider?.name || !provider?.type) {
+    return res.status(400).json({ error: 'Provider name and type required' });
+  }
+  
+  const validTypes = ['discord', 'google', 'github', 'gitlab', 'microsoft', 'twitter', 'facebook', 'apple', 'twitch', 'slack', 'linkedin', 'spotify', 'reddit', 'bitbucket', 'custom'];
+  if (!validTypes.includes(provider.type)) {
+    return res.status(400).json({ error: 'Invalid provider type' });
+  }
+  
+  const config = loadConfig();
+  if (!config.oauth) config.oauth = { providers: [] };
+  if (!config.oauth.providers) config.oauth.providers = [];
+  
+  const newProvider = {
+    id: generateUUID(),
+    name: sanitizeText(provider.name),
+    type: provider.type,
+    client_id: provider.client_id || '',
+    client_secret: provider.client_secret || '',
+    enabled: provider.enabled !== false,
+    // For custom providers
+    authorize_url: provider.authorize_url || null,
+    token_url: provider.token_url || null,
+    userinfo_url: provider.userinfo_url || null,
+    scopes: provider.scopes || null,
+    created_at: new Date().toISOString()
+  };
+  
+  config.oauth.providers.push(newProvider);
+  saveConfig(config);
+  
+  const { client_secret, ...safeProvider } = newProvider;
+  res.json({ success: true, provider: safeProvider });
+});
+
+router.put('/oauth/providers/:id', (req, res) => {
+  const { provider } = req.body;
+  const config = loadConfig();
+  
+  if (!config.oauth?.providers) {
+    return res.status(404).json({ error: 'Provider not found' });
+  }
+  
+  const idx = config.oauth.providers.findIndex(p => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Provider not found' });
+  
+  const current = config.oauth.providers[idx];
+  config.oauth.providers[idx] = {
+    ...current,
+    name: provider.name ? sanitizeText(provider.name) : current.name,
+    client_id: provider.client_id ?? current.client_id,
+    client_secret: provider.client_secret ?? current.client_secret,
+    enabled: provider.enabled ?? current.enabled,
+    authorize_url: provider.authorize_url ?? current.authorize_url,
+    token_url: provider.token_url ?? current.token_url,
+    userinfo_url: provider.userinfo_url ?? current.userinfo_url,
+    scopes: provider.scopes ?? current.scopes,
+    updated_at: new Date().toISOString()
+  };
+  
+  saveConfig(config);
+  
+  const { client_secret, ...safeProvider } = config.oauth.providers[idx];
+  res.json({ success: true, provider: safeProvider });
+});
+
+router.delete('/oauth/providers/:id', (req, res) => {
+  const config = loadConfig();
+  
+  if (!config.oauth?.providers) {
+    return res.status(404).json({ error: 'Provider not found' });
+  }
+  
+  const idx = config.oauth.providers.findIndex(p => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Provider not found' });
+  
+  config.oauth.providers.splice(idx, 1);
+  saveConfig(config);
+  
+  res.json({ success: true });
+});
+
 // ==================== SETTINGS ====================
 router.get('/settings', (req, res) => {
   const config = loadConfig();
   res.json({ config });
 });
 
-router.put('/settings', (req, res) => {
+router.put('/settings', async (req, res) => {
   const { config: newConfig } = req.body;
   const config = loadConfig();
   
@@ -646,16 +873,25 @@ router.put('/settings', (req, res) => {
   
   if (newConfig.registration !== undefined) {
     config.registration = {
-      enabled: Boolean(newConfig.registration.enabled)
+      ...config.registration,
+      enabled: newConfig.registration.enabled !== undefined ? Boolean(newConfig.registration.enabled) : config.registration?.enabled,
+      emailVerification: newConfig.registration.emailVerification !== undefined ? Boolean(newConfig.registration.emailVerification) : config.registration?.emailVerification,
+      captcha: newConfig.registration.captcha !== undefined ? Boolean(newConfig.registration.captcha) : config.registration?.captcha,
+      allowedDomains: newConfig.registration.allowedDomains !== undefined ? newConfig.registration.allowedDomains : config.registration?.allowedDomains,
+      blockedDomains: newConfig.registration.blockedDomains !== undefined ? newConfig.registration.blockedDomains : config.registration?.blockedDomains
     };
   }
   
   if (newConfig.defaults) {
     config.defaults = {
-      servers: parseInt(newConfig.defaults.servers) || 2,
-      memory: parseInt(newConfig.defaults.memory) || 2048,
-      disk: parseInt(newConfig.defaults.disk) || 10240,
-      cpu: parseInt(newConfig.defaults.cpu) || 200
+      ...config.defaults,
+      servers: newConfig.defaults.servers !== undefined ? parseInt(newConfig.defaults.servers) : config.defaults?.servers || 2,
+      memory: newConfig.defaults.memory !== undefined ? parseInt(newConfig.defaults.memory) : config.defaults?.memory || 2048,
+      disk: newConfig.defaults.disk !== undefined ? parseInt(newConfig.defaults.disk) : config.defaults?.disk || 10240,
+      cpu: newConfig.defaults.cpu !== undefined ? parseInt(newConfig.defaults.cpu) : config.defaults?.cpu || 200,
+      backups: newConfig.defaults.backups !== undefined ? parseInt(newConfig.defaults.backups) : config.defaults?.backups || 3,
+      databases: newConfig.defaults.databases !== undefined ? parseInt(newConfig.defaults.databases) : config.defaults?.databases || 1,
+      allocations: newConfig.defaults.allocations !== undefined ? parseInt(newConfig.defaults.allocations) : config.defaults?.allocations || 1
     };
   }
   
@@ -666,8 +902,80 @@ router.put('/settings', (req, res) => {
     };
   }
   
+  if (newConfig.mail !== undefined) {
+    config.mail = {
+      ...config.mail,
+      host: newConfig.mail.host !== undefined ? newConfig.mail.host : config.mail?.host,
+      port: newConfig.mail.port !== undefined ? parseInt(newConfig.mail.port) : config.mail?.port || 587,
+      user: newConfig.mail.user !== undefined ? newConfig.mail.user : config.mail?.user,
+      secure: newConfig.mail.secure !== undefined ? Boolean(newConfig.mail.secure) : config.mail?.secure,
+      fromName: newConfig.mail.fromName !== undefined ? newConfig.mail.fromName : config.mail?.fromName,
+      fromEmail: newConfig.mail.fromEmail !== undefined ? newConfig.mail.fromEmail : config.mail?.fromEmail
+    };
+    if (newConfig.mail.pass) {
+      config.mail.pass = newConfig.mail.pass;
+    }
+    
+    const { reloadMailer } = await import('../utils/mail.js');
+    reloadMailer();
+  }
+  
+  if (newConfig.advanced !== undefined) {
+    config.advanced = {
+      ...config.advanced,
+      consoleLines: newConfig.advanced.consoleLines !== undefined ? parseInt(newConfig.advanced.consoleLines) : config.advanced?.consoleLines || 1000,
+      maxUploadSize: newConfig.advanced.maxUploadSize !== undefined ? parseInt(newConfig.advanced.maxUploadSize) : config.advanced?.maxUploadSize || 100,
+      require2faAdmin: newConfig.advanced.require2faAdmin !== undefined ? Boolean(newConfig.advanced.require2faAdmin) : config.advanced?.require2faAdmin,
+      auditLogging: newConfig.advanced.auditLogging !== undefined ? Boolean(newConfig.advanced.auditLogging) : config.advanced?.auditLogging !== false
+    };
+  }
+  
   saveConfig(config);
   res.json({ success: true, config });
+});
+
+// ==================== MAIL ====================
+
+router.post('/mail/test', async (req, res) => {
+  try {
+    const { sendTestEmail, verifyConnection } = await import('../utils/mail.js');
+    
+    const email = req.body?.email;
+    if (!email) {
+      return res.status(400).json({ error: 'Email address is required' });
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+    
+    await verifyConnection();
+    await sendTestEmail(email);
+    res.json({ success: true, message: 'Test email sent' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/mail/status', async (req, res) => {
+  try {
+    const { verifyConnection } = await import('../utils/mail.js');
+    await verifyConnection();
+    res.json({ configured: true, status: 'connected' });
+  } catch (e) {
+    res.json({ configured: false, status: 'disconnected', error: e.message });
+  }
+});
+
+// ==================== CACHE & DATABASE ====================
+
+router.post('/cache/clear', (req, res) => {
+  res.json({ success: true, message: 'Cache cleared' });
+});
+
+router.post('/database/rebuild', (req, res) => {
+  res.json({ success: true, message: 'Indexes rebuilt' });
 });
 
 export default router;

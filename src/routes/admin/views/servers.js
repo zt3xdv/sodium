@@ -426,6 +426,17 @@ function renderServerSubTab(server, username) {
             ${!isDraft ? `
               <div class="manage-action">
                 <div class="manage-action-info">
+                  <h4>Transfer Server</h4>
+                  <p>Move this server to a different node. The server will be stopped during transfer.</p>
+                </div>
+                <button class="btn btn-primary" id="transfer-btn">
+                  <span class="material-icons-outlined">swap_horiz</span>
+                  Transfer
+                </button>
+              </div>
+              
+              <div class="manage-action">
+                <div class="manage-action-info">
                   <h4>Reinstall Server</h4>
                   <p>This will reinstall the server with the selected egg. All files will be deleted.</p>
                 </div>
@@ -482,6 +493,11 @@ function renderServerSubTab(server, username) {
             btn.innerHTML = '<span class="material-icons-outlined">play_arrow</span> Install Now';
           }
         };
+      }
+      
+      const transferBtn = document.getElementById('transfer-btn');
+      if (transferBtn) {
+        transferBtn.onclick = () => showTransferModal(server);
       }
       
       const reinstallBtn = document.getElementById('reinstall-btn');
@@ -826,3 +842,102 @@ window.deleteServerAdmin = async function(serverId) {
     toast.error('Failed to delete server');
   }
 };
+
+async function showTransferModal(server) {
+  // Load available nodes
+  let nodes = [];
+  try {
+    const res = await api('/api/admin/nodes');
+    const data = await res.json();
+    nodes = (data.nodes || []).filter(n => n.id !== server.node_id && !n.maintenance_mode);
+  } catch (e) {
+    toast.error('Failed to load nodes');
+    return;
+  }
+  
+  if (nodes.length === 0) {
+    toast.error('No other nodes available for transfer');
+    return;
+  }
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.innerHTML = `
+    <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Transfer Server</h3>
+        <button class="modal-close" onclick="this.closest('.modal').remove()">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+      <form id="transfer-form" class="modal-form">
+        <div class="form-group">
+          <label>Current Node</label>
+          <input type="text" value="${escapeHtml(server.node_name || server.node_id)}" disabled />
+        </div>
+        <div class="form-group">
+          <label>Target Node</label>
+          <select name="target_node_id" required>
+            <option value="">Select a node...</option>
+            ${nodes.map(n => `<option value="${n.id}">${escapeHtml(n.name)} (${escapeHtml(n.fqdn)})</option>`).join('')}
+          </select>
+        </div>
+        <div class="warning-box">
+          <span class="material-icons-outlined">warning</span>
+          <p>The server will be stopped during the transfer. All files will be copied to the new node.</p>
+        </div>
+        <div class="message" id="transfer-message"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Start Transfer</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  modal.querySelector('#transfer-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const targetNodeId = form.get('target_node_id');
+    const messageEl = modal.querySelector('#transfer-message');
+    const btn = e.target.querySelector('button[type="submit"]');
+    
+    if (!targetNodeId) {
+      messageEl.textContent = 'Please select a target node';
+      messageEl.className = 'message error';
+      return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-icons-outlined rotating">sync</span> Transferring...';
+    
+    try {
+      const res = await api(`/api/admin/servers/${server.id}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_node_id: targetNodeId })
+      });
+      
+      const data = await res.json();
+      
+      if (data.error) {
+        messageEl.textContent = data.error;
+        messageEl.className = 'message error';
+        btn.disabled = false;
+        btn.innerHTML = 'Start Transfer';
+      } else {
+        toast.success('Server transfer completed');
+        modal.remove();
+        navigateTo('servers', server.id, 'details');
+      }
+    } catch (e) {
+      messageEl.textContent = 'Transfer failed';
+      messageEl.className = 'message error';
+      btn.disabled = false;
+      btn.innerHTML = 'Start Transfer';
+    }
+  };
+}

@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import logger from './utils/logger.js';
 
 // Rutas
@@ -37,6 +38,7 @@ app.use(helmet({
 
 app.use(express.json({ strict: false }));
 app.use(express.text({ type: 'application/json' }));
+app.use(cookieParser());
 
 // Middleware global de limpieza
 app.use((req, res, next) => {

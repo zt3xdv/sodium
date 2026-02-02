@@ -1,4 +1,4 @@
-import { renderAuth } from './auth.js';
+import { renderAuth, renderAuthCallback } from './auth.js';
 import { renderDashboard, cleanupDashboard } from './dashboard.js';
 import { renderProfile } from './profile.js';
 import { renderSettings } from './settings.js';
@@ -27,6 +27,13 @@ export const routes = {
     render: renderAuth,
     options: {
       title: 'Sign In',
+      sidebar: false
+    }
+  },
+  '/auth/callback': {
+    render: renderAuthCallback,
+    options: {
+      title: 'Signing In',
       sidebar: false
     }
   },

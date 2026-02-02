@@ -97,6 +97,28 @@ export function renderSettings() {
         
         <div class="settings-section">
           <div class="section-header">
+            <span class="material-icons-outlined">key</span>
+            <h3>SSH Keys</h3>
+          </div>
+          
+          <div class="ssh-keys-container">
+            <div class="ssh-keys-header">
+              <p class="setting-description">SSH keys for SFTP authentication</p>
+              <button class="btn btn-primary btn-sm" id="add-ssh-key-btn">
+                <span class="material-icons-outlined">add</span>
+                <span>Add Key</span>
+              </button>
+            </div>
+            <div class="ssh-keys-list" id="ssh-keys-list">
+              <div class="loading-spinner">
+                <span class="material-icons-outlined spinning">sync</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <div class="section-header">
             <span class="material-icons-outlined">vpn_key</span>
             <h3>API Keys</h3>
           </div>
@@ -236,6 +258,8 @@ export function renderSettings() {
   `;
   
   loadSettings();
+  loadSshKeys();
+  setupSshKeysHandlers();
   loadApiKeys();
   setupApiKeysHandlers();
   
@@ -374,6 +398,136 @@ async function saveSettings(settings) {
   } catch (err) {
     console.error('Failed to save settings:', err);
   }
+}
+
+// ==================== SSH KEYS ====================
+
+async function loadSshKeys() {
+  const list = document.getElementById('ssh-keys-list');
+  if (!list) return;
+  
+  try {
+    const res = await api('/api/user/ssh-keys');
+    const data = await res.json();
+    const keys = data.keys || [];
+    
+    if (keys.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">key</span>
+          <p>No SSH keys added</p>
+        </div>
+      `;
+      return;
+    }
+    
+    list.innerHTML = keys.map(key => `
+      <div class="ssh-key-item" data-id="${key.id}">
+        <div class="ssh-key-info">
+          <span class="ssh-key-name">${key.name}</span>
+          <span class="ssh-key-fingerprint">${key.fingerprint}</span>
+          <span class="ssh-key-meta">
+            Added ${new Date(key.created_at).toLocaleDateString()}
+            ${key.last_used ? `• Last used ${new Date(key.last_used).toLocaleDateString()}` : ''}
+          </span>
+        </div>
+        <button class="btn btn-icon btn-danger delete-ssh-key-btn" data-id="${key.id}">
+          <span class="material-icons-outlined">delete</span>
+        </button>
+      </div>
+    `).join('');
+    
+    list.querySelectorAll('.delete-ssh-key-btn').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        if (!confirm('Delete this SSH key?')) return;
+        try {
+          await api(`/api/user/ssh-keys/${btn.dataset.id}`, { method: 'DELETE' });
+          loadSshKeys();
+        } catch (e) {
+          console.error('Failed to delete SSH key:', e);
+        }
+      };
+    });
+  } catch (e) {
+    list.innerHTML = `<div class="error">Failed to load SSH keys</div>`;
+  }
+}
+
+function setupSshKeysHandlers() {
+  const addBtn = document.getElementById('add-ssh-key-btn');
+  if (!addBtn) return;
+  
+  addBtn.onclick = () => {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.id = 'ssh-key-modal';
+    modal.innerHTML = `
+      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add SSH Key</h3>
+          <button class="modal-close" onclick="this.closest('.modal').remove()">
+            <span class="material-icons-outlined">close</span>
+          </button>
+        </div>
+        <form id="ssh-key-form">
+          <div class="form-group">
+            <label>Key Name</label>
+            <input type="text" name="name" required placeholder="My Laptop" maxlength="50" />
+          </div>
+          <div class="form-group">
+            <label>Public Key</label>
+            <textarea name="public_key" required rows="5" placeholder="ssh-ed25519 AAAA... user@host"></textarea>
+            <small class="form-hint">Paste your public key (id_ed25519.pub, id_rsa.pub, etc.)</small>
+          </div>
+          <div class="message" id="ssh-key-message"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Key</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('#ssh-key-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const messageEl = modal.querySelector('#ssh-key-message');
+      const btn = e.target.querySelector('button[type="submit"]');
+      
+      btn.disabled = true;
+      btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+      
+      try {
+        const res = await api('/api/user/ssh-keys', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: form.get('name'),
+            public_key: form.get('public_key')
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.error) {
+          messageEl.textContent = data.error;
+          messageEl.className = 'message error';
+          btn.disabled = false;
+          btn.textContent = 'Add Key';
+        } else {
+          modal.remove();
+          loadSshKeys();
+        }
+      } catch (e) {
+        messageEl.textContent = 'Failed to add key';
+        messageEl.className = 'message error';
+        btn.disabled = false;
+        btn.textContent = 'Add Key';
+      }
+    };
+  };
 }
 
 let availablePermissions = [];

@@ -68,6 +68,23 @@ async function apiJson(endpoint, options = {}) {
   return response.json();
 }
 
+const OAUTH_ICONS = {
+  discord: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>',
+  google: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>',
+  github: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>',
+  gitlab: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z"/></svg>',
+  microsoft: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z"/></svg>',
+  twitter: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+  facebook: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>',
+  apple: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>',
+  twitch: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>',
+  slack: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>',
+  linkedin: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>',
+  spotify: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>',
+  reddit: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>',
+  bitbucket: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 0 0 .77-.646l3.27-20.03a.768.768 0 0 0-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z"/></svg>'
+};
+
 function renderAuth() {
   const app = document.getElementById('app');
   app.className = 'auth-page';
@@ -111,6 +128,13 @@ function renderAuth() {
             <span>Sign In</span>
             <span class="material-icons-outlined">arrow_forward</span>
           </button>
+          
+          <div class="oauth-section" id="oauth-section" style="display: none;">
+            <div class="oauth-divider">
+              <span>or continue with</span>
+            </div>
+            <div class="oauth-buttons" id="oauth-buttons"></div>
+          </div>
         </form>
         
         <form id="register-form" class="auth-form">
@@ -258,6 +282,99 @@ function renderAuth() {
       btn.innerHTML = '<span>Create Account</span><span class="material-icons-outlined">arrow_forward</span>';
     }
   });
+  
+  loadOAuthProviders$1();
+}
+
+async function loadOAuthProviders$1() {
+  try {
+    const res = await fetch('/api/auth/oauth/providers');
+    const data = await res.json();
+    
+    if (data.providers && data.providers.length > 0) {
+      const section = document.getElementById('oauth-section');
+      const container = document.getElementById('oauth-buttons');
+      
+      if (section && container) {
+        section.style.display = 'block';
+        container.innerHTML = data.providers.map(p => `
+          <a href="/api/auth/oauth/${p.id}" class="oauth-btn oauth-${p.type}">
+            ${OAUTH_ICONS[p.type] || '<span class="material-icons-outlined">login</span>'}
+            <span>${p.name}</span>
+          </a>
+        `).join('');
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load OAuth providers:', e);
+  }
+}
+
+function renderAuthCallback() {
+  const app = document.getElementById('app');
+  app.className = 'auth-page';
+  
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const error = params.get('error');
+  
+  if (error) {
+    app.innerHTML = `
+      <div class="auth-container">
+        <div class="auth-card">
+          <div class="auth-header">
+            <span class="material-icons-outlined" style="font-size: 48px; color: var(--danger);">error</span>
+            <h2>Authentication Failed</h2>
+            <p class="auth-subtitle">${getErrorMessage(error)}</p>
+          </div>
+          <a href="/auth" class="btn btn-primary btn-full">
+            <span>Try Again</span>
+          </a>
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  if (token) {
+    app.innerHTML = `
+      <div class="auth-container">
+        <div class="auth-card">
+          <div class="auth-header">
+            <span class="material-icons-outlined spinning" style="font-size: 48px;">sync</span>
+            <h2>Signing in...</h2>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    setToken(token);
+    
+    fetch('/api/servers', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(res => res.json()).then(() => {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      localStorage.setItem('loggedIn', 'true');
+      localStorage.setItem('username', payload.username);
+      setUser({ username: payload.username, id: payload.id, isAdmin: payload.isAdmin });
+      window.router.navigateTo('/dashboard');
+    }).catch(() => {
+      window.router.navigateTo('/auth?error=token_failed');
+    });
+  } else {
+    window.router.navigateTo('/auth');
+  }
+}
+
+function getErrorMessage(error) {
+  const messages = {
+    oauth_failed: 'OAuth authentication failed. Please try again.',
+    invalid_state: 'Invalid security state. Please try again.',
+    provider_not_found: 'OAuth provider not found or disabled.',
+    token_failed: 'Failed to obtain access token.',
+    userinfo_failed: 'Failed to get user information.'
+  };
+  return messages[error] || 'An unknown error occurred.';
 }
 
 function escapeHtml(str) {
@@ -1050,6 +1167,28 @@ function renderSettings() {
         
         <div class="settings-section">
           <div class="section-header">
+            <span class="material-icons-outlined">key</span>
+            <h3>SSH Keys</h3>
+          </div>
+          
+          <div class="ssh-keys-container">
+            <div class="ssh-keys-header">
+              <p class="setting-description">SSH keys for SFTP authentication</p>
+              <button class="btn btn-primary btn-sm" id="add-ssh-key-btn">
+                <span class="material-icons-outlined">add</span>
+                <span>Add Key</span>
+              </button>
+            </div>
+            <div class="ssh-keys-list" id="ssh-keys-list">
+              <div class="loading-spinner">
+                <span class="material-icons-outlined spinning">sync</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <div class="section-header">
             <span class="material-icons-outlined">vpn_key</span>
             <h3>API Keys</h3>
           </div>
@@ -1189,6 +1328,8 @@ function renderSettings() {
   `;
   
   loadSettings();
+  loadSshKeys();
+  setupSshKeysHandlers();
   loadApiKeys();
   setupApiKeysHandlers();
   
@@ -1206,17 +1347,17 @@ function renderSettings() {
     setTheme(theme);
     themeGrid.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
     card.classList.add('active');
-    saveSettings({ theme });
+    saveSettings$1({ theme });
   });
   
   const notificationsToggle = app.querySelector('#notifications-toggle');
   notificationsToggle.addEventListener('change', () => {
-    saveSettings({ notifications: notificationsToggle.checked });
+    saveSettings$1({ notifications: notificationsToggle.checked });
   });
   
   const privacySelect = app.querySelector('#privacy-select');
   privacySelect.addEventListener('change', () => {
-    saveSettings({ privacy: privacySelect.value });
+    saveSettings$1({ privacy: privacySelect.value });
   });
   
   const modal = app.querySelector('#password-modal');
@@ -1318,7 +1459,7 @@ async function loadSettings() {
   }
 }
 
-async function saveSettings(settings) {
+async function saveSettings$1(settings) {
   try {
     await api('/api/user/settings', {
       method: 'PUT',
@@ -1327,6 +1468,136 @@ async function saveSettings(settings) {
   } catch (err) {
     console.error('Failed to save settings:', err);
   }
+}
+
+// ==================== SSH KEYS ====================
+
+async function loadSshKeys() {
+  const list = document.getElementById('ssh-keys-list');
+  if (!list) return;
+  
+  try {
+    const res = await api('/api/user/ssh-keys');
+    const data = await res.json();
+    const keys = data.keys || [];
+    
+    if (keys.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">key</span>
+          <p>No SSH keys added</p>
+        </div>
+      `;
+      return;
+    }
+    
+    list.innerHTML = keys.map(key => `
+      <div class="ssh-key-item" data-id="${key.id}">
+        <div class="ssh-key-info">
+          <span class="ssh-key-name">${key.name}</span>
+          <span class="ssh-key-fingerprint">${key.fingerprint}</span>
+          <span class="ssh-key-meta">
+            Added ${new Date(key.created_at).toLocaleDateString()}
+            ${key.last_used ? `• Last used ${new Date(key.last_used).toLocaleDateString()}` : ''}
+          </span>
+        </div>
+        <button class="btn btn-icon btn-danger delete-ssh-key-btn" data-id="${key.id}">
+          <span class="material-icons-outlined">delete</span>
+        </button>
+      </div>
+    `).join('');
+    
+    list.querySelectorAll('.delete-ssh-key-btn').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        if (!confirm('Delete this SSH key?')) return;
+        try {
+          await api(`/api/user/ssh-keys/${btn.dataset.id}`, { method: 'DELETE' });
+          loadSshKeys();
+        } catch (e) {
+          console.error('Failed to delete SSH key:', e);
+        }
+      };
+    });
+  } catch (e) {
+    list.innerHTML = `<div class="error">Failed to load SSH keys</div>`;
+  }
+}
+
+function setupSshKeysHandlers() {
+  const addBtn = document.getElementById('add-ssh-key-btn');
+  if (!addBtn) return;
+  
+  addBtn.onclick = () => {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.id = 'ssh-key-modal';
+    modal.innerHTML = `
+      <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add SSH Key</h3>
+          <button class="modal-close" onclick="this.closest('.modal').remove()">
+            <span class="material-icons-outlined">close</span>
+          </button>
+        </div>
+        <form id="ssh-key-form">
+          <div class="form-group">
+            <label>Key Name</label>
+            <input type="text" name="name" required placeholder="My Laptop" maxlength="50" />
+          </div>
+          <div class="form-group">
+            <label>Public Key</label>
+            <textarea name="public_key" required rows="5" placeholder="ssh-ed25519 AAAA... user@host"></textarea>
+            <small class="form-hint">Paste your public key (id_ed25519.pub, id_rsa.pub, etc.)</small>
+          </div>
+          <div class="message" id="ssh-key-message"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Key</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('#ssh-key-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const messageEl = modal.querySelector('#ssh-key-message');
+      const btn = e.target.querySelector('button[type="submit"]');
+      
+      btn.disabled = true;
+      btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+      
+      try {
+        const res = await api('/api/user/ssh-keys', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: form.get('name'),
+            public_key: form.get('public_key')
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.error) {
+          messageEl.textContent = data.error;
+          messageEl.className = 'message error';
+          btn.disabled = false;
+          btn.textContent = 'Add Key';
+        } else {
+          modal.remove();
+          loadSshKeys();
+        }
+      } catch (e) {
+        messageEl.textContent = 'Failed to add key';
+        messageEl.className = 'message error';
+        btn.disabled = false;
+        btn.textContent = 'Add Key';
+      }
+    };
+  };
 }
 
 let availablePermissions = [];
@@ -24580,7 +24851,7 @@ const historyField_ = /*@__PURE__*/StateField.define({
 /**
 Create a history extension with the given configuration.
 */
-function history(config = {}) {
+function history$1(config = {}) {
     return [
         historyField_,
         historyConfig.of(config),
@@ -30403,7 +30674,7 @@ const basicSetup = /*@__PURE__*/(() => [
     lineNumbers(),
     highlightActiveLineGutter(),
     highlightSpecialChars(),
-    history(),
+    history$1(),
     foldGutter(),
     drawSelection(),
     dropCursor(),
@@ -30437,7 +30708,7 @@ style](https://codemirror.net/6/docs/ref/#language.defaultHighlightStyle).
 */
 const minimalSetup = /*@__PURE__*/(() => [
     highlightSpecialChars(),
-    history(),
+    history$1(),
     drawSelection(),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     keymap.of([
@@ -39632,7 +39903,7 @@ function confirm$1(message, options = {}) {
   });
 }
 
-function prompt(message, options = {}) {
+function prompt$1(message, options = {}) {
   return new Promise((resolve) => {
     const { title = 'Input', placeholder = '', defaultValue = '', confirmText = 'OK', cancelText = 'Cancel' } = options;
     
@@ -40283,7 +40554,7 @@ function formatDate$2(dateStr) {
 }
 
 async function createNewFolder(serverId) {
-  const name = await prompt('Enter folder name:', { title: 'New Folder', placeholder: 'folder-name' });
+  const name = await prompt$1('Enter folder name:', { title: 'New Folder', placeholder: 'folder-name' });
   if (!name) return;
   
   const path = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
@@ -40307,7 +40578,7 @@ async function createNewFolder(serverId) {
 }
 
 async function createNewFile(serverId) {
-  const name = await prompt('Enter file name:', { title: 'New File', placeholder: 'file.txt' });
+  const name = await prompt$1('Enter file name:', { title: 'New File', placeholder: 'file.txt' });
   if (!name) return;
   
   const path = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
@@ -40391,7 +40662,7 @@ async function deleteSelectedFiles(serverId) {
 }
 
 async function renameFile(serverId, oldName) {
-  const newName = await prompt('Enter new name:', { 
+  const newName = await prompt$1('Enter new name:', { 
     title: 'Rename', 
     defaultValue: oldName,
     confirmText: 'Rename'
@@ -40438,7 +40709,7 @@ async function copyFile(serverId, location) {
 }
 
 async function chmodFile(serverId, name) {
-  const mode = await prompt('Enter permissions (e.g. 755, 644):', {
+  const mode = await prompt$1('Enter permissions (e.g. 755, 644):', {
     title: 'Change Permissions',
     placeholder: '755',
     confirmText: 'Apply'
@@ -40473,7 +40744,7 @@ async function chmodFile(serverId, name) {
 async function moveSelectedFiles(serverId) {
   if (selectedFiles.size === 0) return;
   
-  const destination = await prompt('Enter destination path:', {
+  const destination = await prompt$1('Enter destination path:', {
     title: 'Move Files',
     defaultValue: currentPath,
     placeholder: '/path/to/folder',
@@ -43388,6 +43659,23 @@ function renderNodeSubTab(node, locations, username) {
             </div>
             
             <div class="form-section">
+              <h4>Resource Overallocation</h4>
+              <p class="form-hint">Allow the node to allocate more resources than physically available. Use with caution.</p>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Memory Overallocation (%)</label>
+                  <input type="number" name="memory_overallocation" value="${node.memory_overallocation || 0}" min="0" max="100" />
+                  <small class="form-hint">0% = No overallocation, 100% = Double the available memory</small>
+                </div>
+                <div class="form-group">
+                  <label>Disk Overallocation (%)</label>
+                  <input type="number" name="disk_overallocation" value="${node.disk_overallocation || 0}" min="0" max="100" />
+                  <small class="form-hint">0% = No overallocation, 100% = Double the available disk</small>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-section">
               <h4>Options</h4>
               <div class="form-toggles">
                 <label class="toggle-item">
@@ -44007,6 +44295,17 @@ function renderServerSubTab(server, username) {
             ${!isDraft ? `
               <div class="manage-action">
                 <div class="manage-action-info">
+                  <h4>Transfer Server</h4>
+                  <p>Move this server to a different node. The server will be stopped during transfer.</p>
+                </div>
+                <button class="btn btn-primary" id="transfer-btn">
+                  <span class="material-icons-outlined">swap_horiz</span>
+                  Transfer
+                </button>
+              </div>
+              
+              <div class="manage-action">
+                <div class="manage-action-info">
                   <h4>Reinstall Server</h4>
                   <p>This will reinstall the server with the selected egg. All files will be deleted.</p>
                 </div>
@@ -44063,6 +44362,11 @@ function renderServerSubTab(server, username) {
             btn.innerHTML = '<span class="material-icons-outlined">play_arrow</span> Install Now';
           }
         };
+      }
+      
+      const transferBtn = document.getElementById('transfer-btn');
+      if (transferBtn) {
+        transferBtn.onclick = () => showTransferModal(server);
       }
       
       const reinstallBtn = document.getElementById('reinstall-btn');
@@ -44407,6 +44711,105 @@ window.deleteServerAdmin = async function(serverId) {
     error('Failed to delete server');
   }
 };
+
+async function showTransferModal(server) {
+  // Load available nodes
+  let nodes = [];
+  try {
+    const res = await api('/api/admin/nodes');
+    const data = await res.json();
+    nodes = (data.nodes || []).filter(n => n.id !== server.node_id && !n.maintenance_mode);
+  } catch (e) {
+    error('Failed to load nodes');
+    return;
+  }
+  
+  if (nodes.length === 0) {
+    error('No other nodes available for transfer');
+    return;
+  }
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.innerHTML = `
+    <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Transfer Server</h3>
+        <button class="modal-close" onclick="this.closest('.modal').remove()">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+      <form id="transfer-form" class="modal-form">
+        <div class="form-group">
+          <label>Current Node</label>
+          <input type="text" value="${escapeHtml(server.node_name || server.node_id)}" disabled />
+        </div>
+        <div class="form-group">
+          <label>Target Node</label>
+          <select name="target_node_id" required>
+            <option value="">Select a node...</option>
+            ${nodes.map(n => `<option value="${n.id}">${escapeHtml(n.name)} (${escapeHtml(n.fqdn)})</option>`).join('')}
+          </select>
+        </div>
+        <div class="warning-box">
+          <span class="material-icons-outlined">warning</span>
+          <p>The server will be stopped during the transfer. All files will be copied to the new node.</p>
+        </div>
+        <div class="message" id="transfer-message"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Start Transfer</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  modal.querySelector('#transfer-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const targetNodeId = form.get('target_node_id');
+    const messageEl = modal.querySelector('#transfer-message');
+    const btn = e.target.querySelector('button[type="submit"]');
+    
+    if (!targetNodeId) {
+      messageEl.textContent = 'Please select a target node';
+      messageEl.className = 'message error';
+      return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-icons-outlined rotating">sync</span> Transferring...';
+    
+    try {
+      const res = await api(`/api/admin/servers/${server.id}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_node_id: targetNodeId })
+      });
+      
+      const data = await res.json();
+      
+      if (data.error) {
+        messageEl.textContent = data.error;
+        messageEl.className = 'message error';
+        btn.disabled = false;
+        btn.innerHTML = 'Start Transfer';
+      } else {
+        success('Server transfer completed');
+        modal.remove();
+        navigateTo$7('servers', server.id, 'details');
+      }
+    } catch (e) {
+      messageEl.textContent = 'Transfer failed';
+      messageEl.className = 'message error';
+      btn.disabled = false;
+      btn.innerHTML = 'Start Transfer';
+    }
+  };
+}
 
 const navigateTo$6 = (...args) => window.adminNavigate(...args);
 
@@ -45949,7 +46352,22 @@ window.deleteLocationAdmin = async function(locationId) {
 
 const navigateTo$3 = (...args) => window.adminNavigate(...args);
 
+let currentSettingsTab = 'general';
+
+const SETTINGS_TABS = [
+  { id: 'general', label: 'General', icon: 'settings' },
+  { id: 'registration', label: 'Registration', icon: 'person_add' },
+  { id: 'defaults', label: 'User Defaults', icon: 'tune' },
+  { id: 'oauth', label: 'OAuth Providers', icon: 'login' },
+  { id: 'api-keys', label: 'API Keys', icon: 'vpn_key' },
+  { id: 'mail', label: 'Mail', icon: 'email' },
+  { id: 'advanced', label: 'Advanced', icon: 'code' }
+];
+
 async function renderSettingsPage(container, username, loadView) {
+  const urlParams = new URLSearchParams(window.location.search);
+  currentSettingsTab = urlParams.get('tab') || 'general';
+  
   try {
     const res = await api(`/api/admin/settings`);
     const data = await res.json();
@@ -45960,198 +46378,685 @@ async function renderSettingsPage(container, username, loadView) {
         ${renderBreadcrumb([{ label: 'Settings' }])}
       </div>
       
-      <div class="settings-page">
-        <form id="panel-settings-form" class="settings-form">
-          <div class="detail-card">
-            <h3>General Settings</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Panel Name</label>
-                <input type="text" name="panel_name" value="${escapeHtml(config.panel?.name || 'Sodium Panel')}" />
-              </div>
-              <div class="form-group">
-                <label>Panel URL</label>
-                <input type="url" name="panel_url" value="${escapeHtml(config.panel?.url || '')}" placeholder="https://panel.example.com" />
-              </div>
-            </div>
-          </div>
-          
-          <div class="detail-card">
-            <h3>Registration</h3>
-            <div class="form-toggles">
-              <label class="toggle-item">
-                <input type="checkbox" name="registration_enabled" ${config.registration?.enabled ? 'checked' : ''} />
-                <span class="toggle-content">
-                  <span class="toggle-title">Allow Registrations</span>
-                  <span class="toggle-desc">Allow new users to register on the panel</span>
-                </span>
-              </label>
-            </div>
-          </div>
-          
-          <div class="detail-card">
-            <h3>Features</h3>
-            <div class="form-toggles">
-              <label class="toggle-item">
-                <input type="checkbox" name="subusers_enabled" ${config.features?.subusers !== false ? 'checked' : ''} />
-                <span class="toggle-content">
-                  <span class="toggle-title">Subusers</span>
-                  <span class="toggle-desc">Allow users to share server access with others</span>
-                </span>
-              </label>
-            </div>
-          </div>
-          
-          <div class="detail-card">
-            <h3>Default User Limits</h3>
-            <p class="card-description">These limits are applied to new users when they register.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Max Servers</label>
-                <input type="number" name="default_servers" value="${config.defaults?.servers || 2}" min="0" />
-              </div>
-              <div class="form-group">
-                <label>Max Memory (MB)</label>
-                <input type="number" name="default_memory" value="${config.defaults?.memory || 2048}" min="0" />
-              </div>
-              <div class="form-group">
-                <label>Max Disk (MB)</label>
-                <input type="number" name="default_disk" value="${config.defaults?.disk || 10240}" min="0" />
-              </div>
-              <div class="form-group">
-                <label>Max CPU (%)</label>
-                <input type="number" name="default_cpu" value="${config.defaults?.cpu || 200}" min="0" />
-              </div>
-            </div>
-          </div>
-          
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary btn-large">Save Settings</button>
-          </div>
-        </form>
-        
-        <div class="detail-card" style="margin-top: 1.5rem;">
-          <div class="card-header-row">
-            <h3>Application API Keys</h3>
-            <button class="btn btn-primary btn-sm" id="create-app-key-btn">
-              <span class="material-icons-outlined">add</span>
-              Create Key
-            </button>
-          </div>
-          <p class="card-description">Application keys have full access to the admin API for automation and integrations.</p>
-          <div class="api-keys-list" id="app-api-keys-list">
-            <div class="loading-spinner">
-              <span class="material-icons-outlined spinning">sync</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="modal" id="app-api-key-modal">
-          <div class="modal-backdrop"></div>
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3>Create Application Key</h3>
-              <button class="modal-close" id="close-app-key-modal">
-                <span class="material-icons-outlined">close</span>
+      <div class="settings-layout">
+        <aside class="settings-sidebar">
+          <nav class="settings-nav">
+            ${SETTINGS_TABS.map(tab => `
+              <button class="settings-nav-item ${currentSettingsTab === tab.id ? 'active' : ''}" data-tab="${tab.id}">
+                <span class="material-icons-outlined">${tab.icon}</span>
+                <span>${tab.label}</span>
               </button>
-            </div>
-            <form id="app-api-key-form">
-              <div class="form-group">
-                <label for="app-key-name">Key Name</label>
-                <input type="text" id="app-key-name" required maxlength="50" placeholder="CI/CD Integration">
-              </div>
-              <div class="form-group">
-                <label>Permissions</label>
-                <div class="permissions-grid" id="app-permissions-grid"></div>
-              </div>
-              <div class="message" id="app-key-message"></div>
-              <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" id="cancel-app-key-modal">Cancel</button>
-                <button type="submit" class="btn btn-primary">Create Key</button>
-              </div>
-            </form>
-          </div>
-        </div>
+            `).join('')}
+          </nav>
+        </aside>
         
-        <div class="modal" id="app-key-created-modal">
-          <div class="modal-backdrop"></div>
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3>Application Key Created</h3>
-              <button class="modal-close" id="close-app-key-created-modal">
-                <span class="material-icons-outlined">close</span>
-              </button>
-            </div>
-            <div class="api-key-created-content">
-              <div class="warning-box">
-                <span class="material-icons-outlined">warning</span>
-                <p>Make sure to copy your API key now. You won't be able to see it again!</p>
-              </div>
-              <div class="api-key-display">
-                <code id="created-app-key-token"></code>
-                <button type="button" class="btn btn-icon" id="copy-app-key-btn">
-                  <span class="material-icons-outlined">content_copy</span>
-                </button>
-              </div>
-            </div>
-            <div class="modal-actions">
-              <button type="button" class="btn btn-primary" id="done-app-key-btn">Done</button>
-            </div>
-          </div>
+        <div class="settings-content" id="settings-content">
+          <div class="loading-spinner"></div>
         </div>
       </div>
     `;
     
     setupBreadcrumbListeners(navigateTo$3);
-    loadAppApiKeys();
-    setupAppApiKeysHandlers();
     
-    document.getElementById('panel-settings-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      
-      const newConfig = {
-        panel: {
-          name: form.panel_name.value,
-          url: form.panel_url.value
-        },
-        registration: {
-          enabled: form.registration_enabled.checked
-        },
-        features: {
-          subusers: form.subusers_enabled.checked
-        },
-        defaults: {
-          servers: parseInt(form.default_servers.value) || 2,
-          memory: parseInt(form.default_memory.value) || 2048,
-          disk: parseInt(form.default_disk.value) || 10240,
-          cpu: parseInt(form.default_cpu.value) || 200
-        }
+    container.querySelectorAll('.settings-nav-item').forEach(btn => {
+      btn.onclick = () => {
+        currentSettingsTab = btn.dataset.tab;
+        container.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        history.replaceState(null, '', `/admin/settings?tab=${currentSettingsTab}`);
+        renderSettingsContent(config);
       };
-      
-      try {
-        const saveRes = await api('/api/admin/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ config: newConfig })
-        });
-        
-        if (saveRes.ok) {
-          success('Settings saved');
-        } else {
-          error('Failed to save settings');
-        }
-      } catch (e) {
-        error('Failed to save settings');
-      }
-    };
+    });
+    
+    renderSettingsContent(config);
     
   } catch (e) {
     container.innerHTML = `<div class="error">Failed to load settings</div>`;
   }
 }
 
+async function renderSettingsContent(config) {
+  const content = document.getElementById('settings-content');
+  if (!content) return;
+  
+  switch (currentSettingsTab) {
+    case 'general':
+      renderGeneralSettings(content, config);
+      break;
+    case 'registration':
+      renderRegistrationSettings(content, config);
+      break;
+    case 'defaults':
+      renderDefaultsSettings(content, config);
+      break;
+    case 'oauth':
+      renderOAuthSettings(content, config);
+      break;
+    case 'api-keys':
+      renderApiKeysSettings(content, config);
+      break;
+    case 'mail':
+      renderMailSettings(content, config);
+      break;
+    case 'advanced':
+      renderAdvancedSettings(content, config);
+      break;
+    default:
+      renderGeneralSettings(content, config);
+  }
+}
+
+// ==================== GENERAL SETTINGS ====================
+
+function renderGeneralSettings(content, config) {
+  content.innerHTML = `
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <h2>General Settings</h2>
+        <p>Configure basic panel information and branding.</p>
+      </div>
+      
+      <form id="general-settings-form" class="settings-form">
+        <div class="detail-card">
+          <h3>Panel Information</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Panel Name</label>
+              <input type="text" name="panel_name" value="${escapeHtml(config.panel?.name || 'Sodium Panel')}" />
+              <small class="form-hint">Displayed in the browser title and navigation</small>
+            </div>
+            <div class="form-group">
+              <label>Panel URL</label>
+              <input type="url" name="panel_url" value="${escapeHtml(config.panel?.url || '')}" placeholder="https://panel.example.com" />
+              <small class="form-hint">Used for OAuth callbacks and email links</small>
+            </div>
+          </div>
+        </div>
+        
+        <div class="detail-card">
+          <h3>Features</h3>
+          <div class="form-toggles">
+            <label class="toggle-item">
+              <input type="checkbox" name="subusers_enabled" ${config.features?.subusers !== false ? 'checked' : ''} />
+              <span class="toggle-content">
+                <span class="toggle-title">Subusers</span>
+                <span class="toggle-desc">Allow users to share server access with others</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <span class="material-icons-outlined">save</span>
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.getElementById('general-settings-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    
+    const newConfig = {
+      panel: {
+        name: form.panel_name.value,
+        url: form.panel_url.value
+      },
+      features: {
+        subusers: form.subusers_enabled.checked
+      }
+    };
+    
+    await saveSettings(newConfig);
+  };
+}
+
+// ==================== REGISTRATION SETTINGS ====================
+
+function renderRegistrationSettings(content, config) {
+  content.innerHTML = `
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <h2>Registration Settings</h2>
+        <p>Control how new users can register on the panel.</p>
+      </div>
+      
+      <form id="registration-settings-form" class="settings-form">
+        <div class="detail-card">
+          <h3>User Registration</h3>
+          <div class="form-toggles">
+            <label class="toggle-item">
+              <input type="checkbox" name="registration_enabled" ${config.registration?.enabled ? 'checked' : ''} />
+              <span class="toggle-content">
+                <span class="toggle-title">Allow Registrations</span>
+                <span class="toggle-desc">Allow new users to create accounts on the panel</span>
+              </span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" name="email_verification" ${config.registration?.emailVerification ? 'checked' : ''} />
+              <span class="toggle-content">
+                <span class="toggle-title">Email Verification</span>
+                <span class="toggle-desc">Require users to verify their email address</span>
+              </span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" name="captcha_enabled" ${config.registration?.captcha ? 'checked' : ''} />
+              <span class="toggle-content">
+                <span class="toggle-title">Captcha Protection</span>
+                <span class="toggle-desc">Require captcha verification on registration</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="detail-card">
+          <h3>Restrictions</h3>
+          <div class="form-group">
+            <label>Allowed Email Domains</label>
+            <input type="text" name="allowed_domains" value="${escapeHtml(config.registration?.allowedDomains || '')}" placeholder="example.com, company.org" />
+            <small class="form-hint">Comma-separated list. Leave empty to allow all domains.</small>
+          </div>
+          <div class="form-group">
+            <label>Blocked Email Domains</label>
+            <input type="text" name="blocked_domains" value="${escapeHtml(config.registration?.blockedDomains || '')}" placeholder="tempmail.com, disposable.org" />
+            <small class="form-hint">Comma-separated list of domains to block.</small>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <span class="material-icons-outlined">save</span>
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.getElementById('registration-settings-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    
+    const newConfig = {
+      registration: {
+        enabled: form.registration_enabled.checked,
+        emailVerification: form.email_verification.checked,
+        captcha: form.captcha_enabled.checked,
+        allowedDomains: form.allowed_domains.value,
+        blockedDomains: form.blocked_domains.value
+      }
+    };
+    
+    await saveSettings(newConfig);
+  };
+}
+
+// ==================== DEFAULTS SETTINGS ====================
+
+function renderDefaultsSettings(content, config) {
+  content.innerHTML = `
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <h2>User Defaults</h2>
+        <p>Default resource limits applied to new users when they register.</p>
+      </div>
+      
+      <form id="defaults-settings-form" class="settings-form">
+        <div class="detail-card">
+          <h3>Resource Limits</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Max Servers</label>
+              <input type="number" name="default_servers" value="${config.defaults?.servers || 2}" min="0" />
+              <small class="form-hint">Maximum number of servers a user can create</small>
+            </div>
+            <div class="form-group">
+              <label>Max Memory (MB)</label>
+              <input type="number" name="default_memory" value="${config.defaults?.memory || 2048}" min="0" step="128" />
+              <small class="form-hint">Total memory allocation across all servers</small>
+            </div>
+            <div class="form-group">
+              <label>Max Disk (MB)</label>
+              <input type="number" name="default_disk" value="${config.defaults?.disk || 10240}" min="0" step="1024" />
+              <small class="form-hint">Total disk space across all servers</small>
+            </div>
+            <div class="form-group">
+              <label>Max CPU (%)</label>
+              <input type="number" name="default_cpu" value="${config.defaults?.cpu || 200}" min="0" step="25" />
+              <small class="form-hint">Total CPU allocation (100% = 1 core)</small>
+            </div>
+          </div>
+        </div>
+        
+        <div class="detail-card">
+          <h3>Additional Limits</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Max Backups per Server</label>
+              <input type="number" name="default_backups" value="${config.defaults?.backups || 3}" min="0" />
+            </div>
+            <div class="form-group">
+              <label>Max Databases per Server</label>
+              <input type="number" name="default_databases" value="${config.defaults?.databases || 1}" min="0" />
+            </div>
+            <div class="form-group">
+              <label>Max Allocations per Server</label>
+              <input type="number" name="default_allocations" value="${config.defaults?.allocations || 1}" min="1" />
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <span class="material-icons-outlined">save</span>
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.getElementById('defaults-settings-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    
+    const newConfig = {
+      defaults: {
+        servers: parseInt(form.default_servers.value) || 2,
+        memory: parseInt(form.default_memory.value) || 2048,
+        disk: parseInt(form.default_disk.value) || 10240,
+        cpu: parseInt(form.default_cpu.value) || 200,
+        backups: parseInt(form.default_backups.value) || 3,
+        databases: parseInt(form.default_databases.value) || 1,
+        allocations: parseInt(form.default_allocations.value) || 1
+      }
+    };
+    
+    await saveSettings(newConfig);
+  };
+}
+
+// ==================== OAUTH SETTINGS ====================
+
+function renderOAuthSettings(content, config) {
+  content.innerHTML = `
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div class="settings-section-header-row">
+          <div>
+            <h2>OAuth Providers</h2>
+            <p>Configure third-party authentication providers.</p>
+          </div>
+          <button class="btn btn-primary" id="add-oauth-provider-btn">
+            <span class="material-icons-outlined">add</span>
+            Add Provider
+          </button>
+        </div>
+      </div>
+      
+      <div class="oauth-providers-grid" id="oauth-providers-list">
+        <div class="loading-spinner">
+          <span class="material-icons-outlined spinning">sync</span>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  loadOAuthProviders();
+  setupOAuthHandlers();
+}
+
+const providerIcons = {
+  discord: 'chat',
+  google: 'mail',
+  github: 'code',
+  gitlab: 'source',
+  microsoft: 'window',
+  twitter: 'tag',
+  facebook: 'people',
+  apple: 'phone_iphone',
+  twitch: 'videogame_asset',
+  slack: 'forum',
+  linkedin: 'work',
+  spotify: 'music_note',
+  reddit: 'forum',
+  bitbucket: 'code',
+  custom: 'key'
+};
+
+const providerColors = {
+  discord: '#5865F2',
+  google: '#4285F4',
+  github: '#24292e',
+  gitlab: '#FC6D26',
+  microsoft: '#00a4ef',
+  twitter: '#000',
+  facebook: '#1877f2',
+  apple: '#000',
+  twitch: '#9146ff',
+  slack: '#4a154b',
+  linkedin: '#0a66c2',
+  spotify: '#1db954',
+  reddit: '#ff4500',
+  bitbucket: '#0052cc',
+  custom: '#6366f1'
+};
+
+async function loadOAuthProviders() {
+  const list = document.getElementById('oauth-providers-list');
+  if (!list) return;
+  
+  try {
+    const res = await api('/api/admin/oauth/providers');
+    const data = await res.json();
+    const providers = data.providers || [];
+    
+    if (providers.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state-card">
+          <span class="material-icons-outlined">login</span>
+          <h3>No OAuth Providers</h3>
+          <p>Add a provider to allow users to sign in with their existing accounts.</p>
+          <button class="btn btn-primary" onclick="document.getElementById('add-oauth-provider-btn').click()">
+            <span class="material-icons-outlined">add</span>
+            Add Your First Provider
+          </button>
+        </div>
+      `;
+      return;
+    }
+    
+    list.innerHTML = providers.map(p => `
+      <div class="oauth-provider-card" data-id="${p.id}">
+        <div class="oauth-provider-card-header" style="border-left-color: ${providerColors[p.type] || '#6366f1'}">
+          <div class="oauth-provider-icon" style="background: ${providerColors[p.type] || '#6366f1'}">
+            <span class="material-icons-outlined">${providerIcons[p.type] || 'key'}</span>
+          </div>
+          <div class="oauth-provider-info">
+            <span class="oauth-provider-name">${escapeHtml(p.name)}</span>
+            <span class="oauth-provider-type">${p.type.charAt(0).toUpperCase() + p.type.slice(1)}</span>
+          </div>
+          <span class="status-badge ${p.enabled ? 'active' : 'inactive'}">${p.enabled ? 'Active' : 'Disabled'}</span>
+        </div>
+        <div class="oauth-provider-card-footer">
+          <span class="oauth-provider-meta">
+            <span class="material-icons-outlined">key</span>
+            ${p.client_id ? 'Configured' : 'Not configured'}
+          </span>
+          <div class="oauth-provider-actions">
+            <button class="btn btn-sm btn-ghost edit-oauth-btn" data-id="${p.id}">
+              <span class="material-icons-outlined">edit</span>
+              Edit
+            </button>
+            <button class="btn btn-sm btn-ghost btn-danger delete-oauth-btn" data-id="${p.id}">
+              <span class="material-icons-outlined">delete</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    list.querySelectorAll('.edit-oauth-btn').forEach(btn => {
+      btn.onclick = () => showOAuthModal(btn.dataset.id);
+    });
+    
+    list.querySelectorAll('.delete-oauth-btn').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Delete this OAuth provider?')) return;
+        try {
+          await api(`/api/admin/oauth/providers/${btn.dataset.id}`, { method: 'DELETE' });
+          success('Provider deleted');
+          loadOAuthProviders();
+        } catch (e) {
+          error('Failed to delete provider');
+        }
+      };
+    });
+  } catch (e) {
+    list.innerHTML = `<div class="error">Failed to load providers</div>`;
+  }
+}
+
+function setupOAuthHandlers() {
+  const addBtn = document.getElementById('add-oauth-provider-btn');
+  if (addBtn) {
+    addBtn.onclick = () => showOAuthModal(null);
+  }
+}
+
+function showOAuthModal(editId) {
+  const isEdit = !!editId;
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.id = 'oauth-modal';
+  modal.innerHTML = `
+    <div class="modal-backdrop" onclick="this.parentElement.remove()"></div>
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3>${isEdit ? 'Edit OAuth Provider' : 'Add OAuth Provider'}</h3>
+        <button class="modal-close" onclick="this.closest('.modal').remove()">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+      <form id="oauth-form" class="modal-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Provider Name</label>
+            <input type="text" name="name" required placeholder="My Discord Login" />
+          </div>
+          <div class="form-group">
+            <label>Provider Type</label>
+            <select name="type" required>
+              <option value="discord">Discord</option>
+              <option value="google">Google</option>
+              <option value="github">GitHub</option>
+              <option value="gitlab">GitLab</option>
+              <option value="microsoft">Microsoft</option>
+              <option value="twitter">Twitter / X</option>
+              <option value="facebook">Facebook</option>
+              <option value="apple">Apple</option>
+              <option value="twitch">Twitch</option>
+              <option value="slack">Slack</option>
+              <option value="linkedin">LinkedIn</option>
+              <option value="spotify">Spotify</option>
+              <option value="reddit">Reddit</option>
+              <option value="bitbucket">Bitbucket</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Client ID</label>
+            <input type="text" name="client_id" required placeholder="Your OAuth Client ID" />
+          </div>
+          <div class="form-group">
+            <label>Client Secret</label>
+            <input type="password" name="client_secret" ${isEdit ? '' : 'required'} placeholder="${isEdit ? 'Leave blank to keep current' : 'Your OAuth Client Secret'}" />
+          </div>
+        </div>
+        
+        <div id="custom-oauth-fields" style="display: none;">
+          <h4>Custom Provider Settings</h4>
+          <div class="form-group">
+            <label>Authorization URL</label>
+            <input type="url" name="authorize_url" placeholder="https://provider.com/oauth/authorize" />
+          </div>
+          <div class="form-group">
+            <label>Token URL</label>
+            <input type="url" name="token_url" placeholder="https://provider.com/oauth/token" />
+          </div>
+          <div class="form-group">
+            <label>User Info URL</label>
+            <input type="url" name="userinfo_url" placeholder="https://provider.com/api/user" />
+          </div>
+          <div class="form-group">
+            <label>Scopes</label>
+            <input type="text" name="scopes" placeholder="openid email profile" />
+          </div>
+        </div>
+        
+        <div class="form-toggles">
+          <label class="toggle-item">
+            <input type="checkbox" name="enabled" checked />
+            <span class="toggle-content">
+              <span class="toggle-title">Enabled</span>
+              <span class="toggle-desc">Allow users to login with this provider</span>
+            </span>
+          </label>
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
+          <button type="submit" class="btn btn-primary">${isEdit ? 'Save' : 'Add Provider'}</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const typeSelect = modal.querySelector('select[name="type"]');
+  const customFields = modal.querySelector('#custom-oauth-fields');
+  
+  typeSelect.onchange = () => {
+    customFields.style.display = typeSelect.value === 'custom' ? 'block' : 'none';
+  };
+  
+  modal.querySelector('#oauth-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    
+    const providerData = {
+      name: form.get('name'),
+      type: form.get('type'),
+      client_id: form.get('client_id'),
+      enabled: form.get('enabled') === 'on'
+    };
+    
+    if (form.get('client_secret')) {
+      providerData.client_secret = form.get('client_secret');
+    }
+    
+    if (form.get('type') === 'custom') {
+      providerData.authorize_url = form.get('authorize_url');
+      providerData.token_url = form.get('token_url');
+      providerData.userinfo_url = form.get('userinfo_url');
+      providerData.scopes = form.get('scopes');
+    }
+    
+    try {
+      if (isEdit) {
+        await api(`/api/admin/oauth/providers/${editId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ provider: providerData })
+        });
+        success('Provider updated');
+      } else {
+        await api('/api/admin/oauth/providers', {
+          method: 'POST',
+          body: JSON.stringify({ provider: providerData })
+        });
+        success('Provider added');
+      }
+      modal.remove();
+      loadOAuthProviders();
+    } catch (e) {
+      error('Failed to save provider');
+    }
+  };
+}
+
+// ==================== API KEYS SETTINGS ====================
+
 let appPermissions = [];
+
+function renderApiKeysSettings(content, config) {
+  content.innerHTML = `
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div class="settings-section-header-row">
+          <div>
+            <h2>Application API Keys</h2>
+            <p>Create API keys for automation, integrations, and external applications.</p>
+          </div>
+          <button class="btn btn-primary" id="create-app-key-btn">
+            <span class="material-icons-outlined">add</span>
+            Create Key
+          </button>
+        </div>
+      </div>
+      
+      <div class="api-keys-list" id="app-api-keys-list">
+        <div class="loading-spinner">
+          <span class="material-icons-outlined spinning">sync</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal" id="app-api-key-modal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Create Application Key</h3>
+          <button class="modal-close" id="close-app-key-modal">
+            <span class="material-icons-outlined">close</span>
+          </button>
+        </div>
+        <form id="app-api-key-form">
+          <div class="form-group">
+            <label for="app-key-name">Key Name</label>
+            <input type="text" id="app-key-name" required maxlength="50" placeholder="CI/CD Integration">
+          </div>
+          <div class="form-group">
+            <label>Permissions</label>
+            <div class="permissions-grid" id="app-permissions-grid"></div>
+          </div>
+          <div class="message" id="app-key-message"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-app-key-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Key</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="modal" id="app-key-created-modal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Application Key Created</h3>
+          <button class="modal-close" id="close-app-key-created-modal">
+            <span class="material-icons-outlined">close</span>
+          </button>
+        </div>
+        <div class="api-key-created-content">
+          <div class="warning-box">
+            <span class="material-icons-outlined">warning</span>
+            <p>Make sure to copy your API key now. You won't be able to see it again!</p>
+          </div>
+          <div class="api-key-display">
+            <code id="created-app-key-token"></code>
+            <button type="button" class="btn btn-icon" id="copy-app-key-btn">
+              <span class="material-icons-outlined">content_copy</span>
+            </button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-primary" id="done-app-key-btn">Done</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  loadAppApiKeys();
+  setupAppApiKeysHandlers();
+}
 
 async function loadAppApiKeys() {
   const list = document.getElementById('app-api-keys-list');
@@ -46170,22 +47075,32 @@ async function loadAppApiKeys() {
     
     if (!keysData.keys || keysData.keys.length === 0) {
       list.innerHTML = `
-        <div class="empty-state small">
+        <div class="empty-state-card">
           <span class="material-icons-outlined">vpn_key</span>
-          <p>No application keys</p>
+          <h3>No API Keys</h3>
+          <p>Create an API key to integrate external applications with the panel.</p>
+          <button class="btn btn-primary" onclick="document.getElementById('create-app-key-btn').click()">
+            <span class="material-icons-outlined">add</span>
+            Create Your First Key
+          </button>
         </div>
       `;
       return;
     }
     
     list.innerHTML = keysData.keys.map(key => `
-      <div class="api-key-item" data-id="${key.id}">
-        <div class="api-key-info">
-          <span class="api-key-name">${escapeHtml(key.name)}</span>
-          <span class="api-key-meta">
-            Created by ${escapeHtml(key.createdBy)} on ${new Date(key.createdAt).toLocaleDateString()}
-            ${key.lastUsedAt ? `• Last used ${new Date(key.lastUsedAt).toLocaleDateString()}` : '• Never used'}
-          </span>
+      <div class="api-key-card" data-id="${key.id}">
+        <div class="api-key-card-main">
+          <div class="api-key-icon">
+            <span class="material-icons-outlined">vpn_key</span>
+          </div>
+          <div class="api-key-info">
+            <span class="api-key-name">${escapeHtml(key.name)}</span>
+            <span class="api-key-meta">
+              Created by ${escapeHtml(key.createdBy)} on ${new Date(key.createdAt).toLocaleDateString()}
+              ${key.lastUsedAt ? ` • Last used ${new Date(key.lastUsedAt).toLocaleDateString()}` : ' • Never used'}
+            </span>
+          </div>
         </div>
         <div class="api-key-permissions">
           ${key.permissions.slice(0, 3).map(p => `<span class="permission-tag">${escapeHtml(p)}</span>`).join('')}
@@ -46205,20 +47120,16 @@ async function loadAppApiKeys() {
         
         try {
           await api(`/api/api-keys/application/${id}`, { method: 'DELETE' });
+          success('API key deleted');
           loadAppApiKeys();
-          success('Application key deleted');
         } catch (err) {
           error('Failed to delete key');
         }
       };
     });
   } catch (err) {
-    list.innerHTML = `
-      <div class="empty-state small error">
-        <span class="material-icons-outlined">error</span>
-        <p>Failed to load keys</p>
-      </div>
-    `;
+    console.error('Failed to load API keys:', err);
+    list.innerHTML = `<div class="error">Failed to load API keys</div>`;
   }
 }
 
@@ -46246,7 +47157,7 @@ function setupAppApiKeysHandlers() {
     permissionsGrid.innerHTML = appPermissions.map(p => `
       <label class="permission-checkbox">
         <input type="checkbox" name="permissions" value="${p}">
-        <span>${escapeHtml(p)}</span>
+        <span>${p}</span>
       </label>
     `).join('');
     modal.classList.add('active');
@@ -46263,11 +47174,7 @@ function setupAppApiKeysHandlers() {
   createdModal.querySelector('#copy-app-key-btn').onclick = () => {
     const token = document.getElementById('created-app-key-token').textContent;
     navigator.clipboard.writeText(token);
-    const btn = createdModal.querySelector('#copy-app-key-btn');
-    btn.innerHTML = '<span class="material-icons-outlined">check</span>';
-    setTimeout(() => {
-      btn.innerHTML = '<span class="material-icons-outlined">content_copy</span>';
-    }, 2000);
+    success('Copied to clipboard');
   };
   
   form.onsubmit = async (e) => {
@@ -46312,6 +47219,262 @@ function setupAppApiKeysHandlers() {
     btn.disabled = false;
     btn.innerHTML = 'Create Key';
   };
+}
+
+// ==================== MAIL SETTINGS ====================
+
+function renderMailSettings(content, config) {
+  content.innerHTML = `
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <h2>Mail Settings</h2>
+        <p>Configure email delivery for notifications and password resets.</p>
+      </div>
+      
+      <form id="mail-settings-form" class="settings-form">
+        <div class="detail-card">
+          <h3>SMTP Configuration</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>SMTP Host</label>
+              <input type="text" name="smtp_host" value="${escapeHtml(config.mail?.host || '')}" placeholder="smtp.example.com" />
+            </div>
+            <div class="form-group">
+              <label>SMTP Port</label>
+              <input type="number" name="smtp_port" value="${config.mail?.port || 587}" placeholder="587" />
+            </div>
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" name="smtp_user" value="${escapeHtml(config.mail?.user || '')}" placeholder="user@example.com" />
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" name="smtp_pass" placeholder="Leave blank to keep current" />
+            </div>
+          </div>
+          <div class="form-toggles" style="margin-top: 1rem;">
+            <label class="toggle-item">
+              <input type="checkbox" name="smtp_secure" ${config.mail?.secure ? 'checked' : ''} />
+              <span class="toggle-content">
+                <span class="toggle-title">Use TLS/SSL</span>
+                <span class="toggle-desc">Enable secure connection</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="detail-card">
+          <h3>Sender Information</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>From Name</label>
+              <input type="text" name="mail_from_name" value="${escapeHtml(config.mail?.fromName || 'Sodium Panel')}" />
+            </div>
+            <div class="form-group">
+              <label>From Email</label>
+              <input type="email" name="mail_from_email" value="${escapeHtml(config.mail?.fromEmail || '')}" placeholder="noreply@example.com" />
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="test-mail-btn">
+            <span class="material-icons-outlined">send</span>
+            Send Test Email
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <span class="material-icons-outlined">save</span>
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.getElementById('mail-settings-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    
+    const newConfig = {
+      mail: {
+        host: form.smtp_host.value,
+        port: parseInt(form.smtp_port.value) || 587,
+        user: form.smtp_user.value,
+        secure: form.smtp_secure.checked,
+        fromName: form.mail_from_name.value,
+        fromEmail: form.mail_from_email.value
+      }
+    };
+    
+    if (form.smtp_pass.value) {
+      newConfig.mail.pass = form.smtp_pass.value;
+    }
+    
+    await saveSettings(newConfig);
+  };
+  
+  document.getElementById('test-mail-btn').onclick = async () => {
+    const email = prompt('Enter email address to send test to:');
+    if (!email) return;
+    
+    const btn = document.getElementById('test-mail-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span> Sending...';
+    
+    try {
+      const res = await api('/api/admin/mail/test', { 
+        method: 'POST',
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (data.success) {
+        success('Test email sent successfully');
+      } else {
+        error(data.error || 'Failed to send test email');
+      }
+    } catch (e) {
+      error('Failed to send test email');
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-icons-outlined">send</span> Send Test Email';
+  };
+}
+
+// ==================== ADVANCED SETTINGS ====================
+
+function renderAdvancedSettings(content, config) {
+  content.innerHTML = `
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <h2>Advanced Settings</h2>
+        <p>Advanced configuration options. Be careful when modifying these settings.</p>
+      </div>
+      
+      <form id="advanced-settings-form" class="settings-form">
+        <div class="detail-card">
+          <h3>Performance</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Console History Lines</label>
+              <input type="number" name="console_lines" value="${config.advanced?.consoleLines || 1000}" min="100" max="10000" />
+              <small class="form-hint">Number of console lines to keep in memory</small>
+            </div>
+            <div class="form-group">
+              <label>File Manager Max Size (MB)</label>
+              <input type="number" name="max_upload_size" value="${config.advanced?.maxUploadSize || 100}" min="1" />
+              <small class="form-hint">Maximum file upload size</small>
+            </div>
+          </div>
+        </div>
+        
+        <div class="detail-card">
+          <h3>Security</h3>
+          <div class="form-toggles">
+            <label class="toggle-item">
+              <input type="checkbox" name="require_2fa_admin" ${config.advanced?.require2faAdmin ? 'checked' : ''} />
+              <span class="toggle-content">
+                <span class="toggle-title">Require 2FA for Admins</span>
+                <span class="toggle-desc">Force administrators to enable two-factor authentication</span>
+              </span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" name="audit_logging" ${config.advanced?.auditLogging !== false ? 'checked' : ''} />
+              <span class="toggle-content">
+                <span class="toggle-title">Audit Logging</span>
+                <span class="toggle-desc">Log all administrative actions</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="detail-card danger-card">
+          <h3>Danger Zone</h3>
+          <div class="danger-actions">
+            <div class="danger-action">
+              <div class="danger-info">
+                <span class="danger-title">Clear All Cache</span>
+                <span class="danger-desc">Clear all cached data including sessions</span>
+              </div>
+              <button type="button" class="btn btn-danger btn-sm" id="clear-cache-btn">Clear Cache</button>
+            </div>
+            <div class="danger-action">
+              <div class="danger-info">
+                <span class="danger-title">Rebuild Database Indexes</span>
+                <span class="danger-desc">Rebuild search indexes for better performance</span>
+              </div>
+              <button type="button" class="btn btn-danger btn-sm" id="rebuild-indexes-btn">Rebuild</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <span class="material-icons-outlined">save</span>
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.getElementById('advanced-settings-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    
+    const newConfig = {
+      advanced: {
+        consoleLines: parseInt(form.console_lines.value) || 1000,
+        maxUploadSize: parseInt(form.max_upload_size.value) || 100,
+        require2faAdmin: form.require_2fa_admin.checked,
+        auditLogging: form.audit_logging.checked
+      }
+    };
+    
+    await saveSettings(newConfig);
+  };
+  
+  document.getElementById('clear-cache-btn').onclick = async () => {
+    if (!confirm('Clear all cache? Users may need to log in again.')) return;
+    info('Clearing cache...');
+    try {
+      await api('/api/admin/cache/clear', { method: 'POST' });
+      success('Cache cleared');
+    } catch (e) {
+      error('Failed to clear cache');
+    }
+  };
+  
+  document.getElementById('rebuild-indexes-btn').onclick = async () => {
+    if (!confirm('Rebuild database indexes? This may take a moment.')) return;
+    info('Rebuilding indexes...');
+    try {
+      await api('/api/admin/database/rebuild', { method: 'POST' });
+      success('Indexes rebuilt');
+    } catch (e) {
+      error('Failed to rebuild indexes');
+    }
+  };
+}
+
+// ==================== HELPERS ====================
+
+async function saveSettings(newConfig) {
+  try {
+    const res = await api('/api/admin/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: newConfig })
+    });
+    
+    if (res.ok) {
+      success('Settings saved');
+    } else {
+      error('Failed to save settings');
+    }
+  } catch (e) {
+    error('Failed to save settings');
+  }
 }
 
 const navigateTo$2 = (...args) => window.adminNavigate(...args);
@@ -47478,6 +48641,13 @@ const routes = {
     render: renderAuth,
     options: {
       title: 'Sign In',
+      sidebar: false
+    }
+  },
+  '/auth/callback': {
+    render: renderAuthCallback,
+    options: {
+      title: 'Signing In',
       sidebar: false
     }
   },
