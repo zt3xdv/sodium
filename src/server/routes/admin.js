@@ -205,6 +205,53 @@ router.put('/users/:id', (req, res) => {
   res.json({ success: true, user });
 });
 
+router.delete('/users/:id', async (req, res) => {
+  const usersData = loadUsers();
+  const user = usersData.users.find(u => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  
+  // Prevent deleting yourself
+  if (user.id === req.user.id) {
+    return res.status(400).json({ error: 'Cannot delete your own account' });
+  }
+  
+  // Find and delete all user's servers
+  const serversData = loadServers();
+  const userServers = serversData.servers.filter(s => s.user_id === user.id);
+  const nodes = loadNodes();
+  
+  const deletionResults = [];
+  for (const server of userServers) {
+    const node = nodes.nodes.find(n => n.id === server.node_id);
+    if (node) {
+      try {
+        await wingsRequest(node, 'DELETE', `/api/servers/${server.uuid}`);
+        deletionResults.push({ server: server.name, status: 'deleted' });
+      } catch (e) {
+        deletionResults.push({ server: server.name, status: 'failed', error: e.message });
+      }
+    } else {
+      deletionResults.push({ server: server.name, status: 'no_node' });
+    }
+  }
+  
+  // Remove servers from database
+  serversData.servers = serversData.servers.filter(s => s.user_id !== user.id);
+  saveServers(serversData);
+  
+  // Remove user from database
+  usersData.users = usersData.users.filter(u => u.id !== req.params.id);
+  saveUsers(usersData);
+  
+  logger.info(`User ${user.username} deleted by admin ${req.user.username}. Servers deleted: ${userServers.length}`);
+  
+  res.json({ 
+    success: true, 
+    deletedServers: userServers.length,
+    results: deletionResults
+  });
+});
+
 // ==================== NESTS & EGGS ====================
 router.get('/nests', (req, res) => {
   const nests = loadNests();

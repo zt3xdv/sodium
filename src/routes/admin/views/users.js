@@ -192,6 +192,14 @@ async function renderUserSubTab(user, username) {
                 <span class="info-label">Role</span>
                 <span class="info-value"><span class="role-badge ${user.isAdmin ? 'admin' : 'user'}">${user.isAdmin ? 'Administrator' : 'User'}</span></span>
               </div>
+              <div class="info-item">
+                <span class="info-label">Email</span>
+                <span class="info-value">${user.email ? escapeHtml(user.email) : '<span class="text-muted">Not set</span>'}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Email Verified</span>
+                <span class="info-value">${user.emailVerified ? '<span class="status-success-text">Yes</span>' : '<span class="status-danger-text">No</span>'}</span>
+              </div>
             </div>
           </div>
           
@@ -217,7 +225,50 @@ async function renderUserSubTab(user, username) {
             </div>
           </div>
         </div>
+        
+        <div class="detail-card danger-card" style="margin-top: 24px;">
+          <h3>Danger Zone</h3>
+          <div class="danger-actions">
+            <div class="danger-action">
+              <div class="danger-info">
+                <span class="danger-title">Delete User</span>
+                <span class="danger-desc">Permanently delete this user and all their servers. This action cannot be undone.</span>
+              </div>
+              <button class="btn btn-danger btn-sm" id="delete-user-btn">Delete User</button>
+            </div>
+          </div>
+        </div>
       `;
+      
+      document.getElementById('delete-user-btn')?.addEventListener('click', async () => {
+        const confirmUsername = prompt('Type "' + user.username + '" to confirm deletion:');
+        if (confirmUsername !== user.username) {
+          if (confirmUsername !== null) toast.error('Username does not match');
+          return;
+        }
+        
+        const btn = document.getElementById('delete-user-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span> Deleting...';
+        
+        try {
+          const res = await api('/api/admin/users/' + user.id, { method: 'DELETE' });
+          const data = await res.json();
+          
+          if (data.success) {
+            toast.success('User deleted. ' + data.deletedServers + ' server(s) removed.');
+            navigateTo('users');
+          } else {
+            toast.error(data.error || 'Failed to delete user');
+            btn.disabled = false;
+            btn.textContent = 'Delete User';
+          }
+        } catch (e) {
+          toast.error('Failed to delete user');
+          btn.disabled = false;
+          btn.textContent = 'Delete User';
+        }
+      });
       break;
       
     case 'servers':
