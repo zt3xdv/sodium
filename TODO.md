@@ -14,6 +14,8 @@
 
 ## Pending
 
+- [x] Roles (user, moderator, admin)
+- [x] Webhooks (Discord, Slack, generic)
 - [x] Activity log
 - [x] API keys for users
 - [x] Session management

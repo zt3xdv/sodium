@@ -17,6 +17,7 @@ import apiKeysRoutes from './routes/api-keys.js';
 import announcementsRoutes from './routes/announcements.js';
 import auditLogsRoutes from './routes/audit-logs.js';
 import activityLogsRoutes from './routes/activity-logs.js';
+import webhooksRoutes from './routes/webhooks.js';
 import setupRoutes from './routes/setup.js';
 import healthRoutes from './routes/health.js';
 import metricsRoutes, { recordRequest } from './routes/metrics.js';
@@ -95,6 +96,7 @@ app.use('/api/api-keys', apiKeysRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/admin/audit-logs', auditLogsRoutes);
 app.use('/api/activity', activityLogsRoutes);
+app.use('/api/webhooks', webhooksRoutes);
 
 // Fallback para SPA
 app.get(/.*/, (req, res) => {

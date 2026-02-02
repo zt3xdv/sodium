@@ -926,7 +926,7 @@ async function renderResetPassword() {
   }
 }
 
-function escapeHtml(str) {
+function escapeHtml$1(str) {
   if (typeof str !== 'string') return '';
   return str
     .replace(/&/g, '&amp;')
@@ -951,7 +951,7 @@ function escapeUrl(url) {
 
 function sanitizeText(text, maxLength = 1000) {
   if (typeof text !== 'string') return '';
-  return escapeHtml(text.slice(0, maxLength).trim());
+  return escapeHtml$1(text.slice(0, maxLength).trim());
 }
 
 function isValidUrl(url) {
@@ -975,9 +975,9 @@ function createSafeElement(tag, attributes = {}, textContent = '') {
     } else if (key === 'class') {
       el.className = value;
     } else if (key.startsWith('data-')) {
-      el.setAttribute(key, escapeHtml(value));
+      el.setAttribute(key, escapeHtml$1(value));
     } else {
-      el.setAttribute(key, escapeHtml(value));
+      el.setAttribute(key, escapeHtml$1(value));
     }
   }
   
@@ -1056,7 +1056,7 @@ function renderDashboard() {
             <span class="material-icons-outlined">${icon}</span>
           </div>
           <div class="greeting-text">
-            <h1>${greeting}, <span class="highlight">${escapeHtml(displayName)}</span></h1>
+            <h1>${greeting}, <span class="highlight">${escapeHtml$1(displayName)}</span></h1>
             <p>${subtitle}</p>
           </div>
         </div>
@@ -1258,7 +1258,7 @@ async function loadServers$1() {
     container.innerHTML = data.servers.map(server => `
       <a href="/server/${server.id}" class="server-item">
         <div class="server-info">
-          <span class="server-name">${escapeHtml(server.name)}</span>
+          <span class="server-name">${escapeHtml$1(server.name)}</span>
           <span class="server-address">${server.node_address || `${server.allocation?.ip}:${server.allocation?.port}`}</span>
         </div>
         <div class="server-meta">
@@ -1335,8 +1335,8 @@ async function loadAnnouncements() {
           <span class="material-icons-outlined">campaign</span>
         </div>
         <div class="announcement-content">
-          <div class="announcement-title">${escapeHtml(a.title)}</div>
-          <div class="announcement-text">${escapeHtml(a.content)}</div>
+          <div class="announcement-title">${escapeHtml$1(a.title)}</div>
+          <div class="announcement-text">${escapeHtml$1(a.content)}</div>
         </div>
         <button class="announcement-close" onclick="dismissAnnouncement('${a.id}')">
           <span class="material-icons-outlined">close</span>
@@ -1387,8 +1387,8 @@ function renderProfile() {
               <span class="material-icons-outlined">person</span>
             </div>
             <div class="avatar-info">
-              <h3 id="profile-display-name">${escapeHtml(displayName)}</h3>
-              <span class="username">@${escapeHtml(username)}</span>
+              <h3 id="profile-display-name">${escapeHtml$1(displayName)}</h3>
+              <span class="username">@${escapeHtml$1(username)}</span>
             </div>
           </div>
         </div>
@@ -1410,7 +1410,7 @@ function renderProfile() {
               <label for="display-name">Display Name</label>
               <div class="input-wrapper">
                 <span class="material-icons-outlined">badge</span>
-                <input type="text" id="display-name" name="displayName" value="${escapeHtml(displayName)}" maxlength="50" placeholder="Your display name">
+                <input type="text" id="display-name" name="displayName" value="${escapeHtml$1(displayName)}" maxlength="50" placeholder="Your display name">
               </div>
               <small class="form-hint">This is how others will see you</small>
             </div>
@@ -1539,7 +1539,7 @@ function renderProfile() {
       const data = await res.json();
       
       if (data.error) {
-        messageEl.textContent = escapeHtml(data.error);
+        messageEl.textContent = escapeHtml$1(data.error);
         messageEl.className = 'message error';
       } else {
         messageEl.textContent = 'Profile updated successfully!';
@@ -1547,10 +1547,10 @@ function renderProfile() {
         localStorage.setItem('displayName', displayName);
         
         const profileDisplayName = document.getElementById('profile-display-name');
-        if (profileDisplayName) profileDisplayName.textContent = escapeHtml(displayName);
+        if (profileDisplayName) profileDisplayName.textContent = escapeHtml$1(displayName);
         
         const navDisplayName = document.querySelector('.user-display-name');
-        if (navDisplayName) navDisplayName.textContent = escapeHtml(displayName);
+        if (navDisplayName) navDisplayName.textContent = escapeHtml$1(displayName);
       }
     } catch (err) {
       messageEl.textContent = 'Connection error. Please try again.';
@@ -1821,6 +1821,28 @@ function renderSettings() {
           </div>
         </div>
         
+        <div class="settings-section">
+          <div class="section-header">
+            <span class="material-icons-outlined">webhook</span>
+            <h3>Webhooks</h3>
+          </div>
+          
+          <div class="webhooks-container">
+            <div class="webhooks-header">
+              <p class="setting-description">Send notifications to Discord, Slack, or custom URLs when events occur</p>
+              <button class="btn btn-primary btn-sm" id="create-webhook-btn">
+                <span class="material-icons-outlined">add</span>
+                <span>Add Webhook</span>
+              </button>
+            </div>
+            <div class="webhooks-list" id="webhooks-list">
+              <div class="loading-spinner">
+                <span class="material-icons-outlined spinning">sync</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <div class="settings-section danger-section">
           <div class="section-header">
             <span class="material-icons-outlined">warning</span>
@@ -1937,6 +1959,51 @@ function renderSettings() {
         </form>
       </div>
     </div>
+    
+    <div class="modal" id="webhook-modal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add Webhook</h3>
+          <button class="modal-close" id="close-webhook-modal">
+            <span class="material-icons-outlined">close</span>
+          </button>
+        </div>
+        <form id="webhook-form">
+          <div class="form-group">
+            <label for="webhook-name">Name</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">label</span>
+              <input type="text" id="webhook-name" required maxlength="50" placeholder="My Webhook">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="webhook-url">Webhook URL</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">link</span>
+              <input type="url" id="webhook-url" required placeholder="https://discord.com/api/webhooks/...">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="webhook-type">Type</label>
+            <select id="webhook-type" class="select-input">
+              <option value="discord">Discord</option>
+              <option value="slack">Slack</option>
+              <option value="generic">Generic (JSON)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Events</label>
+            <div class="webhook-events-grid" id="webhook-events-grid"></div>
+          </div>
+          <div class="message" id="webhook-message"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-webhook-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Webhook</button>
+          </div>
+        </form>
+      </div>
+    </div>
   `;
   
   loadSettings();
@@ -1945,6 +2012,8 @@ function renderSettings() {
   setupSshKeysHandlers();
   loadApiKeys();
   setupApiKeysHandlers();
+  loadWebhooks();
+  setupWebhooksHandlers();
   
   const logoutBtn = app.querySelector('#logout-btn');
   logoutBtn.addEventListener('click', () => {
@@ -2437,6 +2506,206 @@ function setupApiKeysHandlers() {
   });
 }
 
+// ==================== WEBHOOKS ====================
+
+const WEBHOOK_EVENTS = [
+  { id: 'server.created', label: 'Server Created' },
+  { id: 'server.deleted', label: 'Server Deleted' },
+  { id: 'server.started', label: 'Server Started' },
+  { id: 'server.stopped', label: 'Server Stopped' },
+  { id: 'server.crashed', label: 'Server Crashed' },
+  { id: 'server.suspended', label: 'Server Suspended' },
+  { id: 'server.backup.created', label: 'Backup Created' }
+];
+
+async function loadWebhooks() {
+  const container = document.getElementById('webhooks-list');
+  if (!container) return;
+  
+  try {
+    const res = await api('/api/webhooks');
+    const data = await res.json();
+    
+    if (!data.webhooks || data.webhooks.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state small">
+          <span class="material-icons-outlined">webhook</span>
+          <p>No webhooks configured</p>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = data.webhooks.map(webhook => `
+      <div class="list-item webhook-item" data-id="${webhook.id}">
+        <div class="item-icon">
+          <span class="material-icons-outlined">${getWebhookIcon(webhook.type)}</span>
+        </div>
+        <div class="item-info">
+          <span class="item-name">${escapeHtml(webhook.name)}</span>
+          <span class="item-meta">${webhook.type} • ${webhook.events.length} events</span>
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-icon btn-sm test-webhook-btn" title="Test">
+            <span class="material-icons-outlined">send</span>
+          </button>
+          <label class="toggle small">
+            <input type="checkbox" class="toggle-webhook-btn" ${webhook.enabled ? 'checked' : ''}>
+            <span class="toggle-slider"></span>
+          </label>
+          <button class="btn btn-icon btn-sm btn-danger delete-webhook-btn" title="Delete">
+            <span class="material-icons-outlined">delete</span>
+          </button>
+        </div>
+      </div>
+    `).join('');
+    
+    container.querySelectorAll('.delete-webhook-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const item = e.target.closest('.webhook-item');
+        const id = item.dataset.id;
+        if (!confirm('Delete this webhook?')) return;
+        
+        try {
+          await api(`/api/webhooks/${id}`, { method: 'DELETE' });
+          loadWebhooks();
+        } catch (err) {
+          console.error('Failed to delete webhook:', err);
+        }
+      });
+    });
+    
+    container.querySelectorAll('.test-webhook-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const item = e.target.closest('.webhook-item');
+        const id = item.dataset.id;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+        
+        try {
+          const res = await api(`/api/webhooks/${id}/test`, { method: 'POST' });
+          const data = await res.json();
+          btn.innerHTML = '<span class="material-icons-outlined">check</span>';
+          setTimeout(() => {
+            btn.innerHTML = '<span class="material-icons-outlined">send</span>';
+            btn.disabled = false;
+          }, 2000);
+        } catch (err) {
+          btn.innerHTML = '<span class="material-icons-outlined">error</span>';
+          setTimeout(() => {
+            btn.innerHTML = '<span class="material-icons-outlined">send</span>';
+            btn.disabled = false;
+          }, 2000);
+        }
+      });
+    });
+    
+    container.querySelectorAll('.toggle-webhook-btn').forEach(toggle => {
+      toggle.addEventListener('change', async (e) => {
+        const item = e.target.closest('.webhook-item');
+        const id = item.dataset.id;
+        
+        try {
+          await api(`/api/webhooks/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ enabled: e.target.checked })
+          });
+        } catch (err) {
+          e.target.checked = !e.target.checked;
+        }
+      });
+    });
+    
+  } catch (err) {
+    container.innerHTML = '<div class="error">Failed to load webhooks</div>';
+  }
+}
+
+function getWebhookIcon(type) {
+  switch (type) {
+    case 'discord': return 'chat';
+    case 'slack': return 'tag';
+    default: return 'webhook';
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function setupWebhooksHandlers() {
+  const modal = document.getElementById('webhook-modal');
+  const createBtn = document.getElementById('create-webhook-btn');
+  const form = document.getElementById('webhook-form');
+  const eventsGrid = document.getElementById('webhook-events-grid');
+  
+  if (!modal || !createBtn) return;
+  
+  // Populate events grid
+  eventsGrid.innerHTML = WEBHOOK_EVENTS.map(event => `
+    <label class="checkbox-item">
+      <input type="checkbox" name="webhook-events" value="${event.id}">
+      <span>${event.label}</span>
+    </label>
+  `).join('');
+  
+  const closeModal = () => {
+    modal.classList.remove('active');
+    form.reset();
+    document.getElementById('webhook-message').textContent = '';
+  };
+  
+  createBtn.addEventListener('click', () => modal.classList.add('active'));
+  document.getElementById('close-webhook-modal').addEventListener('click', closeModal);
+  document.getElementById('cancel-webhook-modal').addEventListener('click', closeModal);
+  modal.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+  
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('webhook-name').value.trim();
+    const url = document.getElementById('webhook-url').value.trim();
+    const type = document.getElementById('webhook-type').value;
+    const checkboxes = form.querySelectorAll('input[name="webhook-events"]:checked');
+    const events = Array.from(checkboxes).map(cb => cb.value);
+    const messageEl = document.getElementById('webhook-message');
+    const btn = form.querySelector('button[type="submit"]');
+    
+    if (events.length === 0) {
+      messageEl.textContent = 'Select at least one event';
+      messageEl.className = 'message error';
+      return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+    
+    try {
+      const res = await api('/api/webhooks', {
+        method: 'POST',
+        body: JSON.stringify({ name, url, type, events })
+      });
+      
+      const data = await res.json();
+      
+      if (data.error) {
+        messageEl.textContent = data.error;
+        messageEl.className = 'message error';
+      } else {
+        closeModal();
+        loadWebhooks();
+      }
+    } catch (err) {
+      messageEl.textContent = 'Failed to create webhook';
+      messageEl.className = 'message error';
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = 'Create Webhook';
+  });
+}
+
 function renderNotFound() {
   const app = document.getElementById('app');
   app.className = 'notfound-page';
@@ -2524,7 +2793,7 @@ async function loadUserProfile(targetUsername) {
                 return `
                   <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="link-item">
                     <span class="material-icons-outlined">${linkIcons[key] || 'link'}</span>
-                    <span>${escapeHtml(linkLabels[key] || key)}</span>
+                    <span>${escapeHtml$1(linkLabels[key] || key)}</span>
                     <span class="material-icons-outlined external">open_in_new</span>
                   </a>
                 `;
@@ -2546,8 +2815,8 @@ async function loadUserProfile(targetUsername) {
             ${avatarHtml}
           </div>
           <div class="user-info">
-            <h1>${escapeHtml(user.displayName || user.username)}</h1>
-            <span class="user-username">@${escapeHtml(user.username)}</span>
+            <h1>${escapeHtml$1(user.displayName || user.username)}</h1>
+            <span class="user-username">@${escapeHtml$1(user.username)}</span>
             ${isPrivate ? '<span class="private-badge"><span class="material-icons-outlined">lock</span> Private Profile</span>' : ''}
           </div>
         </div>
@@ -2555,7 +2824,7 @@ async function loadUserProfile(targetUsername) {
         ${!isPrivate && user.bio ? `
           <div class="user-bio">
             <h3>About</h3>
-            <p>${escapeHtml(user.bio)}</p>
+            <p>${escapeHtml$1(user.bio)}</p>
           </div>
         ` : ''}
         
@@ -2613,7 +2882,7 @@ function toast(message, type = 'info', duration = 3000) {
   
   el.innerHTML = `
     <span class="material-icons-outlined">${icons[type] || 'info'}</span>
-    <span class="toast-message">${escapeHtml(message)}</span>
+    <span class="toast-message">${escapeHtml$1(message)}</span>
     <button class="toast-close">
       <span class="material-icons-outlined">close</span>
     </button>
@@ -2705,7 +2974,7 @@ async function loadServers() {
       <div class="server-card" data-id="${server.id}">
         <div class="section-header">
           <span class="material-icons-outlined">dns</span>
-          <h3>${escapeHtml(server.name)}</h3>
+          <h3>${escapeHtml$1(server.name)}</h3>
           <span class="status status-loading" data-status-id="${server.id}">loading...</span>
         </div>
         <div class="server-card-content">
@@ -2895,7 +3164,7 @@ function renderCreateForm(remaining) {
           <div class="nest-tabs" id="nest-tabs">
             ${nestsData.nests.map((nest, idx) => `
               <button class="nest-tab ${idx === 0 ? 'active' : ''}" data-nest-id="${nest.id}">
-                ${escapeHtml(nest.name)}
+                ${escapeHtml$1(nest.name)}
               </button>
             `).join('')}
           </div>
@@ -3020,8 +3289,8 @@ function renderEggsGrid(nest) {
         ${renderEggIcon(egg)}
       </div>
       <div class="egg-select-info">
-        <h4>${escapeHtml(egg.name)}</h4>
-        <p>${escapeHtml(egg.description || 'No description')}</p>
+        <h4>${escapeHtml$1(egg.name)}</h4>
+        <p>${escapeHtml$1(egg.description || 'No description')}</p>
       </div>
       <span class="egg-select-check material-icons-outlined">check_circle</span>
     </div>
@@ -3035,12 +3304,12 @@ function renderEggIcon(egg) {
   
   // Check if it's a Material Icon name
   if (!egg.icon.includes('/') && !egg.icon.includes('.')) {
-    return `<span class="material-icons-outlined">${escapeHtml(egg.icon)}</span>`;
+    return `<span class="material-icons-outlined">${escapeHtml$1(egg.icon)}</span>`;
   }
   
   // Check if it's a URL (image)
   if (egg.icon.startsWith('http') || egg.icon.startsWith('/') || egg.icon.includes('.')) {
-    return `<img src="${escapeHtml(egg.icon)}" alt="${escapeHtml(egg.name)}" onerror="this.outerHTML='<span class=\\'material-icons-outlined\\'>egg_alt</span>'" />`;
+    return `<img src="${escapeHtml$1(egg.icon)}" alt="${escapeHtml$1(egg.name)}" onerror="this.outerHTML='<span class=\\'material-icons-outlined\\'>egg_alt</span>'" />`;
   }
   
   return '<span class="material-icons-outlined">egg_alt</span>';
@@ -3055,8 +3324,8 @@ function renderEggPreview(egg) {
         ${renderEggIcon(egg)}
       </div>
       <div class="egg-preview-info">
-        <h5>${escapeHtml(egg.name)}</h5>
-        <p>${escapeHtml(egg.description || 'No description')}</p>
+        <h5>${escapeHtml$1(egg.name)}</h5>
+        <p>${escapeHtml$1(egg.description || 'No description')}</p>
       </div>
     </div>
   `;
@@ -3117,7 +3386,7 @@ function updateDockerImages() {
   
   section.style.display = 'block';
   select.innerHTML = Object.entries(selectedEgg.docker_images).map(([label, image]) => 
-    `<option value="${escapeHtml(image)}">${escapeHtml(label)}</option>`
+    `<option value="${escapeHtml$1(image)}">${escapeHtml$1(label)}</option>`
   ).join('');
 }
 
@@ -40540,10 +40809,10 @@ function confirm$1(message, options = {}) {
       <div class="modal-backdrop"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h3>${escapeHtml(title)}</h3>
+          <h3>${escapeHtml$1(title)}</h3>
         </div>
         <div class="modal-body">
-          <p>${escapeHtml(message)}</p>
+          <p>${escapeHtml$1(message)}</p>
         </div>
         <div class="modal-actions">
           <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
@@ -40590,11 +40859,11 @@ function prompt$1(message, options = {}) {
       <div class="modal-backdrop"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h3>${escapeHtml(title)}</h3>
+          <h3>${escapeHtml$1(title)}</h3>
         </div>
         <div class="modal-body">
-          <p>${escapeHtml(message)}</p>
-          <input type="text" class="input" id="modal-input" placeholder="${escapeHtml(placeholder)}" value="${escapeHtml(defaultValue)}">
+          <p>${escapeHtml$1(message)}</p>
+          <input type="text" class="input" id="modal-input" placeholder="${escapeHtml$1(placeholder)}" value="${escapeHtml$1(defaultValue)}">
         </div>
         <div class="modal-actions">
           <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
@@ -40643,10 +40912,10 @@ function alert$1(message, options = {}) {
       <div class="modal-backdrop"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h3>${escapeHtml(title)}</h3>
+          <h3>${escapeHtml$1(title)}</h3>
         </div>
         <div class="modal-body">
-          <p>${escapeHtml(message)}</p>
+          <p>${escapeHtml$1(message)}</p>
         </div>
         <div class="modal-actions">
           <button class="btn btn-primary" id="modal-confirm">${confirmText}</button>
@@ -41878,9 +42147,9 @@ function parseRules(rulesString) {
 
 function renderVariableInput(variable, currentValue, rules) {
   const id = `var-${variable.env_variable}`;
-  const dataAttr = `data-var="${variable.env_variable}" data-rules="${escapeHtml(variable.rules || '')}"`;
-  const placeholder = escapeHtml(variable.default_value || '');
-  const value = escapeHtml(currentValue);
+  const dataAttr = `data-var="${variable.env_variable}" data-rules="${escapeHtml$1(variable.rules || '')}"`;
+  const placeholder = escapeHtml$1(variable.default_value || '');
+  const value = escapeHtml$1(currentValue);
   
   // Boolean type - render as toggle/select
   if (rules.type === 'boolean') {
@@ -41898,7 +42167,7 @@ function renderVariableInput(variable, currentValue, rules) {
     return `
       <select id="${id}" name="env_${variable.env_variable}" class="select-input" ${dataAttr}>
         ${rules.in.map(opt => `
-          <option value="${escapeHtml(opt)}" ${currentValue === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>
+          <option value="${escapeHtml$1(opt)}" ${currentValue === opt ? 'selected' : ''}>${escapeHtml$1(opt)}</option>
         `).join('')}
       </select>
     `;
@@ -42057,13 +42326,13 @@ function renderStartupForm(server, egg) {
     <div class="form-group">
       <label>Startup Command</label>
       <div class="textarea-wrapper">
-        <textarea name="startup" id="startup-command" rows="3" spellcheck="false" placeholder="java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar">${escapeHtml(server.startup || egg?.startup || '')}</textarea>
+        <textarea name="startup" id="startup-command" rows="3" spellcheck="false" placeholder="java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar">${escapeHtml$1(server.startup || egg?.startup || '')}</textarea>
       </div>
       <small class="form-hint">Use {{VARIABLE}} syntax for variables</small>
     </div>
     <div class="startup-preview">
       <span class="preview-label">Preview:</span>
-      <code id="startup-preview">${escapeHtml(parseStartupCommand(server.startup || egg?.startup || '', server.environment || {}))}</code>
+      <code id="startup-preview">${escapeHtml$1(parseStartupCommand(server.startup || egg?.startup || '', server.environment || {}))}</code>
     </div>
     
     <div class="form-group" style="margin-top: 20px;">
@@ -42093,16 +42362,16 @@ function renderStartupForm(server, egg) {
             <div class="variable-item">
               <div class="variable-header">
                 <label for="var-${v.env_variable}">
-                  ${escapeHtml(v.name)}
+                  ${escapeHtml$1(v.name)}
                   ${rules.required ? '<span class="required">*</span>' : ''}
                 </label>
-                <code class="variable-key">${escapeHtml(v.env_variable)}</code>
+                <code class="variable-key">${escapeHtml$1(v.env_variable)}</code>
               </div>
-              <p class="variable-description">${escapeHtml(v.description || '')}</p>
+              <p class="variable-description">${escapeHtml$1(v.description || '')}</p>
               ${renderVariableInput(v, currentValue, rules)}
               <div class="variable-meta">
                 ${rules.required ? '<span class="rule-badge required">Required</span>' : '<span class="rule-badge optional">Optional</span>'}
-                ${rules.type ? `<span class="rule-badge type">${escapeHtml(rules.type)}</span>` : ''}
+                ${rules.type ? `<span class="rule-badge type">${escapeHtml$1(rules.type)}</span>` : ''}
                 ${rules.min !== null ? `<span class="rule-badge">Min: ${rules.min}</span>` : ''}
                 ${rules.max !== null ? `<span class="rule-badge">Max: ${rules.max}</span>` : ''}
                 ${rules.in.length > 0 ? `<span class="rule-badge">Options: ${rules.in.join(', ')}</span>` : ''}
@@ -42162,14 +42431,14 @@ function getDockerImagesOptions(server, egg) {
   
   if (images.length === 0) {
     if (currentImage) {
-      return `<option value="${escapeHtml(currentImage)}" selected>${escapeHtml(currentImage)}</option>`;
+      return `<option value="${escapeHtml$1(currentImage)}" selected>${escapeHtml$1(currentImage)}</option>`;
     }
     return '<option value="">No images available</option>';
   }
   
   return images.map(([label, value]) => `
-    <option value="${escapeHtml(value)}" ${currentImage === value ? 'selected' : ''}>
-      ${escapeHtml(label)}
+    <option value="${escapeHtml$1(value)}" ${currentImage === value ? 'selected' : ''}>
+      ${escapeHtml$1(label)}
     </option>
   `).join('');
 }
@@ -42593,7 +42862,7 @@ async function loadSubusers() {
     const data = await res.json();
     
     if (data.error) {
-      list.innerHTML = `<div class="error-message">${escapeHtml(data.error)}</div>`;
+      list.innerHTML = `<div class="error-message">${escapeHtml$1(data.error)}</div>`;
       return;
     }
     
@@ -42620,7 +42889,7 @@ function renderSubusers() {
   list.innerHTML = subusers.map(sub => `
     <div class="subuser-item">
       <div class="subuser-info">
-        <span class="subuser-name">${escapeHtml(sub.username)}</span>
+        <span class="subuser-name">${escapeHtml$1(sub.username)}</span>
         <span class="subuser-perms">${sub.permissions.length} permissions</span>
       </div>
       <div class="subuser-actions">
@@ -42877,7 +43146,7 @@ async function loadServerDetails$1(serverId) {
     
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      content.innerHTML = `<div class="error">${escapeHtml(errorData.error || 'Failed to load server')}</div>`;
+      content.innerHTML = `<div class="error">${escapeHtml$1(errorData.error || 'Failed to load server')}</div>`;
       return;
     }
     
@@ -42907,21 +43176,21 @@ function renderDetailsForm(server) {
         <label for="server-name-input">Server Name</label>
         <div class="input-wrapper">
           <span class="material-icons-outlined">badge</span>
-          <input type="text" id="server-name-input" name="name" value="${escapeHtml(server.name)}" maxlength="50" required />
+          <input type="text" id="server-name-input" name="name" value="${escapeHtml$1(server.name)}" maxlength="50" required />
         </div>
       </div>
       
       <div class="form-group">
         <label for="server-description-input">Description</label>
         <div class="textarea-wrapper">
-          <textarea id="server-description-input" name="description" rows="3" maxlength="200" placeholder="Optional server description...">${escapeHtml(server.description || '')}</textarea>
+          <textarea id="server-description-input" name="description" rows="3" maxlength="200" placeholder="Optional server description...">${escapeHtml$1(server.description || '')}</textarea>
         </div>
       </div>
       
       <div class="form-info">
         <div class="info-row">
           <span class="info-label">Server ID</span>
-          <code class="info-value">${escapeHtml(server.id)}</code>
+          <code class="info-value">${escapeHtml$1(server.id)}</code>
         </div>
         <div class="info-row">
           <span class="info-label">Created</span>
@@ -42929,7 +43198,7 @@ function renderDetailsForm(server) {
         </div>
         <div class="info-row">
           <span class="info-label">Address</span>
-          <span class="info-value">${escapeHtml(server.allocation?.ip || '0.0.0.0')}:${server.allocation?.port || 25565}</span>
+          <span class="info-value">${escapeHtml$1(server.allocation?.ip || '0.0.0.0')}:${server.allocation?.port || 25565}</span>
         </div>
       </div>
       
@@ -43782,7 +44051,7 @@ async function loadStatus() {
           <div class="node-header">
             <div class="node-info">
               <span class="node-indicator ${node.status}"></span>
-              <h3>${escapeHtml(node.name)}</h3>
+              <h3>${escapeHtml$1(node.name)}</h3>
             </div>
             <span class="status-badge status-${node.status}">${node.status}</span>
           </div>
@@ -43794,7 +44063,7 @@ async function loadStatus() {
             </span>
             <span class="meta-item">
               <span class="material-icons-outlined">location_on</span>
-              ${escapeHtml(node.location || 'Unknown')}
+              ${escapeHtml$1(node.location || 'Unknown')}
             </span>
           </div>
           
@@ -43979,7 +44248,7 @@ function renderBreadcrumb(items) {
     <nav class="admin-breadcrumb">
       ${items.map((item, idx) => `
         ${idx > 0 ? '<span class="material-icons-outlined">chevron_right</span>' : ''}
-        ${item.onClick ? `<a href="#" class="breadcrumb-item" data-action="${item.onClick}">${escapeHtml(item.label)}</a>` : `<span class="breadcrumb-item current">${escapeHtml(item.label)}</span>`}
+        ${item.onClick ? `<a href="#" class="breadcrumb-item" data-action="${item.onClick}">${escapeHtml$1(item.label)}</a>` : `<span class="breadcrumb-item current">${escapeHtml$1(item.label)}</span>`}
       `).join('')}
     </nav>
   `;
@@ -44003,7 +44272,7 @@ function renderSearchBox(tab, placeholder) {
   return `
     <div class="admin-search">
       <span class="material-icons-outlined">search</span>
-      <input type="text" id="admin-search-input" placeholder="${placeholder}" value="${escapeHtml(state.searchQuery[tab] || '')}" />
+      <input type="text" id="admin-search-input" placeholder="${placeholder}" value="${escapeHtml$1(state.searchQuery[tab] || '')}" />
       ${state.searchQuery[tab] ? `<button class="search-clear" id="admin-search-clear"><span class="material-icons-outlined">close</span></button>` : ''}
     </div>
   `;
@@ -44071,8 +44340,8 @@ async function renderNodesList(container, username, loadView) {
                     <span class="material-icons-outlined">dns</span>
                   </div>
                   <div class="list-card-title">
-                    <h3>${escapeHtml(node.name)}</h3>
-                    <span class="list-card-subtitle">${escapeHtml(node.fqdn)}</span>
+                    <h3>${escapeHtml$1(node.name)}</h3>
+                    <span class="list-card-subtitle">${escapeHtml$1(node.fqdn)}</span>
                   </div>
                   <span class="status-indicator ${node.maintenance_mode ? 'status-warning' : 'status-success'}"></span>
                 </div>
@@ -44201,11 +44470,11 @@ function renderNodeSubTab(node, locations, username) {
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">Name</span>
-                <span class="info-value">${escapeHtml(node.name)}</span>
+                <span class="info-value">${escapeHtml$1(node.name)}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">FQDN</span>
-                <span class="info-value">${escapeHtml(node.fqdn)}</span>
+                <span class="info-value">${escapeHtml$1(node.fqdn)}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Scheme</span>
@@ -44277,11 +44546,11 @@ function renderNodeSubTab(node, locations, username) {
               <div class="form-grid">
                 <div class="form-group">
                   <label>Name</label>
-                  <input type="text" name="name" value="${escapeHtml(node.name)}" required />
+                  <input type="text" name="name" value="${escapeHtml$1(node.name)}" required />
                 </div>
                 <div class="form-group">
                   <label>Description</label>
-                  <input type="text" name="description" value="${escapeHtml(node.description || '')}" />
+                  <input type="text" name="description" value="${escapeHtml$1(node.description || '')}" />
                 </div>
               </div>
             </div>
@@ -44291,7 +44560,7 @@ function renderNodeSubTab(node, locations, username) {
               <div class="form-grid">
                 <div class="form-group">
                   <label>FQDN</label>
-                  <input type="text" name="fqdn" value="${escapeHtml(node.fqdn)}" required />
+                  <input type="text" name="fqdn" value="${escapeHtml$1(node.fqdn)}" required />
                 </div>
                 <div class="form-group">
                   <label>Scheme</label>
@@ -44329,7 +44598,7 @@ function renderNodeSubTab(node, locations, username) {
                 <div class="form-group">
                   <label>Location</label>
                   <select name="location_id">
-                    ${locations.map(l => `<option value="${l.id}" ${l.id === node.location_id ? 'selected' : ''}>${escapeHtml(l.long)}</option>`).join('')}
+                    ${locations.map(l => `<option value="${l.id}" ${l.id === node.location_id ? 'selected' : ''}>${escapeHtml$1(l.long)}</option>`).join('')}
                   </select>
                 </div>
               </div>
@@ -44427,7 +44696,7 @@ function renderNodeSubTab(node, locations, username) {
           const res = await api(`/api/admin/nodes/${node.id}/config`);
           const data = await res.json();
           if (data.error) {
-            output.innerHTML = `<div class="error">${escapeHtml(data.error)}</div>`;
+            output.innerHTML = `<div class="error">${escapeHtml$1(data.error)}</div>`;
           } else {
             const yaml = jsonToYaml(data.config);
             output.innerHTML = `
@@ -44435,7 +44704,7 @@ function renderNodeSubTab(node, locations, username) {
                 <span>config.yml</span>
                 <button class="btn btn-sm btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.config-section').querySelector('pre').textContent); this.textContent='Copied!'">Copy</button>
               </div>
-              <pre class="config-code">${escapeHtml(yaml)}</pre>
+              <pre class="config-code">${escapeHtml$1(yaml)}</pre>
             `;
           }
           output.style.display = 'block';
@@ -44450,14 +44719,14 @@ function renderNodeSubTab(node, locations, username) {
           const res = await api(`/api/admin/nodes/${node.id}/deploy`);
           const data = await res.json();
           if (data.error) {
-            output.innerHTML = `<div class="error">${escapeHtml(data.error)}</div>`;
+            output.innerHTML = `<div class="error">${escapeHtml$1(data.error)}</div>`;
           } else {
             output.innerHTML = `
               <div class="config-header">
                 <span>Deploy Command</span>
                 <button class="btn btn-sm btn-ghost" onclick="navigator.clipboard.writeText(this.closest('.config-section').querySelector('pre').textContent); this.textContent='Copied!'">Copy</button>
               </div>
-              <pre class="config-code" style="white-space:pre-wrap;word-break:break-all;">${escapeHtml(data.command)}</pre>
+              <pre class="config-code" style="white-space:pre-wrap;word-break:break-all;">${escapeHtml$1(data.command)}</pre>
             `;
           }
           output.style.display = 'block';
@@ -44593,7 +44862,7 @@ async function renderServersList(container, username, loadView) {
                 ${data.servers.map(s => `
                   <tr class="clickable-row" data-id="${s.id}">
                     <td>
-                      <div class="cell-main">${escapeHtml(s.name)}</div>
+                      <div class="cell-main">${escapeHtml$1(s.name)}</div>
                       <div class="cell-sub">${s.id.substring(0, 8)}</div>
                     </td>
                     <td>${s.user_id?.substring(0, 8) || '--'}</td>
@@ -44631,7 +44900,7 @@ async function renderServersList(container, username, loadView) {
                     <span class="material-icons-outlined">storage</span>
                   </div>
                   <div class="list-card-title">
-                    <h3>${escapeHtml(s.name)}</h3>
+                    <h3>${escapeHtml$1(s.name)}</h3>
                     <span class="list-card-subtitle">${s.id.substring(0, 8)}</span>
                   </div>
                   <span class="status-badge status-${s.status}">${s.status}</span>
@@ -44762,7 +45031,7 @@ function renderServerSubTab(server, username) {
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">Name</span>
-                <span class="info-value">${escapeHtml(server.name)}</span>
+                <span class="info-value">${escapeHtml$1(server.name)}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">ID</span>
@@ -44900,11 +45169,11 @@ function renderServerSubTab(server, username) {
             <div class="info-grid">
               <div class="info-item full-width">
                 <span class="info-label">Startup Command</span>
-                <code class="info-value code" id="current-startup-display">${escapeHtml(server.startup || 'Not configured')}</code>
+                <code class="info-value code" id="current-startup-display">${escapeHtml$1(server.startup || 'Not configured')}</code>
               </div>
               <div class="info-item">
                 <span class="info-label">Docker Image</span>
-                <span class="info-value code" id="current-docker-display">${escapeHtml(server.docker_image || 'Not set')}</span>
+                <span class="info-value code" id="current-docker-display">${escapeHtml$1(server.docker_image || 'Not set')}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Egg ID</span>
@@ -44948,7 +45217,7 @@ function renderServerSubTab(server, username) {
                 <div class="manage-action-info">
                   <h4>Install Server</h4>
                   <p>${server.status === 'install_failed' 
-                    ? `Previous installation failed: ${escapeHtml(server.install_error || 'Unknown error')}. Fix the configuration and try again.` 
+                    ? `Previous installation failed: ${escapeHtml$1(server.install_error || 'Unknown error')}. Fix the configuration and try again.` 
                     : 'This server is configured but not yet installed. Click to install it on the node.'}</p>
                 </div>
                 <button class="btn btn-success" id="install-btn">
@@ -45120,11 +45389,11 @@ function setupOwnerSearch(server) {
         
         if (data.users?.length > 0) {
           resultsContainer.innerHTML = data.users.map(u => `
-            <div class="search-result-item" data-user-id="${u.id}" data-username="${escapeHtml(u.username)}">
+            <div class="search-result-item" data-user-id="${u.id}" data-username="${escapeHtml$1(u.username)}">
               <div class="user-avatar small">${(u.username || 'U')[0].toUpperCase()}</div>
               <div class="search-result-info">
-                <span class="search-result-name">${escapeHtml(u.displayName || u.username)}</span>
-                <span class="search-result-username">@${escapeHtml(u.username)}</span>
+                <span class="search-result-name">${escapeHtml$1(u.displayName || u.username)}</span>
+                <span class="search-result-username">@${escapeHtml$1(u.username)}</span>
               </div>
             </div>
           `).join('');
@@ -45216,13 +45485,13 @@ function setupEggSearch(server) {
         
         if (data.eggs?.length > 0) {
           resultsContainer.innerHTML = data.eggs.map(e => `
-            <div class="search-result-item" data-egg-id="${e.id}" data-egg-name="${escapeHtml(e.name)}">
+            <div class="search-result-item" data-egg-id="${e.id}" data-egg-name="${escapeHtml$1(e.name)}">
               <div class="egg-icon small">
                 <span class="material-icons-outlined">${e.icon || 'egg'}</span>
               </div>
               <div class="search-result-info">
-                <span class="search-result-name">${escapeHtml(e.name)}</span>
-                <span class="search-result-sub">${escapeHtml(e.docker_image || 'No image')}</span>
+                <span class="search-result-name">${escapeHtml$1(e.name)}</span>
+                <span class="search-result-sub">${escapeHtml$1(e.docker_image || 'No image')}</span>
               </div>
             </div>
           `).join('');
@@ -45420,13 +45689,13 @@ async function showTransferModal(server) {
       <form id="transfer-form" class="modal-form">
         <div class="form-group">
           <label>Current Node</label>
-          <input type="text" value="${escapeHtml(server.node_name || server.node_id)}" disabled />
+          <input type="text" value="${escapeHtml$1(server.node_name || server.node_id)}" disabled />
         </div>
         <div class="form-group">
           <label>Target Node</label>
           <select name="target_node_id" required>
             <option value="">Select a node...</option>
-            ${nodes.map(n => `<option value="${n.id}">${escapeHtml(n.name)} (${escapeHtml(n.fqdn)})</option>`).join('')}
+            ${nodes.map(n => `<option value="${n.id}">${escapeHtml$1(n.name)} (${escapeHtml$1(n.fqdn)})</option>`).join('')}
           </select>
         </div>
         <div class="warning-box">
@@ -45533,8 +45802,8 @@ async function renderUsersList(container, username, loadView) {
                       <div class="user-cell">
                         <div class="user-avatar">${(u.username || 'U')[0].toUpperCase()}</div>
                         <div class="user-info">
-                          <div class="cell-main">${escapeHtml(u.displayName || u.username)}</div>
-                          <div class="cell-sub">@${escapeHtml(u.username)}</div>
+                          <div class="cell-main">${escapeHtml$1(u.displayName || u.username)}</div>
+                          <div class="cell-sub">@${escapeHtml$1(u.username)}</div>
                         </div>
                       </div>
                     </td>
@@ -45563,8 +45832,8 @@ async function renderUsersList(container, username, loadView) {
                 <div class="list-card-header">
                   <div class="user-avatar large">${(u.username || 'U')[0].toUpperCase()}</div>
                   <div class="list-card-title">
-                    <h3>${escapeHtml(u.displayName || u.username)}</h3>
-                    <span class="list-card-subtitle">@${escapeHtml(u.username)}</span>
+                    <h3>${escapeHtml$1(u.displayName || u.username)}</h3>
+                    <span class="list-card-subtitle">@${escapeHtml$1(u.username)}</span>
                   </div>
                   <span class="role-badge ${u.isAdmin ? 'admin' : 'user'}">${u.isAdmin ? 'Admin' : 'User'}</span>
                 </div>
@@ -45767,11 +46036,11 @@ async function renderUserSubTab(user, username) {
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">Username</span>
-                <span class="info-value">@${escapeHtml(user.username)}</span>
+                <span class="info-value">@${escapeHtml$1(user.username)}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Display Name</span>
-                <span class="info-value">${escapeHtml(user.displayName || user.username)}</span>
+                <span class="info-value">${escapeHtml$1(user.displayName || user.username)}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">User ID</span>
@@ -45783,7 +46052,7 @@ async function renderUserSubTab(user, username) {
               </div>
               <div class="info-item">
                 <span class="info-label">Email</span>
-                <span class="info-value">${user.email ? escapeHtml(user.email) : '<span class="text-muted">Not set</span>'}</span>
+                <span class="info-value">${user.email ? escapeHtml$1(user.email) : '<span class="text-muted">Not set</span>'}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Email Verified</span>
@@ -45882,7 +46151,7 @@ async function renderUserSubTab(user, username) {
                     <div class="user-server-info">
                       <span class="material-icons-outlined">dns</span>
                       <div class="user-server-details">
-                        <span class="user-server-name">${escapeHtml(s.name)}</span>
+                        <span class="user-server-name">${escapeHtml$1(s.name)}</span>
                         <span class="user-server-meta">${s.node_name || 'Unknown Node'} • ${formatBytes((s.limits?.memory || 0) * 1024 * 1024)} RAM</span>
                       </div>
                     </div>
@@ -46024,12 +46293,12 @@ function renderAdminEggIcon(egg) {
   
   // Check if it's a Material Icon name (no slashes, no dots)
   if (!egg.icon.includes('/') && !egg.icon.includes('.')) {
-    return `<span class="material-icons-outlined">${escapeHtml(egg.icon)}</span>`;
+    return `<span class="material-icons-outlined">${escapeHtml$1(egg.icon)}</span>`;
   }
   
   // It's a URL (image)
   if (egg.icon.startsWith('http') || egg.icon.startsWith('/') || egg.icon.includes('.')) {
-    return `<img src="${escapeHtml(egg.icon)}" alt="${escapeHtml(egg.name)}" onerror="this.outerHTML='<span class=\\'material-icons-outlined\\'>egg_alt</span>'" />`;
+    return `<img src="${escapeHtml$1(egg.icon)}" alt="${escapeHtml$1(egg.name)}" onerror="this.outerHTML='<span class=\\'material-icons-outlined\\'>egg_alt</span>'" />`;
   }
   
   return '<span class="material-icons-outlined">egg_alt</span>';
@@ -46074,8 +46343,8 @@ async function renderNestsList(container, username, loadView) {
               <div class="nest-card">
                 <div class="nest-header">
                   <div class="nest-info">
-                    <h3>${escapeHtml(nest.name)}</h3>
-                    <p>${escapeHtml(nest.description || 'No description')}</p>
+                    <h3>${escapeHtml$1(nest.name)}</h3>
+                    <p>${escapeHtml$1(nest.description || 'No description')}</p>
                   </div>
                   <div class="nest-actions">
                     <button class="btn btn-sm btn-ghost" onclick="editNestAdmin('${nest.id}')" title="Edit Nest">
@@ -46098,8 +46367,8 @@ async function renderNestsList(container, username, loadView) {
                         ${renderAdminEggIcon(egg)}
                       </div>
                       <div class="egg-info">
-                        <h4>${escapeHtml(egg.name)}${egg.admin_only ? '<span class="admin-badge">Admin</span>' : ''}</h4>
-                        <span class="egg-author">${escapeHtml(egg.author || 'Unknown')}</span>
+                        <h4>${escapeHtml$1(egg.name)}${egg.admin_only ? '<span class="admin-badge">Admin</span>' : ''}</h4>
+                        <span class="egg-author">${escapeHtml$1(egg.author || 'Unknown')}</span>
                       </div>
                       <div class="egg-meta">
                         <span class="egg-vars-count" title="Variables">${(egg.variables || []).length} vars</span>
@@ -46153,11 +46422,11 @@ function showNestModal(username, nest = null, loadView) {
       <form id="nest-form" class="modal-form">
         <div class="form-group">
           <label>Name</label>
-          <input type="text" name="name" value="${nest ? escapeHtml(nest.name) : ''}" required />
+          <input type="text" name="name" value="${nest ? escapeHtml$1(nest.name) : ''}" required />
         </div>
         <div class="form-group">
           <label>Description</label>
-          <textarea name="description" rows="3">${nest ? escapeHtml(nest.description || '') : ''}</textarea>
+          <textarea name="description" rows="3">${nest ? escapeHtml$1(nest.description || '') : ''}</textarea>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" onclick="this.closest('.modal').remove()">Cancel</button>
@@ -46216,7 +46485,7 @@ function showImportEggModal(username, nests, loadView) {
         <div class="form-group">
           <label>Target Nest</label>
           <select name="nest_id" required>
-            ${nests.map(n => `<option value="${n.id}">${escapeHtml(n.name)}</option>`).join('')}
+            ${nests.map(n => `<option value="${n.id}">${escapeHtml$1(n.name)}</option>`).join('')}
           </select>
         </div>
         
@@ -46615,27 +46884,27 @@ function renderEggAboutTab(content, egg, nests, username) {
         <div class="form-grid">
           <div class="form-group">
             <label>Name</label>
-            <input type="text" name="name" value="${escapeHtml(egg.name)}" required />
+            <input type="text" name="name" value="${escapeHtml$1(egg.name)}" required />
           </div>
           <div class="form-group">
             <label>Nest</label>
             <select name="nest_id" required>
-              ${nests.map(n => `<option value="${n.id}" ${n.id === egg.nest_id ? 'selected' : ''}>${escapeHtml(n.name)}</option>`).join('')}
+              ${nests.map(n => `<option value="${n.id}" ${n.id === egg.nest_id ? 'selected' : ''}>${escapeHtml$1(n.name)}</option>`).join('')}
             </select>
           </div>
         </div>
         <div class="form-group">
           <label>Description</label>
-          <textarea name="description" rows="3">${escapeHtml(egg.description || '')}</textarea>
+          <textarea name="description" rows="3">${escapeHtml$1(egg.description || '')}</textarea>
         </div>
         <div class="form-grid">
           <div class="form-group">
             <label>Author</label>
-            <input type="text" name="author" value="${escapeHtml(egg.author || '')}" />
+            <input type="text" name="author" value="${escapeHtml$1(egg.author || '')}" />
           </div>
           <div class="form-group">
             <label>Icon</label>
-            <input type="text" name="icon" value="${escapeHtml(egg.icon || '')}" placeholder="egg_alt, terminal, or image URL" />
+            <input type="text" name="icon" value="${escapeHtml$1(egg.icon || '')}" placeholder="egg_alt, terminal, or image URL" />
             <p class="form-hint">Material Icon name, image URL, or leave empty for default</p>
           </div>
         </div>
@@ -46718,12 +46987,12 @@ function renderEggConfigTab(content, egg, username) {
           <div class="form-group">
             <label>Startup Command</label>
             <p class="form-hint">Use {{VARIABLE}} syntax for environment variables</p>
-            <textarea name="startup" rows="3" class="code-textarea">${escapeHtml(egg.startup || '')}</textarea>
+            <textarea name="startup" rows="3" class="code-textarea">${escapeHtml$1(egg.startup || '')}</textarea>
           </div>
           <div class="form-group">
             <label>Stop Command</label>
             <p class="form-hint">Command sent to stop the server (e.g., ^C, stop, quit)</p>
-            <input type="text" name="stop" value="${escapeHtml(config.stop || '^C')}" />
+            <input type="text" name="stop" value="${escapeHtml$1(config.stop || '^C')}" />
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save Startup Config</button>
@@ -46737,16 +47006,16 @@ function renderEggConfigTab(content, egg, username) {
           <div class="form-group">
             <label>Files Configuration</label>
             <p class="form-hint">Configuration file parsing rules</p>
-            <textarea name="files" rows="6" class="code-textarea">${escapeHtml(filesConfig)}</textarea>
+            <textarea name="files" rows="6" class="code-textarea">${escapeHtml$1(filesConfig)}</textarea>
           </div>
           <div class="form-group">
             <label>Startup Detection</label>
             <p class="form-hint">Pattern to detect when server has started</p>
-            <textarea name="startup_config" rows="4" class="code-textarea">${escapeHtml(startupConfig)}</textarea>
+            <textarea name="startup_config" rows="4" class="code-textarea">${escapeHtml$1(startupConfig)}</textarea>
           </div>
           <div class="form-group">
             <label>Logs Configuration</label>
-            <textarea name="logs" rows="4" class="code-textarea">${escapeHtml(logsConfig)}</textarea>
+            <textarea name="logs" rows="4" class="code-textarea">${escapeHtml$1(logsConfig)}</textarea>
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save Advanced Config</button>
@@ -46839,8 +47108,8 @@ function renderEggVariablesTab(content, egg, username) {
           <div class="variable-card" data-index="${idx}">
             <div class="variable-header">
               <div class="variable-title">
-                <span class="variable-name">${escapeHtml(v.name)}</span>
-                <code class="variable-env">\${${escapeHtml(v.env_variable)}}</code>
+                <span class="variable-name">${escapeHtml$1(v.name)}</span>
+                <code class="variable-env">\${${escapeHtml$1(v.env_variable)}}</code>
               </div>
               <div class="variable-actions">
                 <button class="btn btn-xs btn-ghost edit-var-btn" data-index="${idx}">
@@ -46852,10 +47121,10 @@ function renderEggVariablesTab(content, egg, username) {
               </div>
             </div>
             <div class="variable-details">
-              <p class="variable-desc">${escapeHtml(v.description || 'No description')}</p>
+              <p class="variable-desc">${escapeHtml$1(v.description || 'No description')}</p>
               <div class="variable-meta">
-                <span><strong>Default:</strong> ${escapeHtml(v.default_value || '(empty)')}</span>
-                <span><strong>Rules:</strong> ${escapeHtml(v.rules || 'nullable|string')}</span>
+                <span><strong>Default:</strong> ${escapeHtml$1(v.default_value || '(empty)')}</span>
+                <span><strong>Rules:</strong> ${escapeHtml$1(v.rules || 'nullable|string')}</span>
               </div>
               <div class="variable-flags">
                 ${v.user_viewable !== false ? '<span class="flag success">Viewable</span>' : '<span class="flag">Hidden</span>'}
@@ -46920,25 +47189,25 @@ function showVariableModal(egg, editIndex, username) {
         <div class="form-grid">
           <div class="form-group">
             <label>Name</label>
-            <input type="text" name="name" value="${escapeHtml(variable.name || '')}" placeholder="Server Memory" required />
+            <input type="text" name="name" value="${escapeHtml$1(variable.name || '')}" placeholder="Server Memory" required />
           </div>
           <div class="form-group">
             <label>Environment Variable</label>
-            <input type="text" name="env_variable" value="${escapeHtml(variable.env_variable || '')}" placeholder="SERVER_MEMORY" required pattern="[A-Z0-9_]+" title="Uppercase letters, numbers and underscores only" />
+            <input type="text" name="env_variable" value="${escapeHtml$1(variable.env_variable || '')}" placeholder="SERVER_MEMORY" required pattern="[A-Z0-9_]+" title="Uppercase letters, numbers and underscores only" />
           </div>
         </div>
         <div class="form-group">
           <label>Description</label>
-          <textarea name="description" rows="2" placeholder="Memory allocated to the server in MB">${escapeHtml(variable.description || '')}</textarea>
+          <textarea name="description" rows="2" placeholder="Memory allocated to the server in MB">${escapeHtml$1(variable.description || '')}</textarea>
         </div>
         <div class="form-grid">
           <div class="form-group">
             <label>Default Value</label>
-            <input type="text" name="default_value" value="${escapeHtml(variable.default_value || '')}" placeholder="1024" />
+            <input type="text" name="default_value" value="${escapeHtml$1(variable.default_value || '')}" placeholder="1024" />
           </div>
           <div class="form-group">
             <label>Validation Rules</label>
-            <input type="text" name="rules" value="${escapeHtml(variable.rules || 'nullable|string')}" placeholder="required|integer|min:128" />
+            <input type="text" name="rules" value="${escapeHtml$1(variable.rules || 'nullable|string')}" placeholder="required|integer|min:128" />
           </div>
         </div>
         <div class="form-toggles">
@@ -47012,18 +47281,18 @@ function renderEggInstallTab(content, egg, username) {
           <div class="form-group">
             <label>Install Container</label>
             <p class="form-hint">Docker image used to run the install script</p>
-            <input type="text" name="install_container" value="${escapeHtml(egg.install_container || 'alpine:3.18')}" />
+            <input type="text" name="install_container" value="${escapeHtml$1(egg.install_container || 'alpine:3.18')}" />
           </div>
           <div class="form-group">
             <label>Install Entrypoint</label>
             <p class="form-hint">Command used to run the script (e.g., bash, ash, sh)</p>
-            <input type="text" name="install_entrypoint" value="${escapeHtml(egg.install_entrypoint || 'bash')}" />
+            <input type="text" name="install_entrypoint" value="${escapeHtml$1(egg.install_entrypoint || 'bash')}" />
           </div>
         </div>
         <div class="form-group">
           <label>Install Script</label>
           <p class="form-hint">Shell script executed during server installation. Files are stored in /mnt/server</p>
-          <textarea name="install_script" rows="20" class="code-textarea">${escapeHtml(egg.install_script || '#!/bin/bash\ncd /mnt/server\necho "No install script configured"')}</textarea>
+          <textarea name="install_script" rows="20" class="code-textarea">${escapeHtml$1(egg.install_script || '#!/bin/bash\ncd /mnt/server\necho "No install script configured"')}</textarea>
         </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Save Install Script</button>
@@ -47088,8 +47357,8 @@ async function renderLocationsList(container, username, loadView) {
                   <span class="material-icons-outlined">location_on</span>
                 </div>
                 <div class="location-info">
-                  <h3>${escapeHtml(l.short)}</h3>
-                  <p>${escapeHtml(l.long)}</p>
+                  <h3>${escapeHtml$1(l.short)}</h3>
+                  <p>${escapeHtml$1(l.long)}</p>
                 </div>
                 <div class="location-actions">
                   <button class="btn btn-sm btn-danger" onclick="deleteLocationAdmin('${l.id}')">
@@ -47298,12 +47567,12 @@ function renderGeneralSettings(content, config) {
           <div class="form-grid">
             <div class="form-group">
               <label>Panel Name</label>
-              <input type="text" name="panel_name" value="${escapeHtml(config.panel?.name || 'Sodium Panel')}" />
+              <input type="text" name="panel_name" value="${escapeHtml$1(config.panel?.name || 'Sodium Panel')}" />
               <small class="form-hint">Displayed in the browser title and navigation</small>
             </div>
             <div class="form-group">
               <label>Panel URL</label>
-              <input type="url" name="panel_url" value="${escapeHtml(config.panel?.url || '')}" placeholder="https://panel.example.com" />
+              <input type="url" name="panel_url" value="${escapeHtml$1(config.panel?.url || '')}" placeholder="https://panel.example.com" />
               <small class="form-hint">Used for OAuth callbacks and email links</small>
             </div>
           </div>
@@ -47400,12 +47669,12 @@ function renderRegistrationSettings(content, config) {
           <h3>Restrictions</h3>
           <div class="form-group">
             <label>Allowed Email Domains</label>
-            <input type="text" name="allowed_domains" value="${escapeHtml(config.registration?.allowedDomains || '')}" placeholder="example.com, company.org" />
+            <input type="text" name="allowed_domains" value="${escapeHtml$1(config.registration?.allowedDomains || '')}" placeholder="example.com, company.org" />
             <small class="form-hint">Comma-separated list. Leave empty to allow all domains.</small>
           </div>
           <div class="form-group">
             <label>Blocked Email Domains</label>
-            <input type="text" name="blocked_domains" value="${escapeHtml(config.registration?.blockedDomains || '')}" placeholder="tempmail.com, disposable.org" />
+            <input type="text" name="blocked_domains" value="${escapeHtml$1(config.registration?.blockedDomains || '')}" placeholder="tempmail.com, disposable.org" />
             <small class="form-hint">Comma-separated list of domains to block.</small>
           </div>
         </div>
@@ -47599,7 +47868,7 @@ async function loadOAuthProviders() {
             <span class="material-icons-outlined">${providerIcons[p.type] || 'key'}</span>
           </div>
           <div class="oauth-provider-info">
-            <span class="oauth-provider-name">${escapeHtml(p.name)}</span>
+            <span class="oauth-provider-name">${escapeHtml$1(p.name)}</span>
             <span class="oauth-provider-type">${p.type.charAt(0).toUpperCase() + p.type.slice(1)}</span>
           </div>
           <span class="status-badge ${p.enabled ? 'active' : 'inactive'}">${p.enabled ? 'Active' : 'Disabled'}</span>
@@ -47918,15 +48187,15 @@ async function loadAppApiKeys() {
             <span class="material-icons-outlined">vpn_key</span>
           </div>
           <div class="api-key-info">
-            <span class="api-key-name">${escapeHtml(key.name)}</span>
+            <span class="api-key-name">${escapeHtml$1(key.name)}</span>
             <span class="api-key-meta">
-              Created by ${escapeHtml(key.createdBy)} on ${new Date(key.createdAt).toLocaleDateString()}
+              Created by ${escapeHtml$1(key.createdBy)} on ${new Date(key.createdAt).toLocaleDateString()}
               ${key.lastUsedAt ? ` • Last used ${new Date(key.lastUsedAt).toLocaleDateString()}` : ' • Never used'}
             </span>
           </div>
         </div>
         <div class="api-key-permissions">
-          ${key.permissions.slice(0, 3).map(p => `<span class="permission-tag">${escapeHtml(p)}</span>`).join('')}
+          ${key.permissions.slice(0, 3).map(p => `<span class="permission-tag">${escapeHtml$1(p)}</span>`).join('')}
           ${key.permissions.length > 3 ? `<span class="permission-tag">+${key.permissions.length - 3}</span>` : ''}
         </div>
         <button class="btn btn-icon btn-danger delete-app-key-btn" data-id="${key.id}">
@@ -48060,7 +48329,7 @@ function renderMailSettings(content, config) {
           <div class="form-grid">
             <div class="form-group">
               <label>SMTP Host</label>
-              <input type="text" name="smtp_host" value="${escapeHtml(config.mail?.host || '')}" placeholder="smtp.example.com" />
+              <input type="text" name="smtp_host" value="${escapeHtml$1(config.mail?.host || '')}" placeholder="smtp.example.com" />
             </div>
             <div class="form-group">
               <label>SMTP Port</label>
@@ -48068,7 +48337,7 @@ function renderMailSettings(content, config) {
             </div>
             <div class="form-group">
               <label>Username</label>
-              <input type="text" name="smtp_user" value="${escapeHtml(config.mail?.user || '')}" placeholder="user@example.com" />
+              <input type="text" name="smtp_user" value="${escapeHtml$1(config.mail?.user || '')}" placeholder="user@example.com" />
             </div>
             <div class="form-group">
               <label>Password</label>
@@ -48091,11 +48360,11 @@ function renderMailSettings(content, config) {
           <div class="form-grid">
             <div class="form-group">
               <label>From Name</label>
-              <input type="text" name="mail_from_name" value="${escapeHtml(config.mail?.fromName || 'Sodium Panel')}" />
+              <input type="text" name="mail_from_name" value="${escapeHtml$1(config.mail?.fromName || 'Sodium Panel')}" />
             </div>
             <div class="form-group">
               <label>From Email</label>
-              <input type="email" name="mail_from_email" value="${escapeHtml(config.mail?.fromEmail || '')}" placeholder="noreply@example.com" />
+              <input type="email" name="mail_from_email" value="${escapeHtml$1(config.mail?.fromEmail || '')}" placeholder="noreply@example.com" />
             </div>
           </div>
         </div>
@@ -48325,7 +48594,7 @@ async function renderAnnouncementsList(container, username, loadView) {
     
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      container.innerHTML = `<div class="error">${escapeHtml(errData.error || 'Failed to load announcements')}</div>`;
+      container.innerHTML = `<div class="error">${escapeHtml$1(errData.error || 'Failed to load announcements')}</div>`;
       return;
     }
     
@@ -48340,8 +48609,8 @@ async function renderAnnouncementsList(container, username, loadView) {
       return `
         <tr>
           <td>
-            <div class="cell-main">${escapeHtml(title)}</div>
-            <div class="cell-sub">${escapeHtml(content.substring(0, 50))}${content.length > 50 ? '...' : ''}</div>
+            <div class="cell-main">${escapeHtml$1(title)}</div>
+            <div class="cell-sub">${escapeHtml$1(content.substring(0, 50))}${content.length > 50 ? '...' : ''}</div>
           </td>
           <td><span class="type-badge type-${type}">${type}</span></td>
           <td><span class="status-badge ${a.active ? 'active' : 'inactive'}">${a.active ? 'Active' : 'Inactive'}</span></td>
@@ -48399,11 +48668,11 @@ async function renderAnnouncementsList(container, username, loadView) {
               return `
               <div class="list-card">
                 <div class="list-card-header">
-                  <div class="list-card-title">${escapeHtml(title)}</div>
+                  <div class="list-card-title">${escapeHtml$1(title)}</div>
                   <span class="type-badge type-${type}">${type}</span>
                 </div>
                 <div class="list-card-body">
-                  <p>${escapeHtml(content.substring(0, 100))}${content.length > 100 ? '...' : ''}</p>
+                  <p>${escapeHtml$1(content.substring(0, 100))}${content.length > 100 ? '...' : ''}</p>
                 </div>
                 <div class="list-card-footer">
                   <span class="status-badge ${a.active ? 'active' : 'inactive'}">${a.active ? 'Active' : 'Inactive'}</span>
@@ -48647,12 +48916,12 @@ async function renderAuditLogPage(container, username) {
                 </div>
                 <div class="audit-log-content">
                   <div class="audit-log-action">
-                    <strong>${escapeHtml(log.adminUsername)}</strong>
+                    <strong>${escapeHtml$1(log.adminUsername)}</strong>
                     <span>${formatAuditAction(log.action)}</span>
-                    <span class="audit-target">${escapeHtml(log.targetType)}${log.details?.title ? `: ${escapeHtml(log.details.title)}` : ''}</span>
+                    <span class="audit-target">${escapeHtml$1(log.targetType)}${log.details?.title ? `: ${escapeHtml$1(log.details.title)}` : ''}</span>
                   </div>
                   <div class="audit-log-meta">
-                    ${log.ip ? `<span class="ip">${escapeHtml(log.ip)}</span>` : ''}
+                    ${log.ip ? `<span class="ip">${escapeHtml$1(log.ip)}</span>` : ''}
                     <span class="time">${formatTimeAgo(log.createdAt)}</span>
                   </div>
                 </div>
@@ -48748,11 +49017,11 @@ async function renderActivityLogPage(container, username) {
                 </div>
                 <div class="activity-log-content">
                   <div class="activity-log-action">
-                    <strong>${escapeHtml(log.username || 'Unknown')}</strong>
+                    <strong>${escapeHtml$1(log.username || 'Unknown')}</strong>
                     <span>${formatActivityAction(log.action)}</span>
                   </div>
                   <div class="activity-log-meta">
-                    ${log.ip ? `<span class="ip">${escapeHtml(log.ip)}</span>` : ''}
+                    ${log.ip ? `<span class="ip">${escapeHtml$1(log.ip)}</span>` : ''}
                     <span class="time">${formatTimeAgo(log.createdAt)}</span>
                   </div>
                 </div>
@@ -48965,10 +49234,10 @@ async function renderActivityLog() {
                   <span class="material-icons-outlined">${info.icon}</span>
                 </div>
                 <div class="activity-content">
-                  <div class="activity-label">${escapeHtml(info.label)}</div>
-                  ${log.details?.serverName ? `<div class="activity-detail">Server: ${escapeHtml(log.details.serverName)}</div>` : ''}
-                  ${log.details?.method ? `<div class="activity-detail">Method: ${escapeHtml(log.details.method)}</div>` : ''}
-                  ${log.ip ? `<div class="activity-detail ip">IP: ${escapeHtml(log.ip)}</div>` : ''}
+                  <div class="activity-label">${escapeHtml$1(info.label)}</div>
+                  ${log.details?.serverName ? `<div class="activity-detail">Server: ${escapeHtml$1(log.details.serverName)}</div>` : ''}
+                  ${log.details?.method ? `<div class="activity-detail">Method: ${escapeHtml$1(log.details.method)}</div>` : ''}
+                  ${log.ip ? `<div class="activity-detail ip">IP: ${escapeHtml$1(log.ip)}</div>` : ''}
                 </div>
                 <div class="activity-time">${formatDate(log.createdAt)}</div>
               </div>
@@ -49643,7 +49912,7 @@ function renderNav() {
   nav.id = 'navbar';
   nav.className = 'navbar';
   
-  const displayName = escapeHtml(localStorage.getItem('displayName') || localStorage.getItem('username') || 'User');
+  const displayName = escapeHtml$1(localStorage.getItem('displayName') || localStorage.getItem('username') || 'User');
   const isLoggedIn = !!localStorage.getItem('loggedIn');
   
   nav.innerHTML = `

@@ -28,7 +28,8 @@ const COLLECTIONS = {
   apiKeys: 7,
   announcements: 8,
   auditLogs: 9,
-  activityLogs: 10
+  activityLogs: 10,
+  webhooks: 11
 };
 
 let cache = {
@@ -41,7 +42,8 @@ let cache = {
   apiKeys: [],
   announcements: [],
   auditLogs: [],
-  activityLogs: []
+  activityLogs: [],
+  webhooks: []
 };
 
 let dbConnection = null;
@@ -353,6 +355,7 @@ const apiKeysAccessors = createCollectionAccessors('apiKeys');
 const announcementsAccessors = createCollectionAccessors('announcements');
 const auditLogsAccessors = createCollectionAccessors('auditLogs');
 const activityLogsAccessors = createCollectionAccessors('activityLogs');
+const webhooksAccessors = createCollectionAccessors('webhooks');
 
 export const loadUsers = usersAccessors.load;
 export const saveUsers = usersAccessors.save;
@@ -374,6 +377,8 @@ export const loadAuditLogs = auditLogsAccessors.load;
 export const saveAuditLogs = auditLogsAccessors.save;
 export const loadActivityLogs = activityLogsAccessors.load;
 export const saveActivityLogs = activityLogsAccessors.save;
+export const loadWebhooks = webhooksAccessors.load;
+export const saveWebhooks = webhooksAccessors.save;
 
 export function loadConfig() {
   return loadFullConfig();

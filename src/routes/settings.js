@@ -152,6 +152,28 @@ export function renderSettings() {
           </div>
         </div>
         
+        <div class="settings-section">
+          <div class="section-header">
+            <span class="material-icons-outlined">webhook</span>
+            <h3>Webhooks</h3>
+          </div>
+          
+          <div class="webhooks-container">
+            <div class="webhooks-header">
+              <p class="setting-description">Send notifications to Discord, Slack, or custom URLs when events occur</p>
+              <button class="btn btn-primary btn-sm" id="create-webhook-btn">
+                <span class="material-icons-outlined">add</span>
+                <span>Add Webhook</span>
+              </button>
+            </div>
+            <div class="webhooks-list" id="webhooks-list">
+              <div class="loading-spinner">
+                <span class="material-icons-outlined spinning">sync</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <div class="settings-section danger-section">
           <div class="section-header">
             <span class="material-icons-outlined">warning</span>
@@ -268,6 +290,51 @@ export function renderSettings() {
         </form>
       </div>
     </div>
+    
+    <div class="modal" id="webhook-modal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add Webhook</h3>
+          <button class="modal-close" id="close-webhook-modal">
+            <span class="material-icons-outlined">close</span>
+          </button>
+        </div>
+        <form id="webhook-form">
+          <div class="form-group">
+            <label for="webhook-name">Name</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">label</span>
+              <input type="text" id="webhook-name" required maxlength="50" placeholder="My Webhook">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="webhook-url">Webhook URL</label>
+            <div class="input-wrapper">
+              <span class="material-icons-outlined">link</span>
+              <input type="url" id="webhook-url" required placeholder="https://discord.com/api/webhooks/...">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="webhook-type">Type</label>
+            <select id="webhook-type" class="select-input">
+              <option value="discord">Discord</option>
+              <option value="slack">Slack</option>
+              <option value="generic">Generic (JSON)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Events</label>
+            <div class="webhook-events-grid" id="webhook-events-grid"></div>
+          </div>
+          <div class="message" id="webhook-message"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-webhook-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Webhook</button>
+          </div>
+        </form>
+      </div>
+    </div>
   `;
   
   loadSettings();
@@ -276,6 +343,8 @@ export function renderSettings() {
   setupSshKeysHandlers();
   loadApiKeys();
   setupApiKeysHandlers();
+  loadWebhooks();
+  setupWebhooksHandlers();
   
   const logoutBtn = app.querySelector('#logout-btn');
   logoutBtn.addEventListener('click', () => {
@@ -765,5 +834,205 @@ function setupApiKeysHandlers() {
     
     btn.disabled = false;
     btn.innerHTML = 'Create Key';
+  });
+}
+
+// ==================== WEBHOOKS ====================
+
+const WEBHOOK_EVENTS = [
+  { id: 'server.created', label: 'Server Created' },
+  { id: 'server.deleted', label: 'Server Deleted' },
+  { id: 'server.started', label: 'Server Started' },
+  { id: 'server.stopped', label: 'Server Stopped' },
+  { id: 'server.crashed', label: 'Server Crashed' },
+  { id: 'server.suspended', label: 'Server Suspended' },
+  { id: 'server.backup.created', label: 'Backup Created' }
+];
+
+async function loadWebhooks() {
+  const container = document.getElementById('webhooks-list');
+  if (!container) return;
+  
+  try {
+    const res = await api('/api/webhooks');
+    const data = await res.json();
+    
+    if (!data.webhooks || data.webhooks.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state small">
+          <span class="material-icons-outlined">webhook</span>
+          <p>No webhooks configured</p>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = data.webhooks.map(webhook => `
+      <div class="list-item webhook-item" data-id="${webhook.id}">
+        <div class="item-icon">
+          <span class="material-icons-outlined">${getWebhookIcon(webhook.type)}</span>
+        </div>
+        <div class="item-info">
+          <span class="item-name">${escapeHtml(webhook.name)}</span>
+          <span class="item-meta">${webhook.type} • ${webhook.events.length} events</span>
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-icon btn-sm test-webhook-btn" title="Test">
+            <span class="material-icons-outlined">send</span>
+          </button>
+          <label class="toggle small">
+            <input type="checkbox" class="toggle-webhook-btn" ${webhook.enabled ? 'checked' : ''}>
+            <span class="toggle-slider"></span>
+          </label>
+          <button class="btn btn-icon btn-sm btn-danger delete-webhook-btn" title="Delete">
+            <span class="material-icons-outlined">delete</span>
+          </button>
+        </div>
+      </div>
+    `).join('');
+    
+    container.querySelectorAll('.delete-webhook-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const item = e.target.closest('.webhook-item');
+        const id = item.dataset.id;
+        if (!confirm('Delete this webhook?')) return;
+        
+        try {
+          await api(`/api/webhooks/${id}`, { method: 'DELETE' });
+          loadWebhooks();
+        } catch (err) {
+          console.error('Failed to delete webhook:', err);
+        }
+      });
+    });
+    
+    container.querySelectorAll('.test-webhook-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const item = e.target.closest('.webhook-item');
+        const id = item.dataset.id;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+        
+        try {
+          const res = await api(`/api/webhooks/${id}/test`, { method: 'POST' });
+          const data = await res.json();
+          btn.innerHTML = '<span class="material-icons-outlined">check</span>';
+          setTimeout(() => {
+            btn.innerHTML = '<span class="material-icons-outlined">send</span>';
+            btn.disabled = false;
+          }, 2000);
+        } catch (err) {
+          btn.innerHTML = '<span class="material-icons-outlined">error</span>';
+          setTimeout(() => {
+            btn.innerHTML = '<span class="material-icons-outlined">send</span>';
+            btn.disabled = false;
+          }, 2000);
+        }
+      });
+    });
+    
+    container.querySelectorAll('.toggle-webhook-btn').forEach(toggle => {
+      toggle.addEventListener('change', async (e) => {
+        const item = e.target.closest('.webhook-item');
+        const id = item.dataset.id;
+        
+        try {
+          await api(`/api/webhooks/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ enabled: e.target.checked })
+          });
+        } catch (err) {
+          e.target.checked = !e.target.checked;
+        }
+      });
+    });
+    
+  } catch (err) {
+    container.innerHTML = '<div class="error">Failed to load webhooks</div>';
+  }
+}
+
+function getWebhookIcon(type) {
+  switch (type) {
+    case 'discord': return 'chat';
+    case 'slack': return 'tag';
+    default: return 'webhook';
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function setupWebhooksHandlers() {
+  const modal = document.getElementById('webhook-modal');
+  const createBtn = document.getElementById('create-webhook-btn');
+  const form = document.getElementById('webhook-form');
+  const eventsGrid = document.getElementById('webhook-events-grid');
+  
+  if (!modal || !createBtn) return;
+  
+  // Populate events grid
+  eventsGrid.innerHTML = WEBHOOK_EVENTS.map(event => `
+    <label class="checkbox-item">
+      <input type="checkbox" name="webhook-events" value="${event.id}">
+      <span>${event.label}</span>
+    </label>
+  `).join('');
+  
+  const closeModal = () => {
+    modal.classList.remove('active');
+    form.reset();
+    document.getElementById('webhook-message').textContent = '';
+  };
+  
+  createBtn.addEventListener('click', () => modal.classList.add('active'));
+  document.getElementById('close-webhook-modal').addEventListener('click', closeModal);
+  document.getElementById('cancel-webhook-modal').addEventListener('click', closeModal);
+  modal.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+  
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('webhook-name').value.trim();
+    const url = document.getElementById('webhook-url').value.trim();
+    const type = document.getElementById('webhook-type').value;
+    const checkboxes = form.querySelectorAll('input[name="webhook-events"]:checked');
+    const events = Array.from(checkboxes).map(cb => cb.value);
+    const messageEl = document.getElementById('webhook-message');
+    const btn = form.querySelector('button[type="submit"]');
+    
+    if (events.length === 0) {
+      messageEl.textContent = 'Select at least one event';
+      messageEl.className = 'message error';
+      return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+    
+    try {
+      const res = await api('/api/webhooks', {
+        method: 'POST',
+        body: JSON.stringify({ name, url, type, events })
+      });
+      
+      const data = await res.json();
+      
+      if (data.error) {
+        messageEl.textContent = data.error;
+        messageEl.className = 'message error';
+      } else {
+        closeModal();
+        loadWebhooks();
+      }
+    } catch (err) {
+      messageEl.textContent = 'Failed to create webhook';
+      messageEl.className = 'message error';
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = 'Create Webhook';
   });
 }

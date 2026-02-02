@@ -265,6 +265,13 @@ router.put('/users/:id', (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'User not found' });
   
   if (updates.isAdmin !== undefined) data.users[idx].isAdmin = updates.isAdmin;
+  if (updates.role !== undefined) {
+    const validRoles = ['user', 'moderator', 'admin'];
+    if (validRoles.includes(updates.role)) {
+      data.users[idx].role = updates.role;
+      data.users[idx].isAdmin = updates.role === 'admin';
+    }
+  }
   if (updates.limits) data.users[idx].limits = { ...data.users[idx].limits, ...updates.limits };
   if (updates.allowSubusers !== undefined) data.users[idx].allowSubusers = updates.allowSubusers;
   
