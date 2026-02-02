@@ -41,6 +41,7 @@ export function renderSidebar() {
       { path: '/admin/nests', icon: 'egg', label: 'Nests' },
       { path: '/admin/locations', icon: 'location_on', label: 'Locations' },
       { path: '/admin/announcements', icon: 'campaign', label: 'Announcements' },
+      { path: '/admin/webhooks', icon: 'webhook', label: 'Webhooks' },
       { path: '/admin/audit', icon: 'history', label: 'Audit Log' },
       { path: '/admin/settings', icon: 'tune', label: 'Panel Settings' }
     ]

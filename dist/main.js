@@ -44304,7 +44304,7 @@ function setupSearchListeners(tab, loadViewCallback) {
   }
 }
 
-const navigateTo$8 = (...args) => window.adminNavigate(...args);
+const navigateTo$9 = (...args) => window.adminNavigate(...args);
 
 async function renderNodesList(container, username, loadView) {
   try {
@@ -44373,12 +44373,12 @@ async function renderNodesList(container, username, loadView) {
       </div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$8);
+    setupBreadcrumbListeners(navigateTo$9);
     setupPaginationListeners('nodes', loadView);
     setupSearchListeners('nodes', loadView);
     
     document.querySelectorAll('.list-card[data-id]').forEach(card => {
-      card.onclick = () => navigateTo$8('nodes', card.dataset.id);
+      card.onclick = () => navigateTo$9('nodes', card.dataset.id);
     });
     
     document.getElementById('create-node-btn').onclick = () => createNewNode();
@@ -44426,7 +44426,7 @@ async function renderNodeDetail(container, username, nodeId) {
       <div class="detail-content" id="node-detail-content"></div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$8);
+    setupBreadcrumbListeners(navigateTo$9);
     
     document.querySelectorAll('.detail-tab').forEach(tab => {
       tab.onclick = () => {
@@ -44445,7 +44445,7 @@ async function renderNodeDetail(container, username, nodeId) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
         });
-        navigateTo$8('nodes');
+        navigateTo$9('nodes');
       } catch (e) {
         error('Failed to delete node');
       }
@@ -44662,7 +44662,7 @@ function renderNodeSubTab(node, locations, username) {
             body: JSON.stringify({ node: nodeData })
           });
           success('Node updated successfully');
-          navigateTo$8('nodes', node.id, 'settings');
+          navigateTo$9('nodes', node.id, 'settings');
         } catch (e) {
           error('Failed to update node');
         }
@@ -44809,7 +44809,7 @@ async function createNewNode() {
     
     const data = await res.json();
     if (data.node?.id) {
-      navigateTo$8('nodes', data.node.id, 'about');
+      navigateTo$9('nodes', data.node.id, 'about');
       info('Configure your new node');
     } else {
       error('Failed to create node');
@@ -44819,7 +44819,7 @@ async function createNewNode() {
   }
 }
 
-const navigateTo$7 = (...args) => window.adminNavigate(...args);
+const navigateTo$8 = (...args) => window.adminNavigate(...args);
 
 async function renderServersList(container, username, loadView) {
   try {
@@ -44933,12 +44933,12 @@ async function renderServersList(container, username, loadView) {
       </div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$7);
+    setupBreadcrumbListeners(navigateTo$8);
     setupPaginationListeners('servers', loadView);
     setupSearchListeners('servers', loadView);
     
     document.querySelectorAll('.clickable-row[data-id], .list-card[data-id]').forEach(el => {
-      el.onclick = () => navigateTo$7('servers', el.dataset.id);
+      el.onclick = () => navigateTo$8('servers', el.dataset.id);
     });
     
     document.getElementById('create-server-btn').onclick = () => createNewServer();
@@ -44987,7 +44987,7 @@ async function renderServerDetail(container, username, serverId) {
       <div class="detail-content" id="server-detail-content"></div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$7);
+    setupBreadcrumbListeners(navigateTo$8);
     
     document.querySelectorAll('.detail-tab').forEach(tab => {
       tab.onclick = () => {
@@ -45006,7 +45006,7 @@ async function renderServerDetail(container, username, serverId) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
         });
-        navigateTo$7('servers');
+        navigateTo$8('servers');
       } catch (e) {
         error('Failed to delete server');
       }
@@ -45295,7 +45295,7 @@ function renderServerSubTab(server, username) {
             
             if (res.ok) {
               success('Server installation started');
-              navigateTo$7('servers', server.id, 'manage');
+              navigateTo$8('servers', server.id, 'manage');
             } else {
               const data = await res.json();
               error(data.error || 'Installation failed');
@@ -45341,7 +45341,7 @@ function renderServerSubTab(server, username) {
             body: JSON.stringify({})
           });
           success(`Server ${action}ed`);
-          navigateTo$7('servers', server.id, 'manage');
+          navigateTo$8('servers', server.id, 'manage');
         } catch (e) {
           error(`Failed to ${action} server`);
         }
@@ -45355,7 +45355,7 @@ function renderServerSubTab(server, username) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
           });
-          navigateTo$7('servers');
+          navigateTo$8('servers');
         } catch (e) {
           error('Failed to delete server');
         }
@@ -45592,7 +45592,7 @@ async function createNewServer() {
     
     const data = await res.json();
     if (data.server?.id) {
-      navigateTo$7('servers', data.server.id, 'details');
+      navigateTo$8('servers', data.server.id, 'details');
       info('Configure your server, then click "Install" when ready');
     } else {
       error(data.error || 'Failed to create server');
@@ -45614,7 +45614,7 @@ window.suspendServerAdmin = async function(serverId) {
       // But adminNavigate changes state. To reload current view we can just call the render function again
       // or re-navigate to same place.
       const currentTab = state.currentView.tab;
-      navigateTo$7(currentTab);
+      navigateTo$8(currentTab);
     } else {
       const data = await res.json();
       error(data.error || 'Failed to suspend');
@@ -45633,7 +45633,7 @@ window.unsuspendServerAdmin = async function(serverId) {
     });
     if (res.ok) {
       const currentTab = state.currentView.tab;
-      navigateTo$7(currentTab);
+      navigateTo$8(currentTab);
     } else {
       const data = await res.json();
       error(data.error || 'Failed to unsuspend');
@@ -45652,7 +45652,7 @@ window.deleteServerAdmin = async function(serverId) {
       body: JSON.stringify({})
     });
     const currentTab = state.currentView.tab;
-    navigateTo$7(currentTab);
+    navigateTo$8(currentTab);
   } catch (e) {
     error('Failed to delete server');
   }
@@ -45746,7 +45746,7 @@ async function showTransferModal(server) {
       } else {
         success('Server transfer completed');
         modal.remove();
-        navigateTo$7('servers', server.id, 'details');
+        navigateTo$8('servers', server.id, 'details');
       }
     } catch (e) {
       messageEl.textContent = 'Transfer failed';
@@ -45757,7 +45757,7 @@ async function showTransferModal(server) {
   };
 }
 
-const navigateTo$6 = (...args) => window.adminNavigate(...args);
+const navigateTo$7 = (...args) => window.adminNavigate(...args);
 
 async function renderUsersList(container, username, loadView) {
   try {
@@ -45865,12 +45865,12 @@ async function renderUsersList(container, username, loadView) {
       </div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$6);
+    setupBreadcrumbListeners(navigateTo$7);
     setupPaginationListeners('users', loadView);
     setupSearchListeners('users', loadView);
     
     document.querySelectorAll('.clickable-row[data-id], .list-card[data-id]').forEach(el => {
-      el.onclick = () => navigateTo$6('users', el.dataset.id);
+      el.onclick = () => navigateTo$7('users', el.dataset.id);
     });
     
     document.getElementById('create-user-btn')?.addEventListener('click', () => {
@@ -46006,7 +46006,7 @@ async function renderUserDetail(container, username, userId) {
       <div class="detail-content" id="user-detail-content"></div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$6);
+    setupBreadcrumbListeners(navigateTo$7);
     
     document.querySelectorAll('.detail-tab').forEach(tab => {
       tab.onclick = async () => {
@@ -46115,7 +46115,7 @@ async function renderUserSubTab(user, username) {
           
           if (data.success) {
             success('User deleted. ' + data.deletedServers + ' server(s) removed.');
-            navigateTo$6('users');
+            navigateTo$7('users');
           } else {
             error(data.error || 'Failed to delete user');
             btn.disabled = false;
@@ -46170,7 +46170,7 @@ async function renderUserSubTab(user, username) {
         `;
         
         document.querySelectorAll('.user-server-item').forEach(el => {
-          el.onclick = () => navigateTo$6('servers', el.dataset.serverId);
+          el.onclick = () => navigateTo$7('servers', el.dataset.serverId);
         });
       } catch (e) {
         content.innerHTML = '<div class="error">Failed to load servers</div>';
@@ -46220,7 +46220,7 @@ async function renderUserSubTab(user, username) {
             body: JSON.stringify({ updates })
           });
           success('Permissions updated');
-          navigateTo$6('users', user.id, 'permissions');
+          navigateTo$7('users', user.id, 'permissions');
         } catch (e) {
           error('Failed to update permissions');
         }
@@ -46275,7 +46275,7 @@ async function renderUserSubTab(user, username) {
             body: JSON.stringify({ updates: { limits } })
           });
           success('Limits updated');
-          navigateTo$6('users', user.id, 'limits');
+          navigateTo$7('users', user.id, 'limits');
         } catch (e) {
           error('Failed to update limits');
         }
@@ -46284,7 +46284,7 @@ async function renderUserSubTab(user, username) {
   }
 }
 
-const navigateTo$5 = (...args) => window.adminNavigate(...args);
+const navigateTo$6 = (...args) => window.adminNavigate(...args);
 
 function renderAdminEggIcon(egg) {
   if (!egg.icon) {
@@ -46383,7 +46383,7 @@ async function renderNestsList(container, username, loadView) {
       </div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$5);
+    setupBreadcrumbListeners(navigateTo$6);
     
     document.getElementById('create-nest-btn').onclick = () => showNestModal(username, null, loadView);
     
@@ -46399,7 +46399,7 @@ async function renderNestsList(container, username, loadView) {
     
     // Click on egg card to open detail view
     document.querySelectorAll('.egg-card.clickable').forEach(card => {
-      card.onclick = () => navigateTo$5('eggs', card.dataset.eggId);
+      card.onclick = () => navigateTo$6('eggs', card.dataset.eggId);
     });
     
   } catch (e) {
@@ -46654,7 +46654,7 @@ window.editNestAdmin = async function(nestId) {
   if (nest) {
     // We need to trigger showNestModal. Since we don't have loadView reference here easily,
     // we rely on the modal's save function using adminNavigate or we pass a dummy.
-    showNestModal(localStorage.getItem('username'), nest, () => navigateTo$5('nests'));
+    showNestModal(localStorage.getItem('username'), nest, () => navigateTo$6('nests'));
   }
 };
 
@@ -46667,7 +46667,7 @@ window.deleteNestAdmin = async function(nestId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
     });
-    navigateTo$5('nests');
+    navigateTo$6('nests');
   } catch (e) {
     error('Failed to delete nest');
   }
@@ -46708,7 +46708,7 @@ async function createNewEgg(nestId = null) {
     
     const createData = await createRes.json();
     if (createData.egg?.id) {
-      navigateTo$5('eggs', createData.egg.id, 'about');
+      navigateTo$6('eggs', createData.egg.id, 'about');
       info('Configure your new egg');
     } else {
       error(createData.error || 'Failed to create egg');
@@ -46719,7 +46719,7 @@ async function createNewEgg(nestId = null) {
 }
 
 window.editEggAdmin = function(eggId) {
-  navigateTo$5('eggs', eggId);
+  navigateTo$6('eggs', eggId);
 };
 
 window.deleteEggAdmin = async function(eggId) {
@@ -46731,7 +46731,7 @@ window.deleteEggAdmin = async function(eggId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
     });
-    navigateTo$5('nests');
+    navigateTo$6('nests');
   } catch (e) {
     error('Failed to delete egg');
   }
@@ -46780,7 +46780,7 @@ async function renderEggDetail(container, username, eggId) {
       <div class="detail-content" id="egg-detail-content"></div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$5);
+    setupBreadcrumbListeners(navigateTo$6);
     
     document.querySelectorAll('.detail-tab').forEach(tab => {
       tab.onclick = () => {
@@ -46799,7 +46799,7 @@ async function renderEggDetail(container, username, eggId) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
         });
-        navigateTo$5('nests');
+        navigateTo$6('nests');
       } catch (e) {
         error('Failed to delete egg');
       }
@@ -46966,7 +46966,7 @@ function renderEggAboutTab(content, egg, nests, username) {
         })
       });
       success('Egg updated');
-      navigateTo$5('eggs', egg.id, 'about');
+      navigateTo$6('eggs', egg.id, 'about');
     } catch (e) {
       error('Failed to update egg');
     }
@@ -47041,7 +47041,7 @@ function renderEggConfigTab(content, egg, username) {
         })
       });
       success('Startup config updated');
-      navigateTo$5('eggs', egg.id, 'configuration');
+      navigateTo$6('eggs', egg.id, 'configuration');
     } catch (e) {
       error('Failed to update config');
     }
@@ -47077,7 +47077,7 @@ function renderEggConfigTab(content, egg, username) {
         })
       });
       success('Advanced config updated');
-      navigateTo$5('eggs', egg.id, 'configuration');
+      navigateTo$6('eggs', egg.id, 'configuration');
     } catch (e) {
       error('Failed to update config');
     }
@@ -47162,7 +47162,7 @@ function renderEggVariablesTab(content, egg, username) {
           body: JSON.stringify({ egg: { variables: newVars } })
         });
         success('Variable deleted');
-        navigateTo$5('eggs', egg.id, 'variables');
+        navigateTo$6('eggs', egg.id, 'variables');
       } catch (e) {
         error('Failed to delete variable');
       }
@@ -47264,7 +47264,7 @@ function showVariableModal(egg, editIndex, username) {
       });
       modal.remove();
       success(isEdit ? 'Variable updated' : 'Variable added');
-      navigateTo$5('eggs', egg.id, 'variables');
+      navigateTo$6('eggs', egg.id, 'variables');
     } catch (e) {
       error('Failed to save variable');
     }
@@ -47318,14 +47318,14 @@ function renderEggInstallTab(content, egg, username) {
         })
       });
       success('Install script updated');
-      navigateTo$5('eggs', egg.id, 'install');
+      navigateTo$6('eggs', egg.id, 'install');
     } catch (e) {
       error('Failed to update install script');
     }
   };
 }
 
-const navigateTo$4 = (...args) => window.adminNavigate(...args);
+const navigateTo$5 = (...args) => window.adminNavigate(...args);
 
 async function renderLocationsList(container, username, loadView) {
   try {
@@ -47372,7 +47372,7 @@ async function renderLocationsList(container, username, loadView) {
       </div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$4);
+    setupBreadcrumbListeners(navigateTo$5);
     
     document.getElementById('create-location-btn').onclick = () => showLocationModal(username, loadView);
     
@@ -47452,7 +47452,7 @@ window.deleteLocationAdmin = async function(locationId) {
   }
 };
 
-const navigateTo$3 = (...args) => window.adminNavigate(...args);
+const navigateTo$4 = (...args) => window.adminNavigate(...args);
 
 let currentSettingsTab = 'general';
 
@@ -47501,7 +47501,7 @@ async function renderSettingsPage(container, username, loadView) {
       </div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$3);
+    setupBreadcrumbListeners(navigateTo$4);
     
     container.querySelectorAll('.settings-nav-item').forEach(btn => {
       btn.onclick = () => {
@@ -48586,7 +48586,7 @@ async function saveSettings(newConfig) {
   }
 }
 
-const navigateTo$2 = (...args) => window.adminNavigate(...args);
+const navigateTo$3 = (...args) => window.adminNavigate(...args);
 
 async function renderAnnouncementsList(container, username, loadView) {
   try {
@@ -48735,7 +48735,7 @@ async function renderAnnouncementsList(container, username, loadView) {
       </div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$2);
+    setupBreadcrumbListeners(navigateTo$3);
     
     let editingId = null;
     
@@ -48827,7 +48827,7 @@ async function renderAnnouncementsList(container, username, loadView) {
   }
 }
 
-const navigateTo$1 = (...args) => window.adminNavigate(...args);
+const navigateTo$2 = (...args) => window.adminNavigate(...args);
 
 function formatTimeAgo(dateString) {
   const date = new Date(dateString);
@@ -48938,7 +48938,7 @@ async function renderAuditLogPage(container, username) {
       </div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$1);
+    setupBreadcrumbListeners(navigateTo$2);
     
   } catch (e) {
     container.innerHTML = '<div class="error">Failed to load audit log</div>';
@@ -49038,11 +49038,405 @@ async function renderActivityLogPage(container, username) {
       </div>
     `;
     
-    setupBreadcrumbListeners(navigateTo$1);
+    setupBreadcrumbListeners(navigateTo$2);
     
   } catch (e) {
     container.innerHTML = '<div class="error">Failed to load activity log</div>';
   }
+}
+
+const navigateTo$1 = (...args) => window.adminNavigate(...args);
+
+const WEBHOOK_TYPES = [
+  { id: 'discord', label: 'Discord', icon: 'smart_toy' },
+  { id: 'slack', label: 'Slack', icon: 'tag' },
+  { id: 'generic', label: 'Generic', icon: 'webhook' }
+];
+
+const EVENT_CATEGORIES = {
+  'Server Events': [
+    { id: 'server.created', label: 'Server Created' },
+    { id: 'server.deleted', label: 'Server Deleted' },
+    { id: 'server.started', label: 'Server Started' },
+    { id: 'server.stopped', label: 'Server Stopped' },
+    { id: 'server.crashed', label: 'Server Crashed' },
+    { id: 'server.suspended', label: 'Server Suspended' },
+    { id: 'server.unsuspended', label: 'Server Unsuspended' }
+  ],
+  'User Events': [
+    { id: 'user.created', label: 'User Created' },
+    { id: 'user.deleted', label: 'User Deleted' },
+    { id: 'user.login', label: 'User Login' }
+  ],
+  'Admin Events': [
+    { id: 'node.created', label: 'Node Created' },
+    { id: 'node.deleted', label: 'Node Deleted' },
+    { id: 'announcement.created', label: 'Announcement Created' }
+  ]
+};
+
+async function renderWebhooksList(container, username, loadView) {
+  try {
+    const res = await api('/api/webhooks/admin/all');
+    
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      container.innerHTML = `<div class="error">${escapeHtml$1(errData.error || 'Failed to load webhooks')}</div>`;
+      return;
+    }
+    
+    const data = await res.json();
+    const webhooks = data.webhooks || [];
+    
+    const globalWebhooks = webhooks.filter(w => w.global || !w.user_id);
+    const userWebhooks = webhooks.filter(w => w.user_id && !w.global);
+    
+    container.innerHTML = `
+      <div class="admin-header">
+        ${renderBreadcrumb([{ label: 'Webhooks' }])}
+        <div class="admin-header-actions">
+          <button class="btn btn-primary" id="create-webhook-btn">
+            <span class="material-icons-outlined">add</span>
+            Create Global Webhook
+          </button>
+        </div>
+      </div>
+      
+      <div class="admin-list">
+        <div class="webhooks-section">
+          <h3 class="section-title">
+            <span class="material-icons-outlined">public</span>
+            Global Webhooks
+          </h3>
+          ${globalWebhooks.length === 0 ? `
+            <div class="empty-state small">
+              <span class="material-icons-outlined">webhook</span>
+              <p>No global webhooks configured</p>
+            </div>
+          ` : `
+            <div class="webhook-cards">
+              ${globalWebhooks.map(w => renderWebhookCard(w, true)).join('')}
+            </div>
+          `}
+        </div>
+        
+        <div class="webhooks-section">
+          <h3 class="section-title">
+            <span class="material-icons-outlined">person</span>
+            User Webhooks
+          </h3>
+          ${userWebhooks.length === 0 ? `
+            <div class="empty-state small">
+              <span class="material-icons-outlined">webhook</span>
+              <p>No user webhooks</p>
+            </div>
+          ` : `
+            <div class="webhook-cards">
+              ${userWebhooks.map(w => renderWebhookCard(w, false)).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+      
+      ${renderWebhookModal()}
+    `;
+    
+    setupBreadcrumbListeners(navigateTo$1);
+    setupWebhookListeners(webhooks, loadView);
+    
+  } catch (e) {
+    container.innerHTML = '<div class="error">Failed to load webhooks</div>';
+  }
+}
+
+function renderWebhookCard(webhook, isGlobal) {
+  const typeInfo = WEBHOOK_TYPES.find(t => t.id === webhook.type) || WEBHOOK_TYPES[2];
+  const eventsDisplay = webhook.events.includes('*') 
+    ? 'All Events' 
+    : `${webhook.events.length} event${webhook.events.length !== 1 ? 's' : ''}`;
+  
+  return `
+    <div class="webhook-card ${!webhook.enabled ? 'disabled' : ''}">
+      <div class="webhook-card-header">
+        <div class="webhook-info">
+          <span class="webhook-type-icon material-icons-outlined">${typeInfo.icon}</span>
+          <div class="webhook-details">
+            <span class="webhook-name">${escapeHtml$1(webhook.name)}</span>
+            <span class="webhook-url">${escapeHtml$1(webhook.url)}</span>
+          </div>
+        </div>
+        <div class="webhook-status">
+          <span class="status-badge ${webhook.enabled ? 'active' : 'inactive'}">
+            ${webhook.enabled ? 'Enabled' : 'Disabled'}
+          </span>
+        </div>
+      </div>
+      <div class="webhook-card-body">
+        <div class="webhook-meta">
+          <span class="meta-item">
+            <span class="material-icons-outlined">category</span>
+            ${typeInfo.label}
+          </span>
+          <span class="meta-item">
+            <span class="material-icons-outlined">notifications</span>
+            ${eventsDisplay}
+          </span>
+          ${!isGlobal && webhook.user_id ? `
+            <span class="meta-item">
+              <span class="material-icons-outlined">person</span>
+              User: ${escapeHtml$1(webhook.user_id.substring(0, 8))}
+            </span>
+          ` : ''}
+        </div>
+      </div>
+      <div class="webhook-card-footer">
+        <button class="btn btn-xs btn-ghost" onclick="testWebhook('${webhook.id}')">
+          <span class="material-icons-outlined">send</span>
+          Test
+        </button>
+        ${isGlobal ? `
+          <button class="btn btn-xs btn-ghost" onclick="editWebhook('${webhook.id}')">
+            <span class="material-icons-outlined">edit</span>
+            Edit
+          </button>
+        ` : ''}
+        <button class="btn btn-xs btn-danger-ghost" onclick="deleteWebhook('${webhook.id}')">
+          <span class="material-icons-outlined">delete</span>
+          Delete
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderWebhookModal() {
+  return `
+    <div class="modal" id="webhook-modal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3 id="webhook-modal-title">Create Global Webhook</h3>
+          <button class="modal-close" onclick="closeWebhookModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Name</label>
+              <input type="text" id="webhook-name" class="form-control" placeholder="My Webhook">
+            </div>
+            <div class="form-group">
+              <label>Type</label>
+              <select id="webhook-type" class="form-control">
+                ${WEBHOOK_TYPES.map(t => `<option value="${t.id}">${t.label}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Webhook URL</label>
+            <input type="url" id="webhook-url" class="form-control" placeholder="https://discord.com/api/webhooks/...">
+            <small class="form-hint">For Discord, use the webhook URL from channel settings</small>
+          </div>
+          
+          <div class="form-group">
+            <label>Secret (optional)</label>
+            <input type="password" id="webhook-secret" class="form-control" placeholder="Leave blank for no secret">
+            <small class="form-hint">Sent as X-Webhook-Secret header (not used for Discord/Slack)</small>
+          </div>
+          
+          <div class="form-group">
+            <label>Events</label>
+            <div class="events-selector">
+              <label class="toggle-item all-events">
+                <input type="checkbox" id="webhook-all-events">
+                <span class="toggle-content">
+                  <span class="toggle-title">All Events</span>
+                  <span class="toggle-desc">Subscribe to all current and future events</span>
+                </span>
+              </label>
+              
+              <div class="events-grid" id="events-grid">
+                ${Object.entries(EVENT_CATEGORIES).map(([category, events]) => `
+                  <div class="event-category">
+                    <h4>${category}</h4>
+                    ${events.map(e => `
+                      <label class="event-checkbox">
+                        <input type="checkbox" name="webhook-event" value="${e.id}">
+                        <span>${e.label}</span>
+                      </label>
+                    `).join('')}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="toggle-item">
+              <input type="checkbox" id="webhook-enabled" checked>
+              <span class="toggle-content">
+                <span class="toggle-title">Enabled</span>
+                <span class="toggle-desc">Webhook will receive events when enabled</span>
+              </span>
+            </label>
+          </div>
+          
+          <div class="message" id="webhook-message"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeWebhookModal()">Cancel</button>
+          <button class="btn btn-primary" id="save-webhook-btn">Save Webhook</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function setupWebhookListeners(webhooks, loadView) {
+  let editingId = null;
+  
+  document.getElementById('create-webhook-btn').onclick = () => {
+    editingId = null;
+    document.getElementById('webhook-modal-title').textContent = 'Create Global Webhook';
+    document.getElementById('webhook-name').value = '';
+    document.getElementById('webhook-type').value = 'discord';
+    document.getElementById('webhook-url').value = '';
+    document.getElementById('webhook-secret').value = '';
+    document.getElementById('webhook-enabled').checked = true;
+    document.getElementById('webhook-all-events').checked = false;
+    document.querySelectorAll('input[name="webhook-event"]').forEach(cb => cb.checked = false);
+    document.getElementById('events-grid').classList.remove('disabled');
+    document.getElementById('webhook-modal').classList.add('active');
+  };
+  
+  document.getElementById('webhook-all-events').onchange = (e) => {
+    const eventsGrid = document.getElementById('events-grid');
+    if (e.target.checked) {
+      eventsGrid.classList.add('disabled');
+      document.querySelectorAll('input[name="webhook-event"]').forEach(cb => cb.checked = false);
+    } else {
+      eventsGrid.classList.remove('disabled');
+    }
+  };
+  
+  window.closeWebhookModal = () => {
+    document.getElementById('webhook-modal').classList.remove('active');
+  };
+  
+  window.editWebhook = (id) => {
+    const webhook = webhooks.find(w => w.id === id);
+    if (!webhook) return;
+    
+    editingId = id;
+    document.getElementById('webhook-modal-title').textContent = 'Edit Webhook';
+    document.getElementById('webhook-name').value = webhook.name;
+    document.getElementById('webhook-type').value = webhook.type;
+    document.getElementById('webhook-url').value = '';
+    document.getElementById('webhook-secret').value = '';
+    document.getElementById('webhook-enabled').checked = webhook.enabled;
+    
+    const allEvents = webhook.events.includes('*');
+    document.getElementById('webhook-all-events').checked = allEvents;
+    document.getElementById('events-grid').classList.toggle('disabled', allEvents);
+    
+    document.querySelectorAll('input[name="webhook-event"]').forEach(cb => {
+      cb.checked = webhook.events.includes(cb.value);
+    });
+    
+    document.getElementById('webhook-modal').classList.add('active');
+  };
+  
+  window.deleteWebhook = async (id) => {
+    if (!confirm('Are you sure you want to delete this webhook?')) return;
+    
+    try {
+      const res = await api(`/api/webhooks/admin/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        success('Webhook deleted');
+        if (typeof loadView === 'function') loadView();
+      } else {
+        const data = await res.json();
+        error(data.error || 'Failed to delete webhook');
+      }
+    } catch (e) {
+      error('Failed to delete webhook');
+    }
+  };
+  
+  window.testWebhook = async (id) => {
+    info('Sending test webhook...');
+    try {
+      const res = await api(`/api/webhooks/${id}/test`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        success('Test webhook sent');
+      } else {
+        error(data.error || 'Test failed');
+      }
+    } catch (e) {
+      error('Failed to send test webhook');
+    }
+  };
+  
+  document.getElementById('save-webhook-btn').onclick = async () => {
+    const name = document.getElementById('webhook-name').value.trim();
+    const type = document.getElementById('webhook-type').value;
+    const url = document.getElementById('webhook-url').value.trim();
+    const secret = document.getElementById('webhook-secret').value;
+    const enabled = document.getElementById('webhook-enabled').checked;
+    const allEvents = document.getElementById('webhook-all-events').checked;
+    const messageEl = document.getElementById('webhook-message');
+    
+    const selectedEvents = allEvents 
+      ? ['*'] 
+      : Array.from(document.querySelectorAll('input[name="webhook-event"]:checked')).map(cb => cb.value);
+    
+    if (!name) {
+      messageEl.textContent = 'Name is required';
+      messageEl.className = 'message error';
+      return;
+    }
+    
+    if (!editingId && !url) {
+      messageEl.textContent = 'URL is required';
+      messageEl.className = 'message error';
+      return;
+    }
+    
+    if (selectedEvents.length === 0) {
+      messageEl.textContent = 'Select at least one event';
+      messageEl.className = 'message error';
+      return;
+    }
+    
+    try {
+      const body = { name, type, events: selectedEvents, enabled };
+      if (url) body.url = url;
+      if (secret) body.secret = secret;
+      
+      const method = editingId ? 'PUT' : 'POST';
+      const endpoint = editingId ? `/api/webhooks/${editingId}` : '/api/webhooks/admin';
+      
+      const res = await api(endpoint, {
+        method,
+        body: JSON.stringify(body)
+      });
+      
+      const result = await res.json();
+      
+      if (result.error) {
+        messageEl.textContent = result.error;
+        messageEl.className = 'message error';
+      } else {
+        closeWebhookModal();
+        if (typeof loadView === 'function') loadView();
+        success(editingId ? 'Webhook updated' : 'Webhook created');
+      }
+    } catch (e) {
+      messageEl.textContent = 'Failed to save webhook';
+      messageEl.className = 'message error';
+    }
+  };
 }
 
 function navigateTo(tab, id = null, subTab = null) {
@@ -49156,6 +49550,9 @@ async function loadView() {
         break;
       case 'activity':
         await renderActivityLogPage(container, username);
+        break;
+      case 'webhooks':
+        await renderWebhooksList(container, username, loadView);
         break;
     }
   }
@@ -49852,6 +50249,11 @@ const routes = {
     cleanup: cleanupAdmin,
     options: { title: 'Panel Settings', auth: true, sidebar: true }
   },
+  '/admin/webhooks': {
+    render: (params) => renderAdmin('webhooks', params),
+    cleanup: cleanupAdmin,
+    options: { title: 'Webhooks', auth: true, sidebar: true }
+  },
   '/profile': {
     render: renderProfile,
     options: {
@@ -50036,6 +50438,7 @@ function renderSidebar() {
       { path: '/admin/nests', icon: 'egg', label: 'Nests' },
       { path: '/admin/locations', icon: 'location_on', label: 'Locations' },
       { path: '/admin/announcements', icon: 'campaign', label: 'Announcements' },
+      { path: '/admin/webhooks', icon: 'webhook', label: 'Webhooks' },
       { path: '/admin/audit', icon: 'history', label: 'Audit Log' },
       { path: '/admin/settings', icon: 'tune', label: 'Panel Settings' }
     ]

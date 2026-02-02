@@ -9,6 +9,7 @@ import { renderLocationsList } from './views/locations.js';
 import { renderSettingsPage } from './views/settings.js';
 import { renderAnnouncementsList } from './views/announcements.js';
 import { renderAuditLogPage, renderActivityLogPage } from './views/logs.js';
+import { renderWebhooksList } from './views/webhooks.js';
 
 function navigateTo(tab, id = null, subTab = null) {
   state.currentView = { 
@@ -121,6 +122,9 @@ export async function loadView() {
         break;
       case 'activity':
         await renderActivityLogPage(container, username);
+        break;
+      case 'webhooks':
+        await renderWebhooksList(container, username, loadView);
         break;
     }
   }

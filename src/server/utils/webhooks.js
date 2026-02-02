@@ -1,5 +1,6 @@
 import { loadWebhooks } from '../db.js';
 import logger from './logger.js';
+import { generateWebhookImage } from './webhook-image.js';
 
 export const WEBHOOK_EVENTS = {
   // Server events
@@ -10,8 +11,6 @@ export const WEBHOOK_EVENTS = {
   SERVER_CRASHED: 'server.crashed',
   SERVER_SUSPENDED: 'server.suspended',
   SERVER_UNSUSPENDED: 'server.unsuspended',
-  SERVER_BACKUP_CREATED: 'server.backup.created',
-  SERVER_BACKUP_RESTORED: 'server.backup.restored',
   
   // User events
   USER_CREATED: 'user.created',
@@ -45,6 +44,10 @@ export async function triggerWebhook(event, data, userId = null) {
 }
 
 async function sendWebhook(webhook, event, data) {
+  if (webhook.type === 'discord') {
+    return sendDiscordWebhook(webhook, event, data);
+  }
+  
   const payload = buildPayload(webhook.type, event, data);
   
   const headers = {
@@ -66,6 +69,37 @@ async function sendWebhook(webhook, event, data) {
     throw new Error(`HTTP ${response.status}`);
   }
   
+  return true;
+}
+
+async function sendDiscordWebhook(webhook, event, data) {
+  const image = await generateWebhookImage(event, data);
+  
+  if (image) {
+    const formData = new FormData();
+    formData.append('files[0]', new Blob([image], { type: 'image/png' }), 'notification.png');
+    
+    const response = await fetch(webhook.url, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return true;
+  }
+  
+  const payload = buildDiscordPayload(event, data, new Date().toISOString());
+  const response = await fetch(webhook.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
   return true;
 }
 
@@ -112,8 +146,7 @@ function buildDiscordPayload(event, data, timestamp) {
     'server.crashed': '💥 Server Crashed',
     'server.suspended': '⏸️ Server Suspended',
     'server.unsuspended': '▶️ Server Unsuspended',
-    'server.backup.created': '💾 Backup Created',
-    'server.backup.restored': '📥 Backup Restored',
+
     'user.created': '👤 User Created',
     'user.deleted': '👤 User Deleted',
     'user.login': '🔑 User Login',
