@@ -1017,7 +1017,8 @@ router.put('/settings', async (req, res) => {
   if (newConfig.features !== undefined) {
     config.features = {
       ...config.features,
-      subusers: newConfig.features.subusers !== undefined ? Boolean(newConfig.features.subusers) : config.features?.subusers
+      subusers: newConfig.features.subusers !== undefined ? Boolean(newConfig.features.subusers) : config.features?.subusers,
+      disableUserServerCreation: newConfig.features.disableUserServerCreation !== undefined ? Boolean(newConfig.features.disableUserServerCreation) : config.features?.disableUserServerCreation
     };
   }
   

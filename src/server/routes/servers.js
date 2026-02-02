@@ -123,6 +123,12 @@ router.post('/', authenticateUser, async (req, res) => {
   const user = users.users.find(u => u.id === req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
   
+  // Check if server creation is disabled for non-admins
+  const config = loadConfig();
+  if (config.features?.disableUserServerCreation && !user.isAdmin) {
+    return res.status(403).json({ error: 'Server creation is disabled' });
+  }
+  
   const userLimits = user.limits || { servers: 2, memory: 2048, disk: 10240, cpu: 200 };
   const servers = loadServers();
   const userServers = servers.servers.filter(s => s.user_id === user.id);

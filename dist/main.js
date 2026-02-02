@@ -47048,6 +47048,13 @@ function renderGeneralSettings(content, config) {
                 <span class="toggle-desc">Allow users to share server access with others</span>
               </span>
             </label>
+            <label class="toggle-item">
+              <input type="checkbox" name="disable_user_server_creation" ${config.features?.disableUserServerCreation ? 'checked' : ''} />
+              <span class="toggle-content">
+                <span class="toggle-title">Disable User Server Creation</span>
+                <span class="toggle-desc">Prevent non-admin users from creating new servers</span>
+              </span>
+            </label>
           </div>
         </div>
         
@@ -47071,7 +47078,8 @@ function renderGeneralSettings(content, config) {
         url: form.panel_url.value
       },
       features: {
-        subusers: form.subusers_enabled.checked
+        subusers: form.subusers_enabled.checked,
+        disableUserServerCreation: form.disable_user_server_creation.checked
       }
     };
     
