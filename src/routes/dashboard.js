@@ -220,6 +220,15 @@ async function loadLimits() {
           <div class="progress" style="width: ${calcPercent(data.used.cpu, data.limits.cpu)}%"></div>
         </div>
       </div>
+      <div class="limit-item">
+        <div class="limit-header">
+          <span class="label">Allocations</span>
+          <span class="value">${data.used.allocations || 0} / ${data.limits.allocations || 5}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress" style="width: ${calcPercent(data.used.allocations || 0, data.limits.allocations || 5)}%"></div>
+        </div>
+      </div>
     `;
   } catch (e) {
     console.error('Failed to load limits:', e);

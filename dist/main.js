@@ -1230,6 +1230,15 @@ async function loadLimits() {
           <div class="progress" style="width: ${calcPercent(data.used.cpu, data.limits.cpu)}%"></div>
         </div>
       </div>
+      <div class="limit-item">
+        <div class="limit-header">
+          <span class="label">Allocations</span>
+          <span class="value">${data.used.allocations || 0} / ${data.limits.allocations || 5}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress" style="width: ${calcPercent(data.used.allocations || 0, data.limits.allocations || 5)}%"></div>
+        </div>
+      </div>
     `;
   } catch (e) {
     console.error('Failed to load limits:', e);
@@ -3122,7 +3131,8 @@ async function renderCreateServer() {
       servers: limitsData.limits.servers - limitsData.used.servers,
       memory: limitsData.limits.memory - limitsData.used.memory,
       disk: limitsData.limits.disk - limitsData.used.disk,
-      cpu: limitsData.limits.cpu - limitsData.used.cpu
+      cpu: limitsData.limits.cpu - limitsData.used.cpu,
+      allocations: (limitsData.limits.allocations || 5) - (limitsData.used.allocations || 0)
     };
     
     if (remaining.servers <= 0) {
@@ -3218,6 +3228,14 @@ function renderCreateForm(remaining) {
                   <input type="number" name="cpu" value="100" min="25" max="${remaining.cpu}" required />
                   <span class="resource-hint">Max: ${remaining.cpu}%</span>
                 </div>
+                <div class="resource-input">
+                  <label>
+                    <span class="material-icons-outlined">lan</span>
+                    Allocations
+                  </label>
+                  <input type="number" name="allocations" value="1" min="1" max="${remaining.allocations}" required />
+                  <span class="resource-hint">Max: ${remaining.allocations}</span>
+                </div>
               </div>
             </div>
             
@@ -3267,6 +3285,10 @@ function renderCreateForm(remaining) {
             <div class="limit-row">
               <span>CPU</span>
               <span class="limit-value">${remaining.cpu}%</span>
+            </div>
+            <div class="limit-row">
+              <span>Allocations</span>
+              <span class="limit-value">${remaining.allocations}</span>
             </div>
           </div>
         </div>
@@ -3400,6 +3422,7 @@ async function submitCreateServer(remaining) {
   const memory = parseInt(formData.get('memory'));
   const disk = parseInt(formData.get('disk'));
   const cpu = parseInt(formData.get('cpu'));
+  const allocations = parseInt(formData.get('allocations')) || 1;
   
   if (memory > remaining.memory) {
     errorEl.textContent = `Memory exceeds limit (max: ${remaining.memory} MB)`;
@@ -3413,6 +3436,11 @@ async function submitCreateServer(remaining) {
   }
   if (cpu > remaining.cpu) {
     errorEl.textContent = `CPU exceeds limit (max: ${remaining.cpu}%)`;
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (allocations > remaining.allocations) {
+    errorEl.textContent = `Allocations exceeds limit (max: ${remaining.allocations})`;
     errorEl.style.display = 'block';
     return;
   }
@@ -3431,7 +3459,8 @@ async function submitCreateServer(remaining) {
         docker_image: formData.get('docker_image') || null,
         memory,
         disk,
-        cpu
+        cpu,
+        allocations
       })
     });
     
@@ -46080,9 +46109,12 @@ async function renderUserSubTab(user, username) {
                 <span class="info-label">Max CPU</span>
                 <span class="info-value">${user.limits?.cpu || 200}%</span>
               </div>
+              <div class="info-item">
+                <span class="info-label">Max Allocations</span>
+                <span class="info-value">${user.limits?.allocations || 5}</span>
+              </div>
             </div>
           </div>
-        </div>
         
         <div class="detail-card danger-card" style="margin-top: 24px;">
           <h3>Danger Zone</h3>
@@ -46250,6 +46282,10 @@ async function renderUserSubTab(user, username) {
                 <label>Max CPU (%)</label>
                 <input type="number" name="cpu" value="${user.limits?.cpu || 200}" min="0" required />
               </div>
+              <div class="form-group">
+                <label>Max Allocations</label>
+                <input type="number" name="allocations" value="${user.limits?.allocations || 5}" min="0" required />
+              </div>
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">Update Limits</button>
@@ -46265,7 +46301,8 @@ async function renderUserSubTab(user, username) {
           servers: parseInt(form.get('servers')),
           memory: parseInt(form.get('memory')),
           disk: parseInt(form.get('disk')),
-          cpu: parseInt(form.get('cpu'))
+          cpu: parseInt(form.get('cpu')),
+          allocations: parseInt(form.get('allocations'))
         };
         
         try {

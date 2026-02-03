@@ -192,10 +192,11 @@ router.get('/limits', (req, res) => {
     servers: acc.servers + 1,
     memory: acc.memory + (s.limits?.memory || 0),
     disk: acc.disk + (s.limits?.disk || 0),
-    cpu: acc.cpu + (s.limits?.cpu || 0)
-  }), { servers: 0, memory: 0, disk: 0, cpu: 0 });
+    cpu: acc.cpu + (s.limits?.cpu || 0),
+    allocations: acc.allocations + (s.feature_limits?.allocations || 1)
+  }), { servers: 0, memory: 0, disk: 0, cpu: 0, allocations: 0 });
   
-  const limits = user.limits || { servers: 2, memory: 2048, disk: 10240, cpu: 200 };
+  const limits = user.limits || { servers: 2, memory: 2048, disk: 10240, cpu: 200, allocations: 5 };
   
   res.json({ limits, used });
 });

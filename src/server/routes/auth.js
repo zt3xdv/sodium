@@ -166,10 +166,11 @@ router.post('/register', authLimiter, async (req, res) => {
     verificationToken: verificationToken,
     verificationTokenExpires: verificationToken ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null,
     limits: {
-      servers: defaults.servers || 2,
-      memory: defaults.memory || 2048,
-      disk: defaults.disk || 10240,
-      cpu: defaults.cpu || 200
+      servers: defaults.servers,
+      memory: defaults.memory,
+      disk: defaults.disk,
+      cpu: defaults.cpu,
+      allocations: defaults.allocations,
     },
     createdAt: new Date().toISOString(),
     settings: {

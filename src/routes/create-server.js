@@ -50,7 +50,8 @@ export async function renderCreateServer() {
       servers: limitsData.limits.servers - limitsData.used.servers,
       memory: limitsData.limits.memory - limitsData.used.memory,
       disk: limitsData.limits.disk - limitsData.used.disk,
-      cpu: limitsData.limits.cpu - limitsData.used.cpu
+      cpu: limitsData.limits.cpu - limitsData.used.cpu,
+      allocations: (limitsData.limits.allocations || 5) - (limitsData.used.allocations || 0)
     };
     
     if (remaining.servers <= 0) {
@@ -146,6 +147,14 @@ function renderCreateForm(remaining) {
                   <input type="number" name="cpu" value="100" min="25" max="${remaining.cpu}" required />
                   <span class="resource-hint">Max: ${remaining.cpu}%</span>
                 </div>
+                <div class="resource-input">
+                  <label>
+                    <span class="material-icons-outlined">lan</span>
+                    Allocations
+                  </label>
+                  <input type="number" name="allocations" value="1" min="1" max="${remaining.allocations}" required />
+                  <span class="resource-hint">Max: ${remaining.allocations}</span>
+                </div>
               </div>
             </div>
             
@@ -195,6 +204,10 @@ function renderCreateForm(remaining) {
             <div class="limit-row">
               <span>CPU</span>
               <span class="limit-value">${remaining.cpu}%</span>
+            </div>
+            <div class="limit-row">
+              <span>Allocations</span>
+              <span class="limit-value">${remaining.allocations}</span>
             </div>
           </div>
         </div>
@@ -328,6 +341,7 @@ async function submitCreateServer(remaining) {
   const memory = parseInt(formData.get('memory'));
   const disk = parseInt(formData.get('disk'));
   const cpu = parseInt(formData.get('cpu'));
+  const allocations = parseInt(formData.get('allocations')) || 1;
   
   if (memory > remaining.memory) {
     errorEl.textContent = `Memory exceeds limit (max: ${remaining.memory} MB)`;
@@ -341,6 +355,11 @@ async function submitCreateServer(remaining) {
   }
   if (cpu > remaining.cpu) {
     errorEl.textContent = `CPU exceeds limit (max: ${remaining.cpu}%)`;
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (allocations > remaining.allocations) {
+    errorEl.textContent = `Allocations exceeds limit (max: ${remaining.allocations})`;
     errorEl.style.display = 'block';
     return;
   }
@@ -359,7 +378,8 @@ async function submitCreateServer(remaining) {
         docker_image: formData.get('docker_image') || null,
         memory,
         disk,
-        cpu
+        cpu,
+        allocations
       })
     });
     

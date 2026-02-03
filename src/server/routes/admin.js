@@ -591,7 +591,7 @@ router.post('/servers', async (req, res) => {
     feature_limits: {
       databases: parseInt(server.databases) || 0,
       backups: parseInt(server.backups) || 0,
-      allocations: 1
+      allocations: parseInt(server.allocations_limit) || 5
     },
     environment: server.environment || {},
     allocation: { ip: server.allocation_ip || '0.0.0.0', port: parseInt(server.allocation_port) || 25565 },

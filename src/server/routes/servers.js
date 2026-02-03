@@ -115,7 +115,7 @@ router.get('/', authenticateUser, (req, res) => {
 
 // Crear Servidor (Usuario)
 router.post('/', authenticateUser, async (req, res) => {
-  const { name, description, egg_id, memory, disk, cpu } = req.body;
+  const { name, description, egg_id, memory, disk, cpu, allocations: requestedAllocations } = req.body;
   
   if (!name) return res.status(400).json({ error: 'Server name required' });
   
@@ -129,7 +129,7 @@ router.post('/', authenticateUser, async (req, res) => {
     return res.status(403).json({ error: 'Server creation is disabled' });
   }
   
-  const userLimits = user.limits || { servers: 2, memory: 2048, disk: 10240, cpu: 200 };
+  const userLimits = user.limits || { servers: 2, memory: 2048, disk: 10240, cpu: 200, allocations: 5 };
   const servers = loadServers();
   const userServers = servers.servers.filter(s => s.user_id === user.id);
   
@@ -137,12 +137,14 @@ router.post('/', authenticateUser, async (req, res) => {
     servers: acc.servers + 1,
     memory: acc.memory + (s.limits?.memory || 0),
     disk: acc.disk + (s.limits?.disk || 0),
-    cpu: acc.cpu + (s.limits?.cpu || 0)
-  }), { servers: 0, memory: 0, disk: 0, cpu: 0 });
+    cpu: acc.cpu + (s.limits?.cpu || 0),
+    allocations: acc.allocations + (s.feature_limits?.allocations || 1)
+  }), { servers: 0, memory: 0, disk: 0, cpu: 0, allocations: 0 });
   
   const requestedMemory = parseInt(memory) || 512;
   const requestedDisk = parseInt(disk) || 1024;
   const requestedCpu = parseInt(cpu) || 100;
+  const serverAllocations = parseInt(requestedAllocations) || 1;
   
   if (usedResources.servers + 1 > userLimits.servers) {
     return res.status(400).json({ error: 'Server limit reached' });
@@ -155,6 +157,9 @@ router.post('/', authenticateUser, async (req, res) => {
   }
   if (usedResources.cpu + requestedCpu > userLimits.cpu) {
     return res.status(400).json({ error: 'CPU limit exceeded' });
+  }
+  if (usedResources.allocations + serverAllocations > (userLimits.allocations || 5)) {
+    return res.status(400).json({ error: 'Allocation limit exceeded' });
   }
   
   const eggs = loadEggs();
@@ -225,9 +230,7 @@ router.post('/', authenticateUser, async (req, res) => {
       swap: 0
     },
     feature_limits: {
-      databases: 0,
-      backups: 0,
-      allocations: 5
+      allocations: serverAllocations
     },
     environment: {},
     allocations,
@@ -867,15 +870,20 @@ router.post('/:id/allocations', authenticateUser, async (req, res) => {
   
   const servers = loadServers();
   const userServers = servers.servers.filter(s => s.user_id === user.id);
-  const totalAllocations = userServers.reduce((sum, s) => sum + (s.allocations?.length || 1), 0);
+  // Count extra allocations (beyond the first one per server which is always included)
+  const extraAllocations = userServers.reduce((sum, s) => {
+    const allocCount = s.allocations?.length || 1;
+    return sum + Math.max(0, allocCount - 1);
+  }, 0);
   const allocationLimit = user.limits?.allocations || 5;
   
-  if (totalAllocations >= allocationLimit) {
+  if (extraAllocations >= allocationLimit) {
     return res.status(400).json({ error: 'Allocation limit reached' });
   }
   
   const serverAllocationLimit = server.feature_limits?.allocations || 5;
-  if ((server.allocations?.length || 1) >= serverAllocationLimit) {
+  const currentServerAllocations = server.allocations?.length || 1;
+  if (currentServerAllocations >= serverAllocationLimit) {
     return res.status(400).json({ error: 'Server allocation limit reached' });
   }
   

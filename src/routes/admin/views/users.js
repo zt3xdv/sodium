@@ -327,9 +327,12 @@ async function renderUserSubTab(user, username) {
                 <span class="info-label">Max CPU</span>
                 <span class="info-value">${user.limits?.cpu || 200}%</span>
               </div>
+              <div class="info-item">
+                <span class="info-label">Max Allocations</span>
+                <span class="info-value">${user.limits?.allocations || 5}</span>
+              </div>
             </div>
           </div>
-        </div>
         
         <div class="detail-card danger-card" style="margin-top: 24px;">
           <h3>Danger Zone</h3>
@@ -497,6 +500,10 @@ async function renderUserSubTab(user, username) {
                 <label>Max CPU (%)</label>
                 <input type="number" name="cpu" value="${user.limits?.cpu || 200}" min="0" required />
               </div>
+              <div class="form-group">
+                <label>Max Allocations</label>
+                <input type="number" name="allocations" value="${user.limits?.allocations || 5}" min="0" required />
+              </div>
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">Update Limits</button>
@@ -512,7 +519,8 @@ async function renderUserSubTab(user, username) {
           servers: parseInt(form.get('servers')),
           memory: parseInt(form.get('memory')),
           disk: parseInt(form.get('disk')),
-          cpu: parseInt(form.get('cpu'))
+          cpu: parseInt(form.get('cpu')),
+          allocations: parseInt(form.get('allocations'))
         };
         
         try {
