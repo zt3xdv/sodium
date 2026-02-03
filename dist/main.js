@@ -3498,6 +3498,20 @@ function formatBytes(bytes, decimals = 2) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
 }
 
+function formatDate$3(dateString) {
+  if (!dateString) return '--';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diff = now - date;
+  
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+  
+  return date.toLocaleDateString();
+}
+
 /**
  * Copyright (c) 2014-2024 The xterm.js authors. All rights reserved.
  * @license MIT
@@ -3596,7 +3610,7 @@ let resourcesCallback = null;
 let serverIdGetter = null;
 let resizeTimeout = null;
 let receivedLogs = new Set();
-let currentServerId$6 = null;
+let currentServerId$7 = null;
 
 function setConsoleCallbacks(onStatus, onResources, getServerId) {
   statusCallback = onStatus;
@@ -3621,12 +3635,12 @@ function renderConsoleTab() {
 }
 
 function initConsoleTab(serverId) {
-  if (currentServerId$6 === serverId && consoleSocket && consoleSocket.readyState === WebSocket.OPEN) {
+  if (currentServerId$7 === serverId && consoleSocket && consoleSocket.readyState === WebSocket.OPEN) {
     return;
   }
   
   cleanupConsoleTab();
-  currentServerId$6 = serverId;
+  currentServerId$7 = serverId;
   receivedLogs.clear();
   
   initTerminal();
@@ -3953,7 +3967,7 @@ function cleanupConsoleTab() {
     consoleSocket = null;
   }
   
-  currentServerId$6 = null;
+  currentServerId$7 = null;
   receivedLogs.clear();
 }
 
@@ -36608,7 +36622,7 @@ const castOpen = 1,
   and = 5,
   array = 6,
   as = 7,
-  Boolean = 8,
+  Boolean$1 = 8,
   _break = 9,
   _case = 10,
   _catch = 11,
@@ -36673,8 +36687,8 @@ const keywordMap = {
   and,
   array,
   as,
-  true: Boolean,
-  false: Boolean,
+  true: Boolean$1,
+  false: Boolean$1,
   break: _break,
   case: _case,
   catch: _catch,
@@ -40828,9 +40842,9 @@ function createEditor(container, content, filename, onSave) {
   };
 }
 
-function confirm$1(message, options = {}) {
+function confirm$1(options = {}) {
   return new Promise((resolve) => {
-    const { title = 'Confirm', confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = options;
+    const { title = 'Confirm', message = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false, onConfirm = null } = options;
     
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -40860,15 +40874,17 @@ function confirm$1(message, options = {}) {
     };
     
     modal.querySelector('#modal-cancel').onclick = () => close(false);
-    modal.querySelector('#modal-confirm').onclick = () => close(true);
+    modal.querySelector('#modal-confirm').onclick = async () => {
+      if (onConfirm) {
+        await onConfirm();
+      }
+      close(true);
+    };
     modal.querySelector('.modal-backdrop').onclick = () => close(false);
     
     const handleKey = (e) => {
       if (e.key === 'Escape') {
         close(false);
-        document.removeEventListener('keydown', handleKey);
-      } else if (e.key === 'Enter') {
-        close(true);
         document.removeEventListener('keydown', handleKey);
       }
     };
@@ -40931,6 +40947,63 @@ function prompt$1(message, options = {}) {
   });
 }
 
+function show(options = {}) {
+  return new Promise((resolve) => {
+    const { 
+      title = 'Modal', 
+      content = '', 
+      confirmText = 'Confirm', 
+      cancelText = 'Cancel',
+      danger = false,
+      onConfirm = null 
+    } = options;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>${escapeHtml$1(title)}</h3>
+        </div>
+        <div class="modal-body">
+          ${content}
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
+          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="modal-confirm">${confirmText}</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('active'));
+    
+    const close = (result) => {
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 150);
+      resolve(result);
+    };
+    
+    modal.querySelector('#modal-cancel').onclick = () => close(false);
+    modal.querySelector('#modal-confirm').onclick = async () => {
+      if (onConfirm) {
+        await onConfirm();
+      }
+      close(true);
+    };
+    modal.querySelector('.modal-backdrop').onclick = () => close(false);
+    
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        close(false);
+        document.removeEventListener('keydown', handleKey);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+  });
+}
+
 function alert$1(message, options = {}) {
   return new Promise((resolve) => {
     const { title = 'Alert', confirmText = 'OK' } = options;
@@ -40977,7 +41050,7 @@ function alert$1(message, options = {}) {
 }
 
 let currentPath = '/';
-let currentServerId$5 = null;
+let currentServerId$6 = null;
 let progressSocket = null;
 let activeProgressIndicators = new Map();
 let isEditing = false;
@@ -41101,7 +41174,7 @@ function showCompressIndicator() {
       el.remove();
       if (success$1) {
         success('Compressed successfully');
-        loadFiles(currentServerId$5, currentPath);
+        loadFiles(currentServerId$6, currentPath);
       } else {
         error(error$1 || 'Failed to compress');
       }
@@ -41143,7 +41216,7 @@ function showDecompressIndicator(filename) {
       el.remove();
       if (success$1) {
         success('Extracted successfully');
-        loadFiles(currentServerId$5, currentPath);
+        loadFiles(currentServerId$6, currentPath);
       } else {
         error(error$1 || 'Failed to extract');
       }
@@ -41284,7 +41357,7 @@ function renderFilesTab() {
 
 function initFilesTab(serverId) {
   currentPath = '/';
-  currentServerId$5 = serverId;
+  currentServerId$6 = serverId;
   isEditing = false;
   editingPath = null;
   selectedFiles.clear();
@@ -42139,7 +42212,7 @@ function cleanupFilesTab() {
   }
 }
 
-let currentServerId$4 = null;
+let currentServerId$5 = null;
 let serverData$2 = null;
 let eggData = null;
 
@@ -42313,7 +42386,7 @@ function renderStartupTab() {
 }
 
 async function initStartupTab(serverId) {
-  currentServerId$4 = serverId;
+  currentServerId$5 = serverId;
   await loadStartupData(serverId);
 }
 
@@ -42541,7 +42614,7 @@ async function saveStartup() {
   saveBtn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> Saving...';
   
   try {
-    const res = await api(`/api/servers/${currentServerId$4}/startup`, {
+    const res = await api(`/api/servers/${currentServerId$5}/startup`, {
       method: 'PUT',
       
       body: JSON.stringify({
@@ -42596,12 +42669,12 @@ async function resetToDefaults() {
 }
 
 function cleanupStartupTab() {
-  currentServerId$4 = null;
+  currentServerId$5 = null;
   serverData$2 = null;
   eggData = null;
 }
 
-let currentServerId$3 = null;
+let currentServerId$4 = null;
 let allocations = [];
 
 function renderNetworkTab() {
@@ -42622,7 +42695,7 @@ function renderNetworkTab() {
 }
 
 async function initNetworkTab(serverId) {
-  currentServerId$3 = serverId;
+  currentServerId$4 = serverId;
   await loadAllocations();
   
   document.getElementById('btn-add-allocation').onclick = addAllocation;
@@ -42633,7 +42706,7 @@ async function loadAllocations() {
   const list = document.getElementById('allocations-list');
   
   try {
-    const res = await api(`/api/servers/${currentServerId$3}/allocations`);
+    const res = await api(`/api/servers/${currentServerId$4}/allocations`);
     const data = await res.json();
     
     if (data.error) {
@@ -42697,7 +42770,7 @@ async function addAllocation() {
   btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
   
   try {
-    const res = await api(`/api/servers/${currentServerId$3}/allocations`, {
+    const res = await api(`/api/servers/${currentServerId$4}/allocations`, {
       method: 'POST',
       
       body: JSON.stringify({})
@@ -42723,7 +42796,7 @@ async function setAllocationPrimary(allocId) {
   const username = localStorage.getItem('username');
   
   try {
-    const res = await api(`/api/servers/${currentServerId$3}/allocations/${allocId}/primary`, {
+    const res = await api(`/api/servers/${currentServerId$4}/allocations/${allocId}/primary`, {
       method: 'PUT',
       
       body: JSON.stringify({})
@@ -42747,7 +42820,7 @@ async function deleteAllocation(allocId) {
   const username = localStorage.getItem('username');
   
   try {
-    const res = await api(`/api/servers/${currentServerId$3}/allocations/${allocId}`, {
+    const res = await api(`/api/servers/${currentServerId$4}/allocations/${allocId}`, {
       method: 'DELETE',
       
       body: JSON.stringify({})
@@ -42766,7 +42839,7 @@ async function deleteAllocation(allocId) {
 }
 
 function cleanupNetworkTab() {
-  currentServerId$3 = null;
+  currentServerId$4 = null;
   allocations = [];
 }
 
@@ -42821,7 +42894,7 @@ function hasAnyPermission(permissions, perms) {
   return perms.some(p => hasPermission(permissions, p));
 }
 
-let currentServerId$2 = null;
+let currentServerId$3 = null;
 let subusers = [];
 
 function renderUsersTab() {
@@ -42871,7 +42944,7 @@ function renderUsersTab() {
 }
 
 async function initUsersTab(serverId) {
-  currentServerId$2 = serverId;
+  currentServerId$3 = serverId;
   await loadSubusers();
   
   document.getElementById('btn-add-subuser').onclick = () => openModal();
@@ -42887,7 +42960,7 @@ async function loadSubusers() {
   const list = document.getElementById('subusers-list');
   
   try {
-    const res = await api(`/api/servers/${currentServerId$2}/subusers`);
+    const res = await api(`/api/servers/${currentServerId$3}/subusers`);
     const data = await res.json();
     
     if (data.error) {
@@ -43039,7 +43112,7 @@ async function saveSubuser(editId) {
   
   try {
     if (editId) {
-      const res = await api(`/api/servers/${currentServerId$2}/subusers/${editId}`, {
+      const res = await api(`/api/servers/${currentServerId$3}/subusers/${editId}`, {
         method: 'PUT',
         
         body: JSON.stringify({ permissions })
@@ -43050,7 +43123,7 @@ async function saveSubuser(editId) {
       const targetUsername = document.getElementById('subuser-username').value.trim();
       if (!targetUsername) throw new Error('Username required');
       
-      const res = await api(`/api/servers/${currentServerId$2}/subusers`, {
+      const res = await api(`/api/servers/${currentServerId$3}/subusers`, {
         method: 'POST',
         
         body: JSON.stringify({ target_username: targetUsername, permissions })
@@ -43076,7 +43149,7 @@ async function deleteSubuser(id) {
   const username = localStorage.getItem('username');
   
   try {
-    const res = await api(`/api/servers/${currentServerId$2}/subusers/${id}`, {
+    const res = await api(`/api/servers/${currentServerId$3}/subusers/${id}`, {
       method: 'DELETE',
       
       body: JSON.stringify({})
@@ -43095,11 +43168,11 @@ async function deleteSubuser(id) {
 }
 
 function cleanupUsersTab() {
-  currentServerId$2 = null;
+  currentServerId$3 = null;
   subusers = [];
 }
 
-let currentServerId$1 = null;
+let currentServerId$2 = null;
 let serverData$1 = null;
 
 function renderSettingsTab() {
@@ -43150,7 +43223,7 @@ function renderSettingsTab() {
 }
 
 async function initSettingsTab(serverId) {
-  currentServerId$1 = serverId;
+  currentServerId$2 = serverId;
   
   // Attach event listeners immediately (buttons exist from renderSettingsTab)
   const reinstallBtn = document.getElementById('btn-reinstall');
@@ -43269,7 +43342,7 @@ async function saveDetails() {
   saveBtn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> Saving...';
   
   try {
-    const res = await api(`/api/servers/${currentServerId$1}/details`, {
+    const res = await api(`/api/servers/${currentServerId$2}/details`, {
       method: 'PUT',
       
       body: JSON.stringify({ name, description })
@@ -43368,7 +43441,7 @@ function confirmReinstall() {
 
 async function reinstallServer() {
   try {
-    const res = await api(`/api/servers/${currentServerId$1}/reinstall`, {
+    const res = await api(`/api/servers/${currentServerId$2}/reinstall`, {
       method: 'POST',
       
       body: JSON.stringify({})
@@ -43442,7 +43515,7 @@ function confirmDelete() {
 
 async function deleteServer() {
   try {
-    const res = await api(`/api/servers/${currentServerId$1}`, {
+    const res = await api(`/api/servers/${currentServerId$2}`, {
       method: 'DELETE',
       
       body: JSON.stringify({})
@@ -43475,8 +43548,269 @@ function formatDate$1(dateStr) {
 }
 
 function cleanupSettingsTab() {
-  currentServerId$1 = null;
+  currentServerId$2 = null;
   serverData$1 = null;
+}
+
+let currentServerId$1 = null;
+
+function renderBackupsTab() {
+  return `
+    <div class="backups-tab">
+      <div class="card">
+        <div class="card-header">
+          <h3>Backups</h3>
+          <button class="btn btn-primary btn-sm" id="btn-create-backup">
+            <span class="material-icons-outlined">add</span>
+            Create Backup
+          </button>
+        </div>
+        <div class="backups-list" id="backups-list">
+          <div class="loading">Loading backups...</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function initBackupsTab(serverId) {
+  currentServerId$1 = serverId;
+  
+  document.getElementById('btn-create-backup').onclick = () => createBackup(serverId);
+  
+  await loadBackups(serverId);
+}
+
+async function loadBackups(serverId) {
+  const container = document.getElementById('backups-list');
+  
+  try {
+    const res = await api(`/api/servers/${serverId}/backups`);
+    const data = await res.json();
+    
+    if (!res.ok) {
+      container.innerHTML = `<div class="error">${data.error || 'Failed to load backups'}</div>`;
+      return;
+    }
+    
+    const backups = data.backups || [];
+    
+    if (backups.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">cloud_off</span>
+          <p>No backups yet</p>
+          <p class="hint">Create a backup to save your server files</p>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = backups.map(backup => `
+      <div class="backup-item ${backup.is_successful ? '' : 'pending'}" data-id="${backup.id}">
+        <div class="backup-icon">
+          <span class="material-icons-outlined">
+            ${backup.is_successful ? 'cloud_done' : 'cloud_sync'}
+          </span>
+        </div>
+        <div class="backup-info">
+          <div class="backup-name">
+            ${backup.name}
+            ${backup.is_locked ? '<span class="material-icons-outlined locked-icon">lock</span>' : ''}
+          </div>
+          <div class="backup-meta">
+            ${backup.is_successful ? formatBytes(backup.bytes || 0) : 'In progress...'}
+            <span class="separator">•</span>
+            ${formatDate$3(backup.created_at)}
+          </div>
+        </div>
+        <div class="backup-actions">
+          ${backup.is_successful ? `
+            <button class="btn btn-xs btn-ghost" title="Download" data-action="download">
+              <span class="material-icons-outlined">download</span>
+            </button>
+            <button class="btn btn-xs btn-ghost" title="Restore" data-action="restore">
+              <span class="material-icons-outlined">restore</span>
+            </button>
+          ` : ''}
+          <button class="btn btn-xs btn-ghost" title="${backup.is_locked ? 'Unlock' : 'Lock'}" data-action="lock">
+            <span class="material-icons-outlined">${backup.is_locked ? 'lock_open' : 'lock'}</span>
+          </button>
+          <button class="btn btn-xs btn-ghost btn-danger" title="Delete" data-action="delete" ${backup.is_locked ? 'disabled' : ''}>
+            <span class="material-icons-outlined">delete</span>
+          </button>
+        </div>
+      </div>
+    `).join('');
+    
+    // Attach event listeners
+    container.querySelectorAll('.backup-item').forEach(item => {
+      const backupId = item.dataset.id;
+      
+      item.querySelector('[data-action="download"]')?.addEventListener('click', () => {
+        downloadBackup(serverId, backupId);
+      });
+      
+      item.querySelector('[data-action="restore"]')?.addEventListener('click', () => {
+        restoreBackup(serverId, backupId);
+      });
+      
+      item.querySelector('[data-action="lock"]')?.addEventListener('click', () => {
+        toggleLock(serverId, backupId);
+      });
+      
+      item.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
+        deleteBackup(serverId, backupId);
+      });
+    });
+    
+  } catch (e) {
+    console.error('Failed to load backups:', e);
+    container.innerHTML = `<div class="error">Failed to load backups</div>`;
+  }
+}
+
+async function createBackup(serverId) {
+  const content = `
+    <div class="form-group">
+      <label>Backup Name (optional)</label>
+      <input type="text" id="backup-name" placeholder="My Backup" />
+    </div>
+    <div class="form-group">
+      <label>Ignored Files (optional)</label>
+      <textarea id="backup-ignored" placeholder="*.log&#10;cache/*" rows="3"></textarea>
+      <p class="hint">One pattern per line. These files will be excluded from the backup.</p>
+    </div>
+  `;
+  
+  show({
+    title: 'Create Backup',
+    content,
+    confirmText: 'Create',
+    onConfirm: async () => {
+      const name = document.getElementById('backup-name').value.trim();
+      const ignoredText = document.getElementById('backup-ignored').value.trim();
+      const ignored = ignoredText ? ignoredText.split('\n').map(s => s.trim()).filter(Boolean) : [];
+      
+      try {
+        const res = await api(`/api/servers/${serverId}/backups`, {
+          method: 'POST',
+          body: JSON.stringify({ name, ignored })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          error(data.error || 'Failed to create backup');
+          return;
+        }
+        
+        success('Backup started');
+        loadBackups(serverId);
+      } catch (e) {
+        error('Failed to create backup');
+      }
+    }
+  });
+}
+
+async function downloadBackup(serverId, backupId) {
+  try {
+    const res = await api(`/api/servers/${serverId}/backups/${backupId}/download`);
+    const data = await res.json();
+    
+    if (!res.ok) {
+      error(data.error || 'Failed to get download URL');
+      return;
+    }
+    
+    if (data.url) {
+      window.open(data.url, '_blank');
+    } else {
+      error('Download URL not available');
+    }
+  } catch (e) {
+    error('Failed to download backup');
+  }
+}
+
+async function restoreBackup(serverId, backupId) {
+  confirm$1({
+    title: 'Restore Backup',
+    message: 'Are you sure you want to restore this backup? This will overwrite current server files.',
+    confirmText: 'Restore',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        const res = await api(`/api/servers/${serverId}/backups/${backupId}/restore`, {
+          method: 'POST'
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          error(data.error || 'Failed to restore backup');
+          return;
+        }
+        
+        success('Backup restore started');
+      } catch (e) {
+        error('Failed to restore backup');
+      }
+    }
+  });
+}
+
+async function toggleLock(serverId, backupId) {
+  try {
+    const res = await api(`/api/servers/${serverId}/backups/${backupId}/lock`, {
+      method: 'POST'
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok) {
+      error(data.error || 'Failed to toggle lock');
+      return;
+    }
+    
+    success(data.is_locked ? 'Backup locked' : 'Backup unlocked');
+    loadBackups(serverId);
+  } catch (e) {
+    error('Failed to toggle lock');
+  }
+}
+
+async function deleteBackup(serverId, backupId) {
+  confirm$1({
+    title: 'Delete Backup',
+    message: 'Are you sure you want to delete this backup? This action cannot be undone.',
+    confirmText: 'Delete',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        const res = await api(`/api/servers/${serverId}/backups/${backupId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          error(data.error || 'Failed to delete backup');
+          return;
+        }
+        
+        success('Backup deleted');
+        loadBackups(serverId);
+      } catch (e) {
+        error('Failed to delete backup');
+      }
+    }
+  });
+}
+
+function cleanupBackupsTab() {
+  currentServerId$1 = null;
 }
 
 let currentServerId = null;
@@ -43495,6 +43829,7 @@ const sparkHistory = {
 const tabs = [
   { id: 'console', label: 'Console', icon: 'terminal' },
   { id: 'files', label: 'Files', icon: 'folder' },
+  { id: 'backups', label: 'Backups', icon: 'cloud' },
   { id: 'startup', label: 'Startup', icon: 'play_circle' },
   { id: 'network', label: 'Network', icon: 'lan' },
   { id: 'users', label: 'Users', icon: 'group' },
@@ -43692,6 +44027,10 @@ function switchTab(tabId) {
       content.innerHTML = renderFilesTab();
       initFilesTab(currentServerId);
       break;
+    case 'backups':
+      content.innerHTML = renderBackupsTab();
+      initBackupsTab(currentServerId);
+      break;
     case 'startup':
       content.innerHTML = renderStartupTab();
       initStartupTab(currentServerId);
@@ -43720,6 +44059,9 @@ function cleanupCurrentTab() {
       break;
     case 'files':
       cleanupFilesTab();
+      break;
+    case 'backups':
+      cleanupBackupsTab();
       break;
     case 'startup':
       cleanupStartupTab();

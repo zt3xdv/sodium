@@ -6,6 +6,7 @@ import { renderStartupTab, initStartupTab, cleanupStartupTab } from './startup.j
 import { renderNetworkTab, initNetworkTab, cleanupNetworkTab } from './network.js';
 import { renderUsersTab, initUsersTab, cleanupUsersTab } from './users.js';
 import { renderSettingsTab, initSettingsTab, cleanupSettingsTab } from './settings.js';
+import { renderBackupsTab, initBackupsTab, cleanupBackupsTab } from './backups.js';
 
 let currentServerId = null;
 let serverLimits = null;
@@ -23,6 +24,7 @@ const sparkHistory = {
 const tabs = [
   { id: 'console', label: 'Console', icon: 'terminal' },
   { id: 'files', label: 'Files', icon: 'folder' },
+  { id: 'backups', label: 'Backups', icon: 'cloud' },
   { id: 'startup', label: 'Startup', icon: 'play_circle' },
   { id: 'network', label: 'Network', icon: 'lan' },
   { id: 'users', label: 'Users', icon: 'group' },
@@ -220,6 +222,10 @@ function switchTab(tabId) {
       content.innerHTML = renderFilesTab();
       initFilesTab(currentServerId);
       break;
+    case 'backups':
+      content.innerHTML = renderBackupsTab();
+      initBackupsTab(currentServerId);
+      break;
     case 'startup':
       content.innerHTML = renderStartupTab();
       initStartupTab(currentServerId);
@@ -248,6 +254,9 @@ function cleanupCurrentTab() {
       break;
     case 'files':
       cleanupFilesTab();
+      break;
+    case 'backups':
+      cleanupBackupsTab();
       break;
     case 'startup':
       cleanupStartupTab();

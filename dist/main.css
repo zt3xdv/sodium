@@ -4564,6 +4564,137 @@ input, textarea, select {
   accent-color: var(--accent);
 }
 
+.backups-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.backups-tab .card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 350px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+.backups-tab .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.backups-tab .card-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.backups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  overflow-y: auto;
+}
+.backups-list .loading, .backups-list .error {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+.backups-list .error {
+  color: var(--danger);
+}
+.backups-list .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  flex: 1;
+}
+.backups-list .empty-state .material-icons-outlined {
+  font-size: 48px;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
+}
+.backups-list .empty-state p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+.backups-list .empty-state p.hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+.backup-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+.backup-item.pending {
+  opacity: 0.7;
+}
+.backup-item.pending .backup-icon .material-icons-outlined {
+  animation: spin 2s linear infinite;
+}
+.backup-item .backup-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--accent-muted);
+  border-radius: var(--radius-sm);
+}
+.backup-item .backup-icon .material-icons-outlined {
+  font-size: 20px;
+  color: var(--accent);
+}
+.backup-item .backup-info {
+  flex: 1;
+  min-width: 0;
+}
+.backup-item .backup-info .backup-name {
+  font-weight: 500;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.backup-item .backup-info .backup-name .locked-icon {
+  font-size: 14px;
+  color: var(--warning);
+}
+.backup-item .backup-info .backup-meta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+.backup-item .backup-info .backup-meta .separator {
+  margin: 0 4px;
+}
+.backup-item .backup-actions {
+  display: flex;
+  gap: 3px;
+}
+.backup-item .backup-actions .btn-danger:hover {
+  color: var(--danger);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 .status-page {
   max-width: 1000px;
   margin: 0 auto;

@@ -1,8 +1,8 @@
 import { escapeHtml } from './security.js';
 
-export function confirm(message, options = {}) {
+export function confirm(options = {}) {
   return new Promise((resolve) => {
-    const { title = 'Confirm', confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = options;
+    const { title = 'Confirm', message = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false, onConfirm = null } = options;
     
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -32,15 +32,17 @@ export function confirm(message, options = {}) {
     };
     
     modal.querySelector('#modal-cancel').onclick = () => close(false);
-    modal.querySelector('#modal-confirm').onclick = () => close(true);
+    modal.querySelector('#modal-confirm').onclick = async () => {
+      if (onConfirm) {
+        await onConfirm();
+      }
+      close(true);
+    };
     modal.querySelector('.modal-backdrop').onclick = () => close(false);
     
     const handleKey = (e) => {
       if (e.key === 'Escape') {
         close(false);
-        document.removeEventListener('keydown', handleKey);
-      } else if (e.key === 'Enter') {
-        close(true);
         document.removeEventListener('keydown', handleKey);
       }
     };
@@ -100,6 +102,63 @@ export function prompt(message, options = {}) {
         close(null);
       }
     });
+  });
+}
+
+export function show(options = {}) {
+  return new Promise((resolve) => {
+    const { 
+      title = 'Modal', 
+      content = '', 
+      confirmText = 'Confirm', 
+      cancelText = 'Cancel',
+      danger = false,
+      onConfirm = null 
+    } = options;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>${escapeHtml(title)}</h3>
+        </div>
+        <div class="modal-body">
+          ${content}
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
+          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="modal-confirm">${confirmText}</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('active'));
+    
+    const close = (result) => {
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 150);
+      resolve(result);
+    };
+    
+    modal.querySelector('#modal-cancel').onclick = () => close(false);
+    modal.querySelector('#modal-confirm').onclick = async () => {
+      if (onConfirm) {
+        await onConfirm();
+      }
+      close(true);
+    };
+    modal.querySelector('.modal-backdrop').onclick = () => close(false);
+    
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        close(false);
+        document.removeEventListener('keydown', handleKey);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
   });
 }
 
