@@ -26,7 +26,7 @@
 | **Easy Setup** | Single command install | Complex configuration |
 | **No .env files** | JSON config, setup wizard | Manual environment setup |
 | **Flexible Database** | File, SQLite, MySQL, PostgreSQL | Usually MySQL only |
-| **Modern Stack** | Node.js, TypeScript | PHP, older tech |
+| **Modern Stack** | Node.js | PHP, older tech |
 
 ## Quick Start
 
