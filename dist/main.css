@@ -3163,6 +3163,121 @@ input, textarea, select {
   font-size: 12px;
 }
 
+.nodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .nodes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.node-select-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: var(--bg-tertiary);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.node-select-card:hover:not(.insufficient) {
+  border-color: var(--accent);
+}
+.node-select-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+.node-select-card.selected .node-select-check {
+  opacity: 1;
+  color: var(--accent);
+}
+.node-select-card.insufficient {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.node-select-card.insufficient .node-select-icon .material-icons-outlined {
+  color: var(--danger);
+}
+.node-select-card .node-select-icon {
+  width: 42px;
+  height: 42px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.node-select-card .node-select-icon .material-icons-outlined {
+  font-size: 22px;
+  color: var(--accent);
+}
+.node-select-card .node-select-info {
+  flex: 1;
+  min-width: 0;
+}
+.node-select-card .node-select-info h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.node-select-card .node-resources {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.node-select-card .node-resource {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.node-select-card .node-resource .resource-label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+.node-select-card .node-resource .resource-bar {
+  height: 4px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.node-select-card .node-resource .resource-bar .resource-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+.node-select-card .node-resource .resource-values {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.node-select-card .node-resource.exceeded .resource-bar .resource-fill {
+  background: var(--danger);
+}
+.node-select-card .node-resource.exceeded .resource-values {
+  color: var(--danger);
+}
+.node-select-card .node-select-check {
+  font-size: 20px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.empty-nodes {
+  grid-column: 1/-1;
+  padding: 28px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
 .spinning {
   animation: spin 0.8s linear infinite;
 }

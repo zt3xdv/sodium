@@ -1,0 +1,373 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Script avanzado de prueba en Amber - Sodium Panel
+// Demuestra: funciones, loops, condiciones, arrays, manejo de errores, etc.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { join, split, trim, replace } from "std/text"
+import { sum, len } from "std/array"
+import { file_exist, dir_exist, create_dir } from "std/fs"
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTES Y CONFIGURACIÓN
+// ─────────────────────────────────────────────────────────────────────────────
+const VERSION = "1.0.0"
+const APP_NAME = "Sodium Panel Test Suite"
+const SEPARATOR = "════════════════════════════════════════"
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FUNCIONES MATEMÁTICAS
+// ─────────────────────────────────────────────────────────────────────────────
+
+pub fun factorial(n: Num): Num {
+    if n <= 1: return 1
+    return n * factorial(n - 1)
+}
+
+pub fun fibonacci(n: Num): Num {
+    if n <= 0: return 0
+    if n == 1: return 1
+    
+    let a = 0
+    let b = 1
+    let i = 2
+    
+    while i <= n {
+        let temp = a + b
+        a = b
+        b = temp
+        i += 1
+    }
+    
+    return b
+}
+
+pub fun is_prime(n: Num): Bool {
+    if n < 2: return false
+    if n == 2: return true
+    if n % 2 == 0: return false
+    
+    let i = 3
+    while i * i <= n {
+        if n % i == 0: return false
+        i += 2
+    }
+    return true
+}
+
+pub fun gcd(a: Num, b: Num): Num {
+    while b != 0 {
+        let temp = b
+        b = a % b
+        a = temp
+    }
+    return a
+}
+
+pub fun lcm(a: Num, b: Num): Num {
+    return (a * b) / gcd(a, b)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FUNCIONES DE ARRAYS
+// ─────────────────────────────────────────────────────────────────────────────
+
+pub fun bubble_sort(ref arr: [Num]) {
+    let n = len(arr)
+    let i = 0
+    
+    while i < n - 1 {
+        let j = 0
+        while j < n - i - 1 {
+            if arr[j] > arr[j + 1] {
+                let temp = arr[j]
+                arr[j] = arr[j + 1]
+                arr[j + 1] = temp
+            }
+            j += 1
+        }
+        i += 1
+    }
+}
+
+pub fun find_max(arr: [Num]): Num {
+    let max = arr[0]
+    for val in arr {
+        if val > max: max = val
+    }
+    return max
+}
+
+pub fun find_min(arr: [Num]): Num {
+    let min = arr[0]
+    for val in arr {
+        if val < min: min = val
+    }
+    return min
+}
+
+pub fun array_average(arr: [Num]): Num {
+    return sum(arr) / len(arr)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FUNCIONES DE TEXTO
+// ─────────────────────────────────────────────────────────────────────────────
+
+pub fun reverse_text(text: Text): Text {
+    let result = ""
+    let chars = split(text, "")
+    let i = len(chars) - 1
+    
+    while i >= 0 {
+        result += chars[i]
+        i -= 1
+    }
+    return result
+}
+
+pub fun count_vowels(text: Text): Num {
+    let vowels = ["a", "e", "i", "o", "u", "A", "E", "I", "O", "U"]
+    let chars = split(text, "")
+    let count = 0
+    
+    for char in chars {
+        for vowel in vowels {
+            if char == vowel {
+                count += 1
+                break
+            }
+        }
+    }
+    return count
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FUNCIONES FAILABLE (con manejo de errores)
+// ─────────────────────────────────────────────────────────────────────────────
+
+pub fun safe_divide(a: Num, b: Num): Num? {
+    if b == 0: fail 1
+    return a / b
+}
+
+pub fun get_element(arr: [Text], index: Num): Text? {
+    if index < 0: fail 1
+    if index >= len(arr): fail 2
+    return arr[index]
+}
+
+pub fun check_system_command(cmd: Text): Bool? {
+    $which {cmd}$ failed {
+        fail 1
+    }
+    return true
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FUNCIONES DE DISPLAY
+// ─────────────────────────────────────────────────────────────────────────────
+
+fun print_header(title: Text) {
+    echo("")
+    echo(SEPARATOR)
+    echo("  {title}")
+    echo(SEPARATOR)
+}
+
+fun print_result(label: Text, value: Text) {
+    echo("  ▸ {label}: {value}")
+}
+
+fun print_success(msg: Text) {
+    echo("  ✅ {msg}")
+}
+
+fun print_error(msg: Text) {
+    echo("  ❌ {msg}")
+}
+
+fun print_info(msg: Text) {
+    echo("  ℹ️  {msg}")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TESTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+fun test_math() {
+    print_header("TEST: Funciones Matemáticas")
+    
+    // Factorial
+    let fact5 = factorial(5)
+    print_result("factorial(5)", "{fact5}")
+    
+    // Fibonacci
+    print_info("Secuencia Fibonacci (primeros 10):")
+    let fib_seq = ""
+    for i in 0..10 {
+        let f = fibonacci(i)
+        fib_seq += "{f} "
+    }
+    echo("    {fib_seq}")
+    
+    // Números primos
+    print_info("Números primos hasta 30:")
+    let primes = ""
+    for n in 2..31 {
+        if is_prime(n) {
+            primes += "{n} "
+        }
+    }
+    echo("    {primes}")
+    
+    // GCD y LCM
+    let g = gcd(48, 18)
+    let l = lcm(48, 18)
+    print_result("gcd(48, 18)", "{g}")
+    print_result("lcm(48, 18)", "{l}")
+}
+
+fun test_arrays() {
+    print_header("TEST: Operaciones con Arrays")
+    
+    let numbers = [64, 34, 25, 12, 22, 11, 90]
+    print_info("Array original: {join(numbers, \", \")}")
+    
+    // Estadísticas
+    let max_val = find_max(numbers)
+    let min_val = find_min(numbers)
+    let avg_val = array_average(numbers)
+    let sum_val = sum(numbers)
+    
+    print_result("Máximo", "{max_val}")
+    print_result("Mínimo", "{min_val}")
+    print_result("Promedio", "{avg_val}")
+    print_result("Suma total", "{sum_val}")
+    
+    // Ordenamiento
+    bubble_sort(numbers)
+    print_info("Array ordenado: {join(numbers, \", \")}")
+}
+
+fun test_text() {
+    print_header("TEST: Manipulación de Texto")
+    
+    const sample = "Sodium Panel"
+    print_result("Texto original", sample)
+    
+    let reversed = reverse_text(sample)
+    print_result("Texto invertido", reversed)
+    
+    let vowel_count = count_vowels(sample)
+    print_result("Cantidad de vocales", "{vowel_count}")
+    
+    let replaced = replace(sample, "Panel", "Framework")
+    print_result("Reemplazo", replaced)
+}
+
+fun test_error_handling() {
+    print_header("TEST: Manejo de Errores")
+    
+    // División segura - caso exitoso
+    let div_result = safe_divide(10, 2) failed {
+        print_error("División falló")
+    }
+    if status == 0 {
+        print_success("10 / 2 = {div_result}")
+    }
+    
+    // División segura - caso fallido
+    safe_divide(10, 0) failed {
+        print_error("División por cero detectada (esperado)")
+    }
+    
+    // Acceso a array seguro
+    let fruits = ["manzana", "naranja", "plátano"]
+    
+    let fruit = get_element(fruits, 1) failed {
+        print_error("Índice fuera de rango")
+    }
+    if status == 0 {
+        print_success("Elemento en índice 1: {fruit}")
+    }
+    
+    get_element(fruits, 10) failed (code) {
+        print_error("Acceso a índice 10 falló con código {code} (esperado)")
+    }
+}
+
+fun test_system() {
+    print_header("TEST: Comandos del Sistema")
+    
+    let commands = ["bash", "ls", "cat", "echo", "nonexistent_cmd_xyz"]
+    
+    for cmd in commands {
+        check_system_command(cmd) failed {
+            print_error("'{cmd}' no encontrado")
+            continue
+        }
+        print_success("'{cmd}' disponible")
+    }
+}
+
+fun test_loops() {
+    print_header("TEST: Estructuras de Control")
+    
+    // For con índice
+    print_info("Loop con índice:")
+    let items = ["Alpha", "Beta", "Gamma", "Delta"]
+    for idx, item in items {
+        echo("    [{idx}] {item}")
+    }
+    
+    // While con condición
+    print_info("Potencias de 2 hasta 256:")
+    let power = ""
+    let p = 1
+    while p <= 256 {
+        power += "{p} "
+        p *= 2
+    }
+    echo("    {power}")
+    
+    // If chain
+    print_info("Clasificación de números:")
+    let test_nums = [-5, 0, 7, 100]
+    for n in test_nums {
+        let classification = ""
+        if {
+            n < 0 { classification = "negativo" }
+            n == 0 { classification = "cero" }
+            n < 10 { classification = "pequeño" }
+            n < 50 { classification = "mediano" }
+            else { classification = "grande" }
+        }
+        echo("    {n} → {classification}")
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUNTO DE ENTRADA PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+main {
+    echo("")
+    echo("╔══════════════════════════════════════════════════════════════════╗")
+    echo("║           {APP_NAME} v{VERSION}                ║")
+    echo("║     Script avanzado de demostración en Amber                    ║")
+    echo("╚══════════════════════════════════════════════════════════════════╝")
+    
+    // Ejecutar todos los tests
+    test_math()
+    test_arrays()
+    test_text()
+    test_error_handling()
+    test_system()
+    test_loops()
+    
+    echo("")
+    echo(SEPARATOR)
+    echo("  🎉 Todos los tests completados!")
+    echo(SEPARATOR)
+    echo("")
+}

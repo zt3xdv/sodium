@@ -3089,6 +3089,7 @@ let nestsData = null;
 let limitsData = null;
 let nodesData = null;
 let selectedNode = null;
+let currentResources = { memory: 512, disk: 1024 };
 
 async function renderCreateServer() {
   const app = document.getElementById('app');
@@ -3163,6 +3164,7 @@ async function renderCreateServer() {
     
     selectedNest = nestsData.nests[0];
     selectedEgg = selectedNest.eggs[0];
+    selectedNode = nodesData.nodes[0];
     
     renderCreateForm(remaining);
     
@@ -3218,10 +3220,10 @@ function renderCreateForm(remaining) {
             
             <div class="form-group">
               <label>Node</label>
-              <select name="node_id" id="node-select" required>
-                ${nodesData.nodes.map(n => `<option value="${n.id}">${escapeHtml$1(n.name)} - ${n.available_memory}MB RAM available</option>`).join('')}
-              </select>
-              <span class="resource-hint">The server will be created on this node</span>
+              <input type="hidden" name="node_id" id="node-id-input" value="${nodesData.nodes[0]?.id || ''}" />
+              <div class="nodes-grid" id="nodes-grid">
+                ${renderNodesGrid(512, 1024)}
+              </div>
             </div>
             
             <div class="form-section">
@@ -3376,6 +3378,60 @@ function renderEggPreview(egg) {
   `;
 }
 
+function renderNodesGrid(requestedMemory, requestedDisk) {
+  if (!nodesData?.nodes || nodesData.nodes.length === 0) {
+    return '<div class="empty-nodes">No nodes available</div>';
+  }
+  
+  return nodesData.nodes.map(node => {
+    const hasEnoughMemory = node.available_memory >= requestedMemory;
+    const hasEnoughDisk = node.available_disk >= requestedDisk;
+    const canFit = hasEnoughMemory && hasEnoughDisk;
+    const isSelected = node.id === selectedNode?.id;
+    
+    const memoryPercent = Math.min(100, Math.round((requestedMemory / node.available_memory) * 100));
+    const diskPercent = Math.min(100, Math.round((requestedDisk / node.available_disk) * 100));
+    
+    return `
+      <div class="node-select-card ${isSelected ? 'selected' : ''} ${!canFit ? 'insufficient' : ''}" 
+           data-node-id="${node.id}" 
+           ${!canFit ? 'title="Insufficient resources"' : ''}>
+        <div class="node-select-icon">
+          <span class="material-icons-outlined">${canFit ? 'dns' : 'block'}</span>
+        </div>
+        <div class="node-select-info">
+          <h4>${escapeHtml$1(node.name)}</h4>
+          <div class="node-resources">
+            <div class="node-resource ${!hasEnoughMemory ? 'exceeded' : ''}">
+              <span class="resource-label">RAM</span>
+              <div class="resource-bar">
+                <div class="resource-fill" style="width: ${memoryPercent}%"></div>
+              </div>
+              <span class="resource-values">${requestedMemory} / ${node.available_memory} MB</span>
+            </div>
+            <div class="node-resource ${!hasEnoughDisk ? 'exceeded' : ''}">
+              <span class="resource-label">Disk</span>
+              <div class="resource-bar">
+                <div class="resource-fill" style="width: ${diskPercent}%"></div>
+              </div>
+              <span class="resource-values">${requestedDisk} / ${node.available_disk} MB</span>
+            </div>
+          </div>
+        </div>
+        <span class="node-select-check material-icons-outlined">check_circle</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateNodesGrid() {
+  const nodesGrid = document.getElementById('nodes-grid');
+  if (nodesGrid) {
+    nodesGrid.innerHTML = renderNodesGrid(currentResources.memory, currentResources.disk);
+    setupNodeCardListeners();
+  }
+}
+
 function setupEventListeners(remaining) {
   // Nest tabs
   document.querySelectorAll('.nest-tab').forEach(tab => {
@@ -3397,12 +3453,45 @@ function setupEventListeners(remaining) {
   });
   
   setupEggCardListeners();
+  setupNodeCardListeners();
+  
+  // Resource input listeners to update nodes grid
+  const memoryInput = document.querySelector('input[name="memory"]');
+  const diskInput = document.querySelector('input[name="disk"]');
+  
+  if (memoryInput) {
+    memoryInput.addEventListener('input', () => {
+      currentResources.memory = parseInt(memoryInput.value) || 0;
+      updateNodesGrid();
+    });
+  }
+  
+  if (diskInput) {
+    diskInput.addEventListener('input', () => {
+      currentResources.disk = parseInt(diskInput.value) || 0;
+      updateNodesGrid();
+    });
+  }
   
   // Form submit
   document.getElementById('create-server-form').onsubmit = async (e) => {
     e.preventDefault();
     await submitCreateServer(remaining);
   };
+}
+
+function setupNodeCardListeners() {
+  document.querySelectorAll('.node-select-card:not(.insufficient)').forEach(card => {
+    card.onclick = () => {
+      const nodeId = card.dataset.nodeId;
+      selectedNode = nodesData.nodes.find(n => n.id === nodeId);
+      
+      document.querySelectorAll('.node-select-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      
+      document.getElementById('node-id-input').value = nodeId;
+    };
+  });
 }
 
 function setupEggCardListeners() {
@@ -3514,6 +3603,7 @@ function cleanupCreateServer() {
   limitsData = null;
   nodesData = null;
   selectedNode = null;
+  currentResources = { memory: 512, disk: 1024 };
 }
 
 function formatBytes(bytes, decimals = 2) {
