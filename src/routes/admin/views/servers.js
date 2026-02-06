@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
+import * as modal from '../../../utils/modal.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
 import { renderPagination, setupPaginationListeners, renderBreadcrumb, setupBreadcrumbListeners, renderSearchBox, setupSearchListeners } from '../utils/ui.js';
@@ -184,7 +185,8 @@ export async function renderServerDetail(container, username, serverId) {
     });
     
     document.getElementById('delete-server-btn').onclick = async () => {
-      if (!confirm('Are you sure you want to delete this server? This cannot be undone.')) return;
+      const confirmed = await modal.confirm({ title: 'Delete Server', message: 'Are you sure you want to delete this server? This cannot be undone.', danger: true });
+      if (!confirmed) return;
       try {
         await api(`/api/admin/servers/${serverId}`, {
           method: 'DELETE',
@@ -503,7 +505,8 @@ function renderServerSubTab(server, username) {
       const reinstallBtn = document.getElementById('reinstall-btn');
       if (reinstallBtn) {
         reinstallBtn.onclick = async () => {
-          if (!confirm('Are you sure? All server files will be deleted.')) return;
+          const confirmed = await modal.confirm({ title: 'Reinstall Server', message: 'Are you sure? All server files will be deleted.', danger: true });
+          if (!confirmed) return;
           try {
             await api(`/api/servers/${server.id}/reinstall`, {
               method: 'POST',
@@ -533,7 +536,8 @@ function renderServerSubTab(server, username) {
       };
       
       document.getElementById('delete-btn').onclick = async () => {
-        if (!confirm('Are you sure you want to delete this server? This cannot be undone.')) return;
+        const confirmed = await modal.confirm({ title: 'Delete Server', message: 'Are you sure you want to delete this server? This cannot be undone.', danger: true });
+        if (!confirmed) return;
         try {
           await api(`/api/admin/servers/${server.id}`, {
             method: 'DELETE',
@@ -589,7 +593,8 @@ function setupOwnerSearch(server) {
               const userId = item.dataset.userId;
               const username = item.dataset.username;
               
-              if (!confirm(`Transfer server to @${username}?`)) return;
+              const confirmed = await modal.confirm({ title: 'Transfer Server', message: `Transfer server to @${username}?`, confirmText: 'Transfer' });
+              if (!confirmed) return;
               
               try {
                 await api(`/api/admin/servers/${server.id}`, {
@@ -687,7 +692,8 @@ function setupEggSearch(server) {
               const eggId = item.dataset.eggId;
               const eggName = item.dataset.eggName;
               
-              if (!confirm(`Change egg to "${eggName}"? This will update the startup command and Docker image.`)) return;
+              const confirmed = await modal.confirm({ title: 'Change Egg', message: `Change egg to "${eggName}"? This will update the startup command and Docker image.`, confirmText: 'Change' });
+              if (!confirmed) return;
               
               try {
                 const res = await api(`/api/admin/servers/${server.id}`, {
@@ -829,7 +835,8 @@ window.unsuspendServerAdmin = async function(serverId) {
 };
 
 window.deleteServerAdmin = async function(serverId) {
-  if (!confirm('Are you sure? This will delete the server from the node.')) return;
+  const confirmed = await modal.confirm({ title: 'Delete Server', message: 'Are you sure? This will delete the server from the node.', danger: true });
+  if (!confirmed) return;
   try {
     await api(`/api/admin/servers/${serverId}`, {
       method: 'DELETE',

@@ -1,6 +1,7 @@
 import { api } from '../../utils/api.js';
 import { PERMISSIONS, PERMISSION_GROUPS } from '../../utils/permissions.js';
 import * as toast from '../../utils/toast.js';
+import * as modal from '../../utils/modal.js';
 import { escapeHtml } from '../../utils/security.js';
 
 let currentServerId = null;
@@ -253,7 +254,8 @@ async function saveSubuser(editId) {
 }
 
 async function deleteSubuser(id) {
-  if (!confirm('Remove this subuser?')) return;
+  const confirmed = await modal.confirm({ title: 'Remove Subuser', message: 'Remove this subuser?', danger: true });
+  if (!confirmed) return;
   
   const username = localStorage.getItem('username');
   

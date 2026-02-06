@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
+import * as modal from '../../../utils/modal.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
 import { formatBytes, renderPagination, setupPaginationListeners, renderBreadcrumb, setupBreadcrumbListeners, renderSearchBox, setupSearchListeners } from '../utils/ui.js';
@@ -358,7 +359,7 @@ async function renderUserSubTab(user, username) {
       `;
       
       document.getElementById('delete-user-btn')?.addEventListener('click', async () => {
-        const confirmUsername = prompt('Type "' + user.username + '" to confirm deletion:');
+        const confirmUsername = await modal.prompt(`Type "${user.username}" to confirm deletion:`, { title: 'Delete User', placeholder: user.username });
         if (confirmUsername !== user.username) {
           if (confirmUsername !== null) toast.error('Username does not match');
           return;

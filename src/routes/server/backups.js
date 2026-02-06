@@ -4,6 +4,10 @@ import * as modal from '../../utils/modal.js';
 import { formatBytes, formatDate } from '../../utils/format.js';
 
 let currentServerId = null;
+let autoRefreshInterval = null;
+let isModalOpen = false;
+
+const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
 
 export function renderBackupsTab() {
   return `
@@ -11,10 +15,15 @@ export function renderBackupsTab() {
       <div class="card">
         <div class="card-header">
           <h3>Backups</h3>
-          <button class="btn btn-primary btn-sm" id="btn-create-backup">
-            <span class="material-icons-outlined">add</span>
-            Create Backup
-          </button>
+          <div class="card-header-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-refresh-backups" title="Refresh">
+              <span class="material-icons-outlined">refresh</span>
+            </button>
+            <button class="btn btn-primary btn-sm" id="btn-create-backup">
+              <span class="material-icons-outlined">add</span>
+              Create Backup
+            </button>
+          </div>
         </div>
         <div class="backups-list" id="backups-list">
           <div class="loading">Loading backups...</div>
@@ -28,8 +37,43 @@ export async function initBackupsTab(serverId) {
   currentServerId = serverId;
   
   document.getElementById('btn-create-backup').onclick = () => createBackup(serverId);
+  document.getElementById('btn-refresh-backups').onclick = () => refreshBackups();
   
   await loadBackups(serverId);
+  startAutoRefresh();
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  autoRefreshInterval = setInterval(() => {
+    if (!isModalOpen && currentServerId) {
+      loadBackups(currentServerId);
+    }
+  }, AUTO_REFRESH_INTERVAL);
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+  }
+}
+
+async function refreshBackups() {
+  if (!currentServerId) return;
+  
+  const btn = document.getElementById('btn-refresh-backups');
+  if (btn) {
+    btn.disabled = true;
+    btn.querySelector('.material-icons-outlined').classList.add('spinning');
+  }
+  
+  await loadBackups(currentServerId);
+  
+  if (btn) {
+    btn.disabled = false;
+    btn.querySelector('.material-icons-outlined').classList.remove('spinning');
+  }
 }
 
 async function loadBackups(serverId) {
@@ -60,7 +104,7 @@ async function loadBackups(serverId) {
     container.innerHTML = backups.map(backup => `
       <div class="backup-item ${backup.is_successful ? '' : 'pending'}" data-id="${backup.id}">
         <div class="backup-icon">
-          <span class="material-icons-outlined">
+          <span class="material-icons-outlined ${backup.is_successful ? '' : 'spinning'}">
             ${backup.is_successful ? 'cloud_done' : 'cloud_sync'}
           </span>
         </div>
@@ -70,10 +114,11 @@ async function loadBackups(serverId) {
             ${backup.is_locked ? '<span class="material-icons-outlined locked-icon">lock</span>' : ''}
           </div>
           <div class="backup-meta">
-            ${backup.is_successful ? formatBytes(backup.bytes || 0) : 'In progress...'}
+            ${backup.is_successful ? formatBytes(backup.bytes || 0) : '<span class="backup-progress">Creating backup...</span>'}
             <span class="separator">•</span>
             ${formatDate(backup.created_at)}
           </div>
+          ${backup.checksum ? `<div class="backup-checksum" title="SHA256 Checksum">Checksum: ${backup.checksum}</div>` : ''}
         </div>
         <div class="backup-actions">
           ${backup.is_successful ? `
@@ -83,7 +128,13 @@ async function loadBackups(serverId) {
             <button class="btn btn-xs btn-ghost" title="Restore" data-action="restore">
               <span class="material-icons-outlined">restore</span>
             </button>
-          ` : ''}
+          ` : `
+            <div class="backup-pending-indicator">
+              <div class="progress-bar-mini">
+                <div class="progress-bar-mini-fill"></div>
+              </div>
+            </div>
+          `}
           <button class="btn btn-xs btn-ghost" title="${backup.is_locked ? 'Unlock' : 'Lock'}" data-action="lock">
             <span class="material-icons-outlined">${backup.is_locked ? 'lock_open' : 'lock'}</span>
           </button>
@@ -121,11 +172,21 @@ async function loadBackups(serverId) {
   }
 }
 
+function validateBackupName(name) {
+  if (!name) return true;
+  if (name.length > 100) return 'Name must be 100 characters or less';
+  if (/[<>:"/\\|?*]/.test(name)) return 'Name contains invalid characters';
+  return true;
+}
+
 async function createBackup(serverId) {
+  isModalOpen = true;
+  
   const content = `
     <div class="form-group">
       <label>Backup Name (optional)</label>
-      <input type="text" id="backup-name" placeholder="My Backup" />
+      <input type="text" id="backup-name" placeholder="My Backup" maxlength="100" />
+      <p class="hint error-hint" id="backup-name-error"></p>
     </div>
     <div class="form-group">
       <label>Ignored Files (optional)</label>
@@ -140,6 +201,14 @@ async function createBackup(serverId) {
     confirmText: 'Create',
     onConfirm: async () => {
       const name = document.getElementById('backup-name').value.trim();
+      const errorEl = document.getElementById('backup-name-error');
+      
+      const validation = validateBackupName(name);
+      if (validation !== true) {
+        errorEl.textContent = validation;
+        return false;
+      }
+      
       const ignoredText = document.getElementById('backup-ignored').value.trim();
       const ignored = ignoredText ? ignoredText.split('\n').map(s => s.trim()).filter(Boolean) : [];
       
@@ -161,7 +230,18 @@ async function createBackup(serverId) {
       } catch (e) {
         toast.error('Failed to create backup');
       }
+    },
+    onClose: () => {
+      isModalOpen = false;
     }
+  });
+  
+  const nameInput = document.getElementById('backup-name');
+  const errorEl = document.getElementById('backup-name-error');
+  
+  nameInput?.addEventListener('input', () => {
+    const validation = validateBackupName(nameInput.value.trim());
+    errorEl.textContent = validation === true ? '' : validation;
   });
 }
 
@@ -261,5 +341,7 @@ async function deleteBackup(serverId, backupId) {
 }
 
 export function cleanupBackupsTab() {
+  stopAutoRefresh();
   currentServerId = null;
+  isModalOpen = false;
 }

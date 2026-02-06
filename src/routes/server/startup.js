@@ -1,5 +1,6 @@
 import { api } from '../../utils/api.js';
 import * as toast from '../../utils/toast.js';
+import * as modal from '../../utils/modal.js';
 import { escapeHtml } from '../../utils/security.js';
 
 let currentServerId = null;
@@ -308,8 +309,14 @@ function renderStartupForm(server, egg) {
     saveStartup();
   };
   
-  document.getElementById('reset-startup').onclick = () => {
-    if (confirm('Reset startup configuration to egg defaults?')) {
+  document.getElementById('reset-startup').onclick = async () => {
+    const confirmed = await modal.confirm({ 
+      title: 'Reset Configuration', 
+      message: 'Reset startup configuration to egg defaults?',
+      confirmText: 'Reset',
+      danger: true 
+    });
+    if (confirmed) {
       resetToDefaults();
     }
   };

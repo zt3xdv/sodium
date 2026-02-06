@@ -1,3 +1,5 @@
+import * as toast from '../utils/toast.js';
+
 export async function renderSetup() {
   const app = document.getElementById('app');
   app.className = 'setup-page';
@@ -338,7 +340,7 @@ export async function renderSetup() {
       saveCurrentStep();
       const error = validateCurrentStep();
       if (error) {
-        alert(error);
+        toast.error(error);
         return;
       }
       currentStep++;
@@ -349,7 +351,7 @@ export async function renderSetup() {
       saveCurrentStep();
       const error = validateCurrentStep();
       if (error) {
-        alert(error);
+        toast.error(error);
         return;
       }
       
@@ -384,7 +386,7 @@ export async function renderSetup() {
           </div>
         `;
       } catch (err) {
-        alert(err.message);
+        toast.error(err.message);
         btn.disabled = false;
         btn.textContent = 'Complete Setup';
       }

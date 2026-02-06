@@ -1,6 +1,7 @@
 import { api } from '../../utils/api.js';
 import { escapeHtml } from '../../utils/security.js';
 import * as toast from '../../utils/toast.js';
+import * as modal from '../../utils/modal.js';
 
 let currentServerId = null;
 
@@ -65,6 +66,9 @@ async function loadSchedules() {
           <div class="schedule-actions">
             <button class="btn btn-sm btn-ghost" title="Run Now" data-action="execute" data-id="${schedule.id}">
               <span class="material-icons-outlined">play_arrow</span>
+            </button>
+            <button class="btn btn-sm btn-ghost" title="Duplicate" data-action="duplicate" data-id="${schedule.id}">
+              <span class="material-icons-outlined">content_copy</span>
             </button>
             <button class="btn btn-sm btn-ghost" title="Edit" data-action="edit" data-id="${schedule.id}">
               <span class="material-icons-outlined">edit</span>
@@ -136,8 +140,17 @@ function renderTasks(tasks, scheduleId) {
 function attachScheduleListeners() {
   document.querySelectorAll('[data-action="execute"]').forEach(btn => {
     btn.onclick = async () => {
+      const confirmed = await modal.confirm({ title: 'Execute Schedule', message: 'Execute this schedule now?', confirmText: 'Execute' });
+      if (!confirmed) return;
+      
       const id = btn.dataset.id;
+      const card = btn.closest('.schedule-card');
+      const icon = btn.querySelector('.material-icons-outlined');
+      
       btn.disabled = true;
+      card?.classList.add('executing');
+      if (icon) icon.textContent = 'sync';
+      
       try {
         await api(`/api/servers/${currentServerId}/schedules/${id}/execute`, { method: 'POST' });
         toast.success('Schedule executed');
@@ -145,7 +158,10 @@ function attachScheduleListeners() {
       } catch {
         toast.error('Failed to execute schedule');
       }
+      
       btn.disabled = false;
+      card?.classList.remove('executing');
+      if (icon) icon.textContent = 'play_arrow';
     };
   });
   
@@ -153,9 +169,14 @@ function attachScheduleListeners() {
     btn.onclick = () => showEditScheduleModal(btn.dataset.id);
   });
   
+  document.querySelectorAll('[data-action="duplicate"]').forEach(btn => {
+    btn.onclick = () => duplicateSchedule(btn.dataset.id);
+  });
+  
   document.querySelectorAll('[data-action="delete"]').forEach(btn => {
     btn.onclick = async () => {
-      if (!confirm('Delete this schedule?')) return;
+      const confirmed = await modal.confirm({ title: 'Delete Schedule', message: 'Delete this schedule?', danger: true });
+      if (!confirmed) return;
       try {
         await api(`/api/servers/${currentServerId}/schedules/${btn.dataset.id}`, { method: 'DELETE' });
         toast.success('Schedule deleted');
@@ -176,7 +197,8 @@ function attachScheduleListeners() {
   
   document.querySelectorAll('[data-action="delete-task"]').forEach(btn => {
     btn.onclick = async () => {
-      if (!confirm('Delete this task?')) return;
+      const confirmed = await modal.confirm({ title: 'Delete Task', message: 'Delete this task?', danger: true });
+      if (!confirmed) return;
       try {
         await api(`/api/servers/${currentServerId}/schedules/${btn.dataset.schedule}/tasks/${btn.dataset.task}`, { method: 'DELETE' });
         toast.success('Task deleted');
@@ -192,6 +214,26 @@ function showCreateScheduleModal() {
   showScheduleModal(null);
 }
 
+async function duplicateSchedule(id) {
+  try {
+    const res = await api(`/api/servers/${currentServerId}/schedules/${id}`);
+    const data = await res.json();
+    const original = data.schedule;
+    
+    // Crear copia con nombre modificado
+    const duplicate = {
+      ...original,
+      id: null,
+      name: `${original.name} (Copy)`,
+      is_active: false
+    };
+    
+    showScheduleModal(duplicate, true);
+  } catch {
+    toast.error('Failed to load schedule');
+  }
+}
+
 async function showEditScheduleModal(id) {
   try {
     const res = await api(`/api/servers/${currentServerId}/schedules/${id}`);
@@ -202,11 +244,11 @@ async function showEditScheduleModal(id) {
   }
 }
 
-function showScheduleModal(schedule) {
+function showScheduleModal(schedule, isDuplicate = false) {
   const existing = document.getElementById('schedule-modal');
   if (existing) existing.remove();
   
-  const isEdit = !!schedule;
+  const isEdit = !!schedule && !isDuplicate;
   
   const modal = document.createElement('div');
   modal.id = 'schedule-modal';
@@ -214,7 +256,7 @@ function showScheduleModal(schedule) {
   modal.innerHTML = `
     <div class="modal modal-md">
       <div class="modal-header">
-        <h3>${isEdit ? 'Edit Schedule' : 'Create Schedule'}</h3>
+        <h3>${isEdit ? 'Edit Schedule' : isDuplicate ? 'Duplicate Schedule' : 'Create Schedule'}</h3>
         <button class="modal-close" id="close-schedule-modal">
           <span class="material-icons-outlined">close</span>
         </button>
@@ -254,6 +296,8 @@ function showScheduleModal(schedule) {
           </div>
         </div>
         
+        <div class="cron-error" id="cron-error" style="display: none;"></div>
+        
         <div class="form-toggles">
           <label class="toggle-item">
             <input type="checkbox" name="is_active" ${schedule?.is_active !== false ? 'checked' : ''} />
@@ -273,7 +317,7 @@ function showScheduleModal(schedule) {
         
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" id="cancel-schedule-modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">${isEdit ? 'Save' : 'Create'}</button>
+          <button type="submit" class="btn btn-primary">${isEdit ? 'Save' : isDuplicate ? 'Duplicate' : 'Create'}</button>
         </div>
       </form>
     </div>
@@ -290,6 +334,17 @@ function showScheduleModal(schedule) {
     e.preventDefault();
     const form = e.target;
     const btn = form.querySelector('button[type="submit"]');
+    const cronError = document.getElementById('cron-error');
+    
+    // Validar campos cron
+    const errors = validateAllCronFields(form);
+    if (errors.length > 0) {
+      cronError.textContent = errors.join('. ');
+      cronError.style.display = 'block';
+      return;
+    }
+    cronError.style.display = 'none';
+    
     btn.disabled = true;
     
     const payload = {
@@ -479,23 +534,108 @@ function showTaskModal(scheduleId, task) {
 }
 
 // Helpers
+function validateCronField(value, min, max, fieldName) {
+  if (value === '*') return null;
+  
+  // Soportar rangos (e.g., 1-5), listas (e.g., 1,3,5), y pasos (e.g., */5)
+  const patterns = value.split(',');
+  for (const pattern of patterns) {
+    if (pattern.includes('/')) {
+      const [range, step] = pattern.split('/');
+      if (range !== '*' && !validateCronField(range, min, max, fieldName)) {
+        return `Invalid step in ${fieldName}`;
+      }
+      const stepNum = parseInt(step);
+      if (isNaN(stepNum) || stepNum < 1) {
+        return `Invalid step value in ${fieldName}`;
+      }
+    } else if (pattern.includes('-')) {
+      const [start, end] = pattern.split('-').map(Number);
+      if (isNaN(start) || isNaN(end) || start < min || end > max || start > end) {
+        return `Invalid range in ${fieldName} (${min}-${max})`;
+      }
+    } else {
+      const num = parseInt(pattern);
+      if (isNaN(num) || num < min || num > max) {
+        return `${fieldName} must be ${min}-${max} or *`;
+      }
+    }
+  }
+  return null;
+}
+
+function validateAllCronFields(form) {
+  const errors = [];
+  
+  const minuteErr = validateCronField(form.minute.value || '*', 0, 59, 'Minute');
+  if (minuteErr) errors.push(minuteErr);
+  
+  const hourErr = validateCronField(form.hour.value || '*', 0, 23, 'Hour');
+  if (hourErr) errors.push(hourErr);
+  
+  const dayErr = validateCronField(form.day_of_month.value || '*', 1, 31, 'Day of month');
+  if (dayErr) errors.push(dayErr);
+  
+  const dowErr = validateCronField(form.day_of_week.value || '*', 0, 6, 'Day of week');
+  if (dowErr) errors.push(dowErr);
+  
+  const monthErr = validateCronField(form.month.value || '*', 1, 12, 'Month');
+  if (monthErr) errors.push(monthErr);
+  
+  return errors;
+}
+
 function formatCron(cron) {
   if (!cron) return 'Not set';
   const { minute, hour, day_of_month, day_of_week, month } = cron;
   
+  const allWildcard = minute === '*' && hour === '*' && day_of_month === '*' && day_of_week === '*' && month === '*';
+  if (allWildcard) return 'Every minute';
+  
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  
+  // Casos comunes legibles
+  if (day_of_month === '*' && month === '*') {
+    if (hour !== '*' && minute !== '*' && day_of_week === '*') {
+      return `Daily at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+    }
+    if (hour !== '*' && minute !== '*' && day_of_week !== '*') {
+      const dayName = days[parseInt(day_of_week)] || day_of_week;
+      return `Every ${dayName} at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+    }
+    if (hour === '*' && minute !== '*' && day_of_week === '*') {
+      return `Every hour at minute ${minute}`;
+    }
+  }
+  
+  if (minute !== '*' && hour !== '*' && day_of_month !== '*' && month !== '*') {
+    const monthName = months[parseInt(month)] || month;
+    return `${monthName} ${day_of_month} at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+  }
+  
+  // Formato descriptivo genérico
   let desc = [];
   
-  if (minute !== '*') desc.push(`at minute ${minute}`);
-  if (hour !== '*') desc.push(`at hour ${hour}`);
+  if (minute !== '*' && hour !== '*') {
+    desc.push(`at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`);
+  } else if (minute !== '*') {
+    desc.push(`at minute ${minute}`);
+  } else if (hour !== '*') {
+    desc.push(`at hour ${hour}`);
+  }
+  
   if (day_of_month !== '*') desc.push(`on day ${day_of_month}`);
   if (day_of_week !== '*') {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    desc.push(`on ${days[parseInt(day_of_week)] || day_of_week}`);
+    const dayName = days[parseInt(day_of_week)] || day_of_week;
+    desc.push(`on ${dayName}`);
   }
-  if (month !== '*') desc.push(`in month ${month}`);
+  if (month !== '*') {
+    const monthName = months[parseInt(month)] || month;
+    desc.push(`in ${monthName}`);
+  }
   
-  if (desc.length === 0) return 'Every minute';
-  return desc.join(', ');
+  return desc.length > 0 ? desc.join(', ') : 'Every minute';
 }
 
 function formatRelativeTime(isoString) {

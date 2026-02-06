@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
+import * as modal from '../../../utils/modal.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
 import { renderBreadcrumb, setupBreadcrumbListeners } from '../utils/ui.js';
@@ -187,7 +188,8 @@ export async function renderAnnouncementsList(container, username, loadView) {
     };
     
     window.deleteAnnouncement = async (id) => {
-      if (!confirm('Are you sure you want to delete this announcement?')) return;
+      const confirmed = await modal.confirm({ title: 'Delete Announcement', message: 'Are you sure you want to delete this announcement?', danger: true });
+      if (!confirmed) return;
       
       try {
         await api(`/api/announcements/${id}`, { method: 'DELETE' });

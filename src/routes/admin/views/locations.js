@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
+import * as modal from '../../../utils/modal.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
 import { renderBreadcrumb, setupBreadcrumbListeners } from '../utils/ui.js';
@@ -116,7 +117,8 @@ function showLocationModal(username, loadView) {
 }
 
 window.deleteLocationAdmin = async function(locationId) {
-  if (!confirm('Delete this location?')) return;
+  const confirmed = await modal.confirm({ title: 'Delete Location', message: 'Delete this location?', danger: true });
+  if (!confirmed) return;
   
   try {
     await api(`/api/admin/locations/${locationId}`, {

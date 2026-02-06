@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
+import * as modal from '../../../utils/modal.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
 import { renderBreadcrumb, setupBreadcrumbListeners } from '../utils/ui.js';
@@ -379,7 +380,8 @@ window.editNestAdmin = async function(nestId) {
 };
 
 window.deleteNestAdmin = async function(nestId) {
-  if (!confirm('Delete this nest and all its eggs?')) return;
+  const confirmed = await modal.confirm({ title: 'Delete Nest', message: 'Delete this nest and all its eggs?', danger: true });
+  if (!confirmed) return;
   
   try {
     await api(`/api/admin/nests/${nestId}`, {
@@ -443,7 +445,8 @@ window.editEggAdmin = function(eggId) {
 };
 
 window.deleteEggAdmin = async function(eggId) {
-  if (!confirm('Delete this egg?')) return;
+  const confirmed = await modal.confirm({ title: 'Delete Egg', message: 'Delete this egg?', danger: true });
+  if (!confirmed) return;
   
   try {
     await api(`/api/admin/eggs/${eggId}`, {
@@ -512,7 +515,8 @@ export async function renderEggDetail(container, username, eggId) {
     });
     
     document.getElementById('delete-egg-btn').onclick = async () => {
-      if (!confirm('Are you sure you want to delete this egg? This cannot be undone.')) return;
+      const confirmed = await modal.confirm({ title: 'Delete Egg', message: 'Are you sure you want to delete this egg? This cannot be undone.', danger: true });
+      if (!confirmed) return;
       try {
         await api(`/api/admin/eggs/${eggId}`, {
           method: 'DELETE',
@@ -870,7 +874,8 @@ function renderEggVariablesTab(content, egg, username) {
   document.querySelectorAll('.delete-var-btn').forEach(btn => {
     btn.onclick = async (e) => {
       e.stopPropagation();
-      if (!confirm('Delete this variable?')) return;
+      const confirmed = await modal.confirm({ title: 'Delete Variable', message: 'Delete this variable?', danger: true });
+      if (!confirmed) return;
       const idx = parseInt(btn.dataset.index);
       const newVars = [...variables];
       newVars.splice(idx, 1);

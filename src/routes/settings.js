@@ -1,5 +1,6 @@
 import { getTheme, setTheme, getAvailableThemes } from '../utils/theme.js';
 import { clearAuth, api } from '../utils/api.js';
+import * as modal from '../utils/modal.js';
 
 export function renderSettings() {
   const app = document.getElementById('app');
@@ -587,7 +588,8 @@ async function loadSshKeys() {
     list.querySelectorAll('.delete-ssh-key-btn').forEach(btn => {
       btn.onclick = async (e) => {
         e.stopPropagation();
-        if (!confirm('Delete this SSH key?')) return;
+        const confirmed = await modal.confirm({ title: 'Delete SSH Key', message: 'Delete this SSH key?', danger: true });
+        if (!confirmed) return;
         try {
           await api(`/api/user/ssh-keys/${btn.dataset.id}`, { method: 'DELETE' });
           loadSshKeys();
@@ -726,7 +728,8 @@ async function loadApiKeys() {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = btn.dataset.id;
-        if (!confirm('Are you sure you want to delete this API key?')) return;
+        const confirmed = await modal.confirm({ title: 'Delete API Key', message: 'Are you sure you want to delete this API key?', danger: true });
+        if (!confirmed) return;
         
         try {
           await api(`/api/api-keys/${id}`, { method: 'DELETE' });
@@ -895,7 +898,8 @@ async function loadWebhooks() {
       btn.addEventListener('click', async (e) => {
         const item = e.target.closest('.webhook-item');
         const id = item.dataset.id;
-        if (!confirm('Delete this webhook?')) return;
+        const confirmed = await modal.confirm({ title: 'Delete Webhook', message: 'Delete this webhook?', danger: true });
+        if (!confirmed) return;
         
         try {
           await api(`/api/webhooks/${id}`, { method: 'DELETE' });

@@ -67,24 +67,31 @@ router.post('/servers/:serverId/schedules', (req, res) => {
   
   if (!name) return res.status(400).json({ error: 'Name is required' });
   
+  const cronConfig = {
+    minute: minute || '*',
+    hour: hour || '*',
+    day_of_month: day_of_month || '*',
+    day_of_week: day_of_week || '*',
+    month: month || '*'
+  };
+  
+  const cronValidation = validateCron(cronConfig);
+  if (!cronValidation.valid) {
+    return res.status(400).json({ error: cronValidation.error });
+  }
+  
   const data = loadSchedules();
   
   const schedule = {
     id: generateUUID(),
     server_id: server.id,
     name: name.substring(0, 100),
-    cron: {
-      minute: minute || '*',
-      hour: hour || '*',
-      day_of_month: day_of_month || '*',
-      day_of_week: day_of_week || '*',
-      month: month || '*'
-    },
+    cron: cronConfig,
     is_active: is_active !== false,
     only_when_online: only_when_online || false,
     tasks: [],
     last_run_at: null,
-    next_run_at: calculateNextRun({ minute: minute || '*', hour: hour || '*', day_of_month: day_of_month || '*', day_of_week: day_of_week || '*', month: month || '*' }),
+    next_run_at: calculateNextRun(cronConfig),
     created_at: new Date().toISOString()
   };
   
@@ -117,14 +124,21 @@ router.put('/servers/:serverId/schedules/:scheduleId', (req, res) => {
   if (only_when_online !== undefined) data.schedules[idx].only_when_online = only_when_online;
   
   if (minute !== undefined || hour !== undefined || day_of_month !== undefined || day_of_week !== undefined || month !== undefined) {
-    data.schedules[idx].cron = {
+    const newCron = {
       minute: minute ?? data.schedules[idx].cron.minute,
       hour: hour ?? data.schedules[idx].cron.hour,
       day_of_month: day_of_month ?? data.schedules[idx].cron.day_of_month,
       day_of_week: day_of_week ?? data.schedules[idx].cron.day_of_week,
       month: month ?? data.schedules[idx].cron.month
     };
-    data.schedules[idx].next_run_at = calculateNextRun(data.schedules[idx].cron);
+    
+    const cronValidation = validateCron(newCron);
+    if (!cronValidation.valid) {
+      return res.status(400).json({ error: cronValidation.error });
+    }
+    
+    data.schedules[idx].cron = newCron;
+    data.schedules[idx].next_run_at = calculateNextRun(newCron);
   }
   
   saveSchedules(data);
@@ -181,6 +195,35 @@ router.post('/servers/:serverId/schedules/:scheduleId/execute', async (req, res)
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Get next run time (preview without modifying)
+router.post('/servers/:serverId/schedules/preview-next-run', (req, res) => {
+  const server = getServerAccess(req, req.params.serverId);
+  if (!server) return res.status(404).json({ error: 'Server not found' });
+  
+  const { minute, hour, day_of_month, day_of_week, month } = req.body;
+  
+  const cronConfig = {
+    minute: minute || '*',
+    hour: hour || '*',
+    day_of_month: day_of_month || '*',
+    day_of_week: day_of_week || '*',
+    month: month || '*'
+  };
+  
+  const cronValidation = validateCron(cronConfig);
+  if (!cronValidation.valid) {
+    return res.status(400).json({ error: cronValidation.error });
+  }
+  
+  const nextRun = calculateNextRun(cronConfig);
+  
+  res.json({
+    cron: cronConfig,
+    next_run_at: nextRun,
+    valid: nextRun !== null
+  });
 });
 
 // ========== TASKS ==========
@@ -297,41 +340,89 @@ router.delete('/servers/:serverId/schedules/:scheduleId/tasks/:taskId', (req, re
 
 // ========== HELPERS ==========
 
+function validateCronField(value, min, max, fieldName) {
+  if (value === '*') return { valid: true };
+  
+  const num = parseInt(value);
+  if (isNaN(num)) {
+    return { valid: false, error: `${fieldName} must be a number or '*'` };
+  }
+  if (num < min || num > max) {
+    return { valid: false, error: `${fieldName} must be between ${min} and ${max}` };
+  }
+  return { valid: true };
+}
+
+function validateCron(cron) {
+  const validations = [
+    validateCronField(cron.minute, 0, 59, 'minute'),
+    validateCronField(cron.hour, 0, 23, 'hour'),
+    validateCronField(cron.day_of_month, 1, 31, 'day_of_month'),
+    validateCronField(cron.month, 1, 12, 'month'),
+    validateCronField(cron.day_of_week, 0, 6, 'day_of_week')
+  ];
+  
+  for (const v of validations) {
+    if (!v.valid) return v;
+  }
+  return { valid: true };
+}
+
+function matchesCronField(value, cronField) {
+  if (cronField === '*') return true;
+  return value === parseInt(cronField);
+}
+
 function calculateNextRun(cron) {
   const now = new Date();
   const next = new Date(now);
-  
-  // Simple next run calculation - find next matching minute
-  const minute = cron.minute === '*' ? now.getMinutes() : parseInt(cron.minute);
-  const hour = cron.hour === '*' ? now.getHours() : parseInt(cron.hour);
-  
   next.setSeconds(0);
   next.setMilliseconds(0);
+  next.setMinutes(next.getMinutes() + 1);
   
-  if (cron.minute !== '*') next.setMinutes(minute);
-  if (cron.hour !== '*') next.setHours(hour);
+  const maxIterations = 366 * 24 * 60;
   
-  // If next is in the past, add appropriate time
-  if (next <= now) {
-    if (cron.minute !== '*' && cron.hour === '*') {
-      next.setHours(next.getHours() + 1);
-    } else if (cron.hour !== '*') {
-      next.setDate(next.getDate() + 1);
-    } else {
-      next.setMinutes(next.getMinutes() + 1);
+  for (let i = 0; i < maxIterations; i++) {
+    const minute = next.getMinutes();
+    const hour = next.getHours();
+    const dayOfMonth = next.getDate();
+    const month = next.getMonth() + 1;
+    const dayOfWeek = next.getDay();
+    
+    if (
+      matchesCronField(minute, cron.minute) &&
+      matchesCronField(hour, cron.hour) &&
+      matchesCronField(dayOfMonth, cron.day_of_month) &&
+      matchesCronField(month, cron.month) &&
+      matchesCronField(dayOfWeek, cron.day_of_week)
+    ) {
+      return next.toISOString();
     }
+    
+    next.setMinutes(next.getMinutes() + 1);
   }
   
-  return next.toISOString();
+  return null;
 }
 
 async function executeSchedule(schedule, server) {
   const nodes = loadNodes();
   const node = nodes.nodes.find(n => n.id === server.node_id);
   
-  if (!node) throw new Error('Node not found');
+  if (!node) {
+    logger.error(`Schedule "${schedule.name}" failed: Node ${server.node_id} not found`);
+    throw new Error('Node not found');
+  }
   
   const sortedTasks = [...(schedule.tasks || [])].sort((a, b) => a.sequence_id - b.sequence_id);
+  
+  if (sortedTasks.length === 0) {
+    logger.warn(`Schedule "${schedule.name}" has no tasks to execute`);
+    return;
+  }
+  
+  let executedCount = 0;
+  let failedCount = 0;
   
   for (const task of sortedTasks) {
     if (task.time_offset > 0) {
@@ -340,33 +431,52 @@ async function executeSchedule(schedule, server) {
     
     try {
       await executeTask(task, server, node);
+      executedCount++;
     } catch (err) {
-      logger.error(`Task ${task.id} failed: ${err.message}`);
-      if (!task.continue_on_failure) throw err;
+      failedCount++;
+      logger.error(`Task ${task.id} (${task.action}) failed for server ${server.name}: ${err.message}`);
+      if (!task.continue_on_failure) {
+        throw new Error(`Task ${task.action} failed: ${err.message}`);
+      }
     }
   }
+  
+  logger.info(`Schedule "${schedule.name}" completed: ${executedCount} succeeded, ${failedCount} failed`);
 }
 
 async function executeTask(task, server, node) {
-  switch (task.action) {
-    case 'command':
-      await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/commands`, {
-        commands: [task.payload]
-      });
-      break;
-      
-    case 'power':
-      await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/power`, {
-        action: task.payload
-      });
-      break;
-      
-    case 'backup':
-      const backupUuid = generateUUID();
-      // Save backup to database
-      const serversData = loadServers();
-      const serverIdx = serversData.servers.findIndex(s => s.id === server.id);
-      if (serverIdx !== -1) {
+  if (!task.action) {
+    throw new Error('Task has no action defined');
+  }
+  
+  try {
+    switch (task.action) {
+      case 'command':
+        if (!task.payload) {
+          throw new Error('Command payload is empty');
+        }
+        await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/commands`, {
+          commands: [task.payload]
+        });
+        break;
+        
+      case 'power':
+        const validPower = ['start', 'stop', 'restart', 'kill'];
+        if (!validPower.includes(task.payload)) {
+          throw new Error(`Invalid power action: ${task.payload}`);
+        }
+        await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/power`, {
+          action: task.payload
+        });
+        break;
+        
+      case 'backup':
+        const backupUuid = generateUUID();
+        const serversData = loadServers();
+        const serverIdx = serversData.servers.findIndex(s => s.id === server.id);
+        if (serverIdx === -1) {
+          throw new Error('Server not found in database');
+        }
         if (!serversData.servers[serverIdx].backups) {
           serversData.servers[serverIdx].backups = [];
         }
@@ -383,61 +493,85 @@ async function executeTask(task, server, node) {
           completed_at: null
         });
         saveServers(serversData);
-      }
-      await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/backups`, {
-        adapter: 'wings',
-        uuid: backupUuid,
-        ignore: ''
-      });
-      break;
+        await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/backups`, {
+          adapter: 'wings',
+          uuid: backupUuid,
+          ignore: ''
+        });
+        break;
+        
+      default:
+        throw new Error(`Unknown task action: ${task.action}`);
+    }
+    
+    logger.info(`Executed task: ${task.action} for server ${server.name}`);
+  } catch (err) {
+    if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+      throw new Error(`Node connection failed: ${err.code}`);
+    }
+    throw err;
   }
-  
-  logger.info(`Executed task: ${task.action} for server ${server.name}`);
 }
 
 // Schedule runner - checks every minute
 let schedulerInterval = null;
 
+function getSchedulesDueNow() {
+  const data = loadSchedules();
+  const now = new Date();
+  
+  return data.schedules.filter(schedule => {
+    if (!schedule.is_active) return false;
+    if (!schedule.next_run_at) return false;
+    return new Date(schedule.next_run_at) <= now;
+  });
+}
+
 export function startScheduler() {
   if (schedulerInterval) return;
   
   schedulerInterval = setInterval(async () => {
-    const data = loadSchedules();
+    const dueSchedules = getSchedulesDueNow();
+    
+    if (dueSchedules.length === 0) return;
+    
     const servers = loadServers();
     const nodes = loadNodes();
     const now = new Date();
     
-    for (const schedule of data.schedules) {
-      if (!schedule.is_active) continue;
-      if (!schedule.next_run_at) continue;
-      
-      const nextRun = new Date(schedule.next_run_at);
-      if (nextRun > now) continue;
-      
+    for (const schedule of dueSchedules) {
       const server = servers.servers.find(s => s.id === schedule.server_id);
-      if (!server) continue;
+      if (!server) {
+        logger.warn(`Schedule "${schedule.name}" skipped: server ${schedule.server_id} not found`);
+        continue;
+      }
       
       const node = nodes.nodes.find(n => n.id === server.node_id);
-      if (!node) continue;
+      if (!node) {
+        logger.warn(`Schedule "${schedule.name}" skipped: node ${server.node_id} not found`);
+        continue;
+      }
       
-      // Check only_when_online
       if (schedule.only_when_online) {
         try {
           const status = await wingsRequest(node, 'GET', `/api/servers/${server.uuid}`);
-          if (status.state !== 'running') continue;
-        } catch {
+          if (status.state !== 'running') {
+            logger.debug(`Schedule "${schedule.name}" skipped: server not running`);
+            continue;
+          }
+        } catch (err) {
+          logger.warn(`Schedule "${schedule.name}" skipped: failed to check server status - ${err.message}`);
           continue;
         }
       }
       
       try {
         await executeSchedule(schedule, server);
-        logger.info(`Schedule "${schedule.name}" executed successfully`);
       } catch (err) {
         logger.error(`Schedule "${schedule.name}" failed: ${err.message}`);
       }
       
-      // Update last_run and next_run
+      const data = loadSchedules();
       const idx = data.schedules.findIndex(s => s.id === schedule.id);
       if (idx !== -1) {
         data.schedules[idx].last_run_at = now.toISOString();

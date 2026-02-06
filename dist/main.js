@@ -1679,6 +1679,213 @@ function initTheme() {
   applyTheme(getTheme());
 }
 
+function confirm$1(options = {}) {
+  return new Promise((resolve) => {
+    const { title = 'Confirm', message = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false, onConfirm = null } = options;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>${escapeHtml$1(title)}</h3>
+        </div>
+        <div class="modal-body">
+          <p>${escapeHtml$1(message)}</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
+          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="modal-confirm">${confirmText}</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('active'));
+    
+    const close = (result) => {
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 150);
+      resolve(result);
+    };
+    
+    modal.querySelector('#modal-cancel').onclick = () => close(false);
+    modal.querySelector('#modal-confirm').onclick = async () => {
+      if (onConfirm) {
+        await onConfirm();
+      }
+      close(true);
+    };
+    modal.querySelector('.modal-backdrop').onclick = () => close(false);
+    
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        close(false);
+        document.removeEventListener('keydown', handleKey);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    
+    modal.querySelector('#modal-confirm').focus();
+  });
+}
+
+function prompt(message, options = {}) {
+  return new Promise((resolve) => {
+    const { title = 'Input', placeholder = '', defaultValue = '', confirmText = 'OK', cancelText = 'Cancel' } = options;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>${escapeHtml$1(title)}</h3>
+        </div>
+        <div class="modal-body">
+          <p>${escapeHtml$1(message)}</p>
+          <input type="text" class="input" id="modal-input" placeholder="${escapeHtml$1(placeholder)}" value="${escapeHtml$1(defaultValue)}">
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
+          <button class="btn btn-primary" id="modal-confirm">${confirmText}</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('active'));
+    
+    const input = modal.querySelector('#modal-input');
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 50);
+    
+    const close = (result) => {
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 150);
+      resolve(result);
+    };
+    
+    modal.querySelector('#modal-cancel').onclick = () => close(null);
+    modal.querySelector('#modal-confirm').onclick = () => close(input.value);
+    modal.querySelector('.modal-backdrop').onclick = () => close(null);
+    
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        close(input.value);
+      } else if (e.key === 'Escape') {
+        close(null);
+      }
+    });
+  });
+}
+
+function show(options = {}) {
+  return new Promise((resolve) => {
+    const { 
+      title = 'Modal', 
+      content = '', 
+      confirmText = 'Confirm', 
+      cancelText = 'Cancel',
+      danger = false,
+      onConfirm = null 
+    } = options;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>${escapeHtml$1(title)}</h3>
+        </div>
+        <div class="modal-body">
+          ${content}
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
+          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="modal-confirm">${confirmText}</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('active'));
+    
+    const close = (result) => {
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 150);
+      resolve(result);
+    };
+    
+    modal.querySelector('#modal-cancel').onclick = () => close(false);
+    modal.querySelector('#modal-confirm').onclick = async () => {
+      if (onConfirm) {
+        await onConfirm();
+      }
+      close(true);
+    };
+    modal.querySelector('.modal-backdrop').onclick = () => close(false);
+    
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        close(false);
+        document.removeEventListener('keydown', handleKey);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+  });
+}
+
+function alert(message, options = {}) {
+  return new Promise((resolve) => {
+    const { title = 'Alert', confirmText = 'OK' } = options;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>${escapeHtml$1(title)}</h3>
+        </div>
+        <div class="modal-body">
+          <p>${escapeHtml$1(message)}</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="modal-confirm">${confirmText}</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('active'));
+    
+    const close = () => {
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 150);
+      resolve();
+    };
+    
+    modal.querySelector('#modal-confirm').onclick = close;
+    modal.querySelector('.modal-backdrop').onclick = close;
+    
+    const handleKey = (e) => {
+      if (e.key === 'Escape' || e.key === 'Enter') {
+        close();
+        document.removeEventListener('keydown', handleKey);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    
+    modal.querySelector('#modal-confirm').focus();
+  });
+}
+
 function renderSettings() {
   const app = document.getElementById('app');
   app.className = 'settings-page';
@@ -2265,7 +2472,8 @@ async function loadSshKeys() {
     list.querySelectorAll('.delete-ssh-key-btn').forEach(btn => {
       btn.onclick = async (e) => {
         e.stopPropagation();
-        if (!confirm('Delete this SSH key?')) return;
+        const confirmed = await confirm$1({ title: 'Delete SSH Key', message: 'Delete this SSH key?', danger: true });
+        if (!confirmed) return;
         try {
           await api(`/api/user/ssh-keys/${btn.dataset.id}`, { method: 'DELETE' });
           loadSshKeys();
@@ -2404,7 +2612,8 @@ async function loadApiKeys() {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = btn.dataset.id;
-        if (!confirm('Are you sure you want to delete this API key?')) return;
+        const confirmed = await confirm$1({ title: 'Delete API Key', message: 'Are you sure you want to delete this API key?', danger: true });
+        if (!confirmed) return;
         
         try {
           await api(`/api/api-keys/${id}`, { method: 'DELETE' });
@@ -2573,7 +2782,8 @@ async function loadWebhooks() {
       btn.addEventListener('click', async (e) => {
         const item = e.target.closest('.webhook-item');
         const id = item.dataset.id;
-        if (!confirm('Delete this webhook?')) return;
+        const confirmed = await confirm$1({ title: 'Delete Webhook', message: 'Delete this webhook?', danger: true });
+        if (!confirmed) return;
         
         try {
           await api(`/api/webhooks/${id}`, { method: 'DELETE' });
@@ -40958,213 +41168,6 @@ function createEditor(container, content, filename, onSave) {
   };
 }
 
-function confirm$1(options = {}) {
-  return new Promise((resolve) => {
-    const { title = 'Confirm', message = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false, onConfirm = null } = options;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-backdrop"></div>
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>${escapeHtml$1(title)}</h3>
-        </div>
-        <div class="modal-body">
-          <p>${escapeHtml$1(message)}</p>
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
-          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="modal-confirm">${confirmText}</button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    requestAnimationFrame(() => modal.classList.add('active'));
-    
-    const close = (result) => {
-      modal.classList.remove('active');
-      setTimeout(() => modal.remove(), 150);
-      resolve(result);
-    };
-    
-    modal.querySelector('#modal-cancel').onclick = () => close(false);
-    modal.querySelector('#modal-confirm').onclick = async () => {
-      if (onConfirm) {
-        await onConfirm();
-      }
-      close(true);
-    };
-    modal.querySelector('.modal-backdrop').onclick = () => close(false);
-    
-    const handleKey = (e) => {
-      if (e.key === 'Escape') {
-        close(false);
-        document.removeEventListener('keydown', handleKey);
-      }
-    };
-    document.addEventListener('keydown', handleKey);
-    
-    modal.querySelector('#modal-confirm').focus();
-  });
-}
-
-function prompt$1(message, options = {}) {
-  return new Promise((resolve) => {
-    const { title = 'Input', placeholder = '', defaultValue = '', confirmText = 'OK', cancelText = 'Cancel' } = options;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-backdrop"></div>
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>${escapeHtml$1(title)}</h3>
-        </div>
-        <div class="modal-body">
-          <p>${escapeHtml$1(message)}</p>
-          <input type="text" class="input" id="modal-input" placeholder="${escapeHtml$1(placeholder)}" value="${escapeHtml$1(defaultValue)}">
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
-          <button class="btn btn-primary" id="modal-confirm">${confirmText}</button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    requestAnimationFrame(() => modal.classList.add('active'));
-    
-    const input = modal.querySelector('#modal-input');
-    setTimeout(() => {
-      input.focus();
-      input.select();
-    }, 50);
-    
-    const close = (result) => {
-      modal.classList.remove('active');
-      setTimeout(() => modal.remove(), 150);
-      resolve(result);
-    };
-    
-    modal.querySelector('#modal-cancel').onclick = () => close(null);
-    modal.querySelector('#modal-confirm').onclick = () => close(input.value);
-    modal.querySelector('.modal-backdrop').onclick = () => close(null);
-    
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        close(input.value);
-      } else if (e.key === 'Escape') {
-        close(null);
-      }
-    });
-  });
-}
-
-function show(options = {}) {
-  return new Promise((resolve) => {
-    const { 
-      title = 'Modal', 
-      content = '', 
-      confirmText = 'Confirm', 
-      cancelText = 'Cancel',
-      danger = false,
-      onConfirm = null 
-    } = options;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-backdrop"></div>
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>${escapeHtml$1(title)}</h3>
-        </div>
-        <div class="modal-body">
-          ${content}
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
-          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="modal-confirm">${confirmText}</button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    requestAnimationFrame(() => modal.classList.add('active'));
-    
-    const close = (result) => {
-      modal.classList.remove('active');
-      setTimeout(() => modal.remove(), 150);
-      resolve(result);
-    };
-    
-    modal.querySelector('#modal-cancel').onclick = () => close(false);
-    modal.querySelector('#modal-confirm').onclick = async () => {
-      if (onConfirm) {
-        await onConfirm();
-      }
-      close(true);
-    };
-    modal.querySelector('.modal-backdrop').onclick = () => close(false);
-    
-    const handleKey = (e) => {
-      if (e.key === 'Escape') {
-        close(false);
-        document.removeEventListener('keydown', handleKey);
-      }
-    };
-    document.addEventListener('keydown', handleKey);
-  });
-}
-
-function alert$1(message, options = {}) {
-  return new Promise((resolve) => {
-    const { title = 'Alert', confirmText = 'OK' } = options;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-backdrop"></div>
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>${escapeHtml$1(title)}</h3>
-        </div>
-        <div class="modal-body">
-          <p>${escapeHtml$1(message)}</p>
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-primary" id="modal-confirm">${confirmText}</button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    requestAnimationFrame(() => modal.classList.add('active'));
-    
-    const close = () => {
-      modal.classList.remove('active');
-      setTimeout(() => modal.remove(), 150);
-      resolve();
-    };
-    
-    modal.querySelector('#modal-confirm').onclick = close;
-    modal.querySelector('.modal-backdrop').onclick = close;
-    
-    const handleKey = (e) => {
-      if (e.key === 'Escape' || e.key === 'Enter') {
-        close();
-        document.removeEventListener('keydown', handleKey);
-      }
-    };
-    document.addEventListener('keydown', handleKey);
-    
-    modal.querySelector('#modal-confirm').focus();
-  });
-}
-
 let currentPath = '/';
 let currentServerId$7 = null;
 let progressSocket = null;
@@ -41718,7 +41721,7 @@ function formatDate$2(dateStr) {
 }
 
 async function createNewFolder(serverId) {
-  const name = await prompt$1('Enter folder name:', { title: 'New Folder', placeholder: 'folder-name' });
+  const name = await prompt('Enter folder name:', { title: 'New Folder', placeholder: 'folder-name' });
   if (!name) return;
   
   const path = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
@@ -41742,7 +41745,7 @@ async function createNewFolder(serverId) {
 }
 
 async function createNewFile(serverId) {
-  const name = await prompt$1('Enter file name:', { title: 'New File', placeholder: 'file.txt' });
+  const name = await prompt('Enter file name:', { title: 'New File', placeholder: 'file.txt' });
   if (!name) return;
   
   const path = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
@@ -41826,7 +41829,7 @@ async function deleteSelectedFiles(serverId) {
 }
 
 async function renameFile(serverId, oldName) {
-  const newName = await prompt$1('Enter new name:', { 
+  const newName = await prompt('Enter new name:', { 
     title: 'Rename', 
     defaultValue: oldName,
     confirmText: 'Rename'
@@ -41873,7 +41876,7 @@ async function copyFile(serverId, location) {
 }
 
 async function chmodFile(serverId, name) {
-  const mode = await prompt$1('Enter permissions (e.g. 755, 644):', {
+  const mode = await prompt('Enter permissions (e.g. 755, 644):', {
     title: 'Change Permissions',
     placeholder: '755',
     confirmText: 'Apply'
@@ -41908,7 +41911,7 @@ async function chmodFile(serverId, name) {
 async function moveSelectedFiles(serverId) {
   if (selectedFiles.size === 0) return;
   
-  const destination = await prompt$1('Enter destination path:', {
+  const destination = await prompt('Enter destination path:', {
     title: 'Move Files',
     defaultValue: currentPath,
     placeholder: '/path/to/folder',
@@ -42634,8 +42637,14 @@ function renderStartupForm(server, egg) {
     saveStartup();
   };
   
-  document.getElementById('reset-startup').onclick = () => {
-    if (confirm('Reset startup configuration to egg defaults?')) {
+  document.getElementById('reset-startup').onclick = async () => {
+    const confirmed = await confirm$1({ 
+      title: 'Reset Configuration', 
+      message: 'Reset startup configuration to egg defaults?',
+      confirmText: 'Reset',
+      danger: true 
+    });
+    if (confirmed) {
       resetToDefaults();
     }
   };
@@ -42931,7 +42940,8 @@ async function setAllocationPrimary(allocId) {
 }
 
 async function deleteAllocation(allocId) {
-  if (!confirm('Delete this allocation?')) return;
+  const confirmed = await confirm$1({ title: 'Delete Allocation', message: 'Delete this allocation?', danger: true });
+  if (!confirmed) return;
   
   const username = localStorage.getItem('username');
   
@@ -43265,7 +43275,8 @@ async function saveSubuser(editId) {
 }
 
 async function deleteSubuser(id) {
-  if (!confirm('Remove this subuser?')) return;
+  const confirmed = await confirm$1({ title: 'Remove Subuser', message: 'Remove this subuser?', danger: true });
+  if (!confirmed) return;
   
   const username = localStorage.getItem('username');
   
@@ -43357,6 +43368,9 @@ async function loadSchedules() {
             <button class="btn btn-sm btn-ghost" title="Run Now" data-action="execute" data-id="${schedule.id}">
               <span class="material-icons-outlined">play_arrow</span>
             </button>
+            <button class="btn btn-sm btn-ghost" title="Duplicate" data-action="duplicate" data-id="${schedule.id}">
+              <span class="material-icons-outlined">content_copy</span>
+            </button>
             <button class="btn btn-sm btn-ghost" title="Edit" data-action="edit" data-id="${schedule.id}">
               <span class="material-icons-outlined">edit</span>
             </button>
@@ -43427,8 +43441,17 @@ function renderTasks(tasks, scheduleId) {
 function attachScheduleListeners() {
   document.querySelectorAll('[data-action="execute"]').forEach(btn => {
     btn.onclick = async () => {
+      const confirmed = await confirm$1({ title: 'Execute Schedule', message: 'Execute this schedule now?', confirmText: 'Execute' });
+      if (!confirmed) return;
+      
       const id = btn.dataset.id;
+      const card = btn.closest('.schedule-card');
+      const icon = btn.querySelector('.material-icons-outlined');
+      
       btn.disabled = true;
+      card?.classList.add('executing');
+      if (icon) icon.textContent = 'sync';
+      
       try {
         await api(`/api/servers/${currentServerId$3}/schedules/${id}/execute`, { method: 'POST' });
         success('Schedule executed');
@@ -43436,7 +43459,10 @@ function attachScheduleListeners() {
       } catch {
         error('Failed to execute schedule');
       }
+      
       btn.disabled = false;
+      card?.classList.remove('executing');
+      if (icon) icon.textContent = 'play_arrow';
     };
   });
   
@@ -43444,9 +43470,14 @@ function attachScheduleListeners() {
     btn.onclick = () => showEditScheduleModal(btn.dataset.id);
   });
   
+  document.querySelectorAll('[data-action="duplicate"]').forEach(btn => {
+    btn.onclick = () => duplicateSchedule(btn.dataset.id);
+  });
+  
   document.querySelectorAll('[data-action="delete"]').forEach(btn => {
     btn.onclick = async () => {
-      if (!confirm('Delete this schedule?')) return;
+      const confirmed = await confirm$1({ title: 'Delete Schedule', message: 'Delete this schedule?', danger: true });
+      if (!confirmed) return;
       try {
         await api(`/api/servers/${currentServerId$3}/schedules/${btn.dataset.id}`, { method: 'DELETE' });
         success('Schedule deleted');
@@ -43467,7 +43498,8 @@ function attachScheduleListeners() {
   
   document.querySelectorAll('[data-action="delete-task"]').forEach(btn => {
     btn.onclick = async () => {
-      if (!confirm('Delete this task?')) return;
+      const confirmed = await confirm$1({ title: 'Delete Task', message: 'Delete this task?', danger: true });
+      if (!confirmed) return;
       try {
         await api(`/api/servers/${currentServerId$3}/schedules/${btn.dataset.schedule}/tasks/${btn.dataset.task}`, { method: 'DELETE' });
         success('Task deleted');
@@ -43483,6 +43515,26 @@ function showCreateScheduleModal() {
   showScheduleModal(null);
 }
 
+async function duplicateSchedule(id) {
+  try {
+    const res = await api(`/api/servers/${currentServerId$3}/schedules/${id}`);
+    const data = await res.json();
+    const original = data.schedule;
+    
+    // Crear copia con nombre modificado
+    const duplicate = {
+      ...original,
+      id: null,
+      name: `${original.name} (Copy)`,
+      is_active: false
+    };
+    
+    showScheduleModal(duplicate, true);
+  } catch {
+    error('Failed to load schedule');
+  }
+}
+
 async function showEditScheduleModal(id) {
   try {
     const res = await api(`/api/servers/${currentServerId$3}/schedules/${id}`);
@@ -43493,11 +43545,11 @@ async function showEditScheduleModal(id) {
   }
 }
 
-function showScheduleModal(schedule) {
+function showScheduleModal(schedule, isDuplicate = false) {
   const existing = document.getElementById('schedule-modal');
   if (existing) existing.remove();
   
-  const isEdit = !!schedule;
+  const isEdit = !!schedule && !isDuplicate;
   
   const modal = document.createElement('div');
   modal.id = 'schedule-modal';
@@ -43505,7 +43557,7 @@ function showScheduleModal(schedule) {
   modal.innerHTML = `
     <div class="modal modal-md">
       <div class="modal-header">
-        <h3>${isEdit ? 'Edit Schedule' : 'Create Schedule'}</h3>
+        <h3>${isEdit ? 'Edit Schedule' : isDuplicate ? 'Duplicate Schedule' : 'Create Schedule'}</h3>
         <button class="modal-close" id="close-schedule-modal">
           <span class="material-icons-outlined">close</span>
         </button>
@@ -43545,6 +43597,8 @@ function showScheduleModal(schedule) {
           </div>
         </div>
         
+        <div class="cron-error" id="cron-error" style="display: none;"></div>
+        
         <div class="form-toggles">
           <label class="toggle-item">
             <input type="checkbox" name="is_active" ${schedule?.is_active !== false ? 'checked' : ''} />
@@ -43564,7 +43618,7 @@ function showScheduleModal(schedule) {
         
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" id="cancel-schedule-modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">${isEdit ? 'Save' : 'Create'}</button>
+          <button type="submit" class="btn btn-primary">${isEdit ? 'Save' : isDuplicate ? 'Duplicate' : 'Create'}</button>
         </div>
       </form>
     </div>
@@ -43581,6 +43635,17 @@ function showScheduleModal(schedule) {
     e.preventDefault();
     const form = e.target;
     const btn = form.querySelector('button[type="submit"]');
+    const cronError = document.getElementById('cron-error');
+    
+    // Validar campos cron
+    const errors = validateAllCronFields(form);
+    if (errors.length > 0) {
+      cronError.textContent = errors.join('. ');
+      cronError.style.display = 'block';
+      return;
+    }
+    cronError.style.display = 'none';
+    
     btn.disabled = true;
     
     const payload = {
@@ -43770,23 +43835,108 @@ function showTaskModal(scheduleId, task) {
 }
 
 // Helpers
+function validateCronField(value, min, max, fieldName) {
+  if (value === '*') return null;
+  
+  // Soportar rangos (e.g., 1-5), listas (e.g., 1,3,5), y pasos (e.g., */5)
+  const patterns = value.split(',');
+  for (const pattern of patterns) {
+    if (pattern.includes('/')) {
+      const [range, step] = pattern.split('/');
+      if (range !== '*' && !validateCronField(range, min, max, fieldName)) {
+        return `Invalid step in ${fieldName}`;
+      }
+      const stepNum = parseInt(step);
+      if (isNaN(stepNum) || stepNum < 1) {
+        return `Invalid step value in ${fieldName}`;
+      }
+    } else if (pattern.includes('-')) {
+      const [start, end] = pattern.split('-').map(Number);
+      if (isNaN(start) || isNaN(end) || start < min || end > max || start > end) {
+        return `Invalid range in ${fieldName} (${min}-${max})`;
+      }
+    } else {
+      const num = parseInt(pattern);
+      if (isNaN(num) || num < min || num > max) {
+        return `${fieldName} must be ${min}-${max} or *`;
+      }
+    }
+  }
+  return null;
+}
+
+function validateAllCronFields(form) {
+  const errors = [];
+  
+  const minuteErr = validateCronField(form.minute.value || '*', 0, 59, 'Minute');
+  if (minuteErr) errors.push(minuteErr);
+  
+  const hourErr = validateCronField(form.hour.value || '*', 0, 23, 'Hour');
+  if (hourErr) errors.push(hourErr);
+  
+  const dayErr = validateCronField(form.day_of_month.value || '*', 1, 31, 'Day of month');
+  if (dayErr) errors.push(dayErr);
+  
+  const dowErr = validateCronField(form.day_of_week.value || '*', 0, 6, 'Day of week');
+  if (dowErr) errors.push(dowErr);
+  
+  const monthErr = validateCronField(form.month.value || '*', 1, 12, 'Month');
+  if (monthErr) errors.push(monthErr);
+  
+  return errors;
+}
+
 function formatCron(cron) {
   if (!cron) return 'Not set';
   const { minute, hour, day_of_month, day_of_week, month } = cron;
   
+  const allWildcard = minute === '*' && hour === '*' && day_of_month === '*' && day_of_week === '*' && month === '*';
+  if (allWildcard) return 'Every minute';
+  
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  
+  // Casos comunes legibles
+  if (day_of_month === '*' && month === '*') {
+    if (hour !== '*' && minute !== '*' && day_of_week === '*') {
+      return `Daily at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+    }
+    if (hour !== '*' && minute !== '*' && day_of_week !== '*') {
+      const dayName = days[parseInt(day_of_week)] || day_of_week;
+      return `Every ${dayName} at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+    }
+    if (hour === '*' && minute !== '*' && day_of_week === '*') {
+      return `Every hour at minute ${minute}`;
+    }
+  }
+  
+  if (minute !== '*' && hour !== '*' && day_of_month !== '*' && month !== '*') {
+    const monthName = months[parseInt(month)] || month;
+    return `${monthName} ${day_of_month} at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+  }
+  
+  // Formato descriptivo genérico
   let desc = [];
   
-  if (minute !== '*') desc.push(`at minute ${minute}`);
-  if (hour !== '*') desc.push(`at hour ${hour}`);
+  if (minute !== '*' && hour !== '*') {
+    desc.push(`at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`);
+  } else if (minute !== '*') {
+    desc.push(`at minute ${minute}`);
+  } else if (hour !== '*') {
+    desc.push(`at hour ${hour}`);
+  }
+  
   if (day_of_month !== '*') desc.push(`on day ${day_of_month}`);
   if (day_of_week !== '*') {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    desc.push(`on ${days[parseInt(day_of_week)] || day_of_week}`);
+    const dayName = days[parseInt(day_of_week)] || day_of_week;
+    desc.push(`on ${dayName}`);
   }
-  if (month !== '*') desc.push(`in month ${month}`);
+  if (month !== '*') {
+    const monthName = months[parseInt(month)] || month;
+    desc.push(`in ${monthName}`);
+  }
   
-  if (desc.length === 0) return 'Every minute';
-  return desc.join(', ');
+  return desc.length > 0 ? desc.join(', ') : 'Every minute';
 }
 
 function formatRelativeTime(isoString) {
@@ -44198,6 +44348,10 @@ function cleanupSettingsTab() {
 }
 
 let currentServerId$1 = null;
+let autoRefreshInterval = null;
+let isModalOpen = false;
+
+const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
 
 function renderBackupsTab() {
   return `
@@ -44205,10 +44359,15 @@ function renderBackupsTab() {
       <div class="card">
         <div class="card-header">
           <h3>Backups</h3>
-          <button class="btn btn-primary btn-sm" id="btn-create-backup">
-            <span class="material-icons-outlined">add</span>
-            Create Backup
-          </button>
+          <div class="card-header-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-refresh-backups" title="Refresh">
+              <span class="material-icons-outlined">refresh</span>
+            </button>
+            <button class="btn btn-primary btn-sm" id="btn-create-backup">
+              <span class="material-icons-outlined">add</span>
+              Create Backup
+            </button>
+          </div>
         </div>
         <div class="backups-list" id="backups-list">
           <div class="loading">Loading backups...</div>
@@ -44222,8 +44381,43 @@ async function initBackupsTab(serverId) {
   currentServerId$1 = serverId;
   
   document.getElementById('btn-create-backup').onclick = () => createBackup(serverId);
+  document.getElementById('btn-refresh-backups').onclick = () => refreshBackups();
   
   await loadBackups(serverId);
+  startAutoRefresh();
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  autoRefreshInterval = setInterval(() => {
+    if (!isModalOpen && currentServerId$1) {
+      loadBackups(currentServerId$1);
+    }
+  }, AUTO_REFRESH_INTERVAL);
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+  }
+}
+
+async function refreshBackups() {
+  if (!currentServerId$1) return;
+  
+  const btn = document.getElementById('btn-refresh-backups');
+  if (btn) {
+    btn.disabled = true;
+    btn.querySelector('.material-icons-outlined').classList.add('spinning');
+  }
+  
+  await loadBackups(currentServerId$1);
+  
+  if (btn) {
+    btn.disabled = false;
+    btn.querySelector('.material-icons-outlined').classList.remove('spinning');
+  }
 }
 
 async function loadBackups(serverId) {
@@ -44254,7 +44448,7 @@ async function loadBackups(serverId) {
     container.innerHTML = backups.map(backup => `
       <div class="backup-item ${backup.is_successful ? '' : 'pending'}" data-id="${backup.id}">
         <div class="backup-icon">
-          <span class="material-icons-outlined">
+          <span class="material-icons-outlined ${backup.is_successful ? '' : 'spinning'}">
             ${backup.is_successful ? 'cloud_done' : 'cloud_sync'}
           </span>
         </div>
@@ -44264,10 +44458,11 @@ async function loadBackups(serverId) {
             ${backup.is_locked ? '<span class="material-icons-outlined locked-icon">lock</span>' : ''}
           </div>
           <div class="backup-meta">
-            ${backup.is_successful ? formatBytes(backup.bytes || 0) : 'In progress...'}
+            ${backup.is_successful ? formatBytes(backup.bytes || 0) : '<span class="backup-progress">Creating backup...</span>'}
             <span class="separator">•</span>
             ${formatDate$3(backup.created_at)}
           </div>
+          ${backup.checksum ? `<div class="backup-checksum" title="SHA256 Checksum">Checksum: ${backup.checksum}</div>` : ''}
         </div>
         <div class="backup-actions">
           ${backup.is_successful ? `
@@ -44277,7 +44472,13 @@ async function loadBackups(serverId) {
             <button class="btn btn-xs btn-ghost" title="Restore" data-action="restore">
               <span class="material-icons-outlined">restore</span>
             </button>
-          ` : ''}
+          ` : `
+            <div class="backup-pending-indicator">
+              <div class="progress-bar-mini">
+                <div class="progress-bar-mini-fill"></div>
+              </div>
+            </div>
+          `}
           <button class="btn btn-xs btn-ghost" title="${backup.is_locked ? 'Unlock' : 'Lock'}" data-action="lock">
             <span class="material-icons-outlined">${backup.is_locked ? 'lock_open' : 'lock'}</span>
           </button>
@@ -44315,11 +44516,21 @@ async function loadBackups(serverId) {
   }
 }
 
+function validateBackupName(name) {
+  if (!name) return true;
+  if (name.length > 100) return 'Name must be 100 characters or less';
+  if (/[<>:"/\\|?*]/.test(name)) return 'Name contains invalid characters';
+  return true;
+}
+
 async function createBackup(serverId) {
+  isModalOpen = true;
+  
   const content = `
     <div class="form-group">
       <label>Backup Name (optional)</label>
-      <input type="text" id="backup-name" placeholder="My Backup" />
+      <input type="text" id="backup-name" placeholder="My Backup" maxlength="100" />
+      <p class="hint error-hint" id="backup-name-error"></p>
     </div>
     <div class="form-group">
       <label>Ignored Files (optional)</label>
@@ -44334,6 +44545,14 @@ async function createBackup(serverId) {
     confirmText: 'Create',
     onConfirm: async () => {
       const name = document.getElementById('backup-name').value.trim();
+      const errorEl = document.getElementById('backup-name-error');
+      
+      const validation = validateBackupName(name);
+      if (validation !== true) {
+        errorEl.textContent = validation;
+        return false;
+      }
+      
       const ignoredText = document.getElementById('backup-ignored').value.trim();
       const ignored = ignoredText ? ignoredText.split('\n').map(s => s.trim()).filter(Boolean) : [];
       
@@ -44355,7 +44574,18 @@ async function createBackup(serverId) {
       } catch (e) {
         error('Failed to create backup');
       }
+    },
+    onClose: () => {
+      isModalOpen = false;
     }
+  });
+  
+  const nameInput = document.getElementById('backup-name');
+  const errorEl = document.getElementById('backup-name-error');
+  
+  nameInput?.addEventListener('input', () => {
+    const validation = validateBackupName(nameInput.value.trim());
+    errorEl.textContent = validation === true ? '' : validation;
   });
 }
 
@@ -44455,7 +44685,9 @@ async function deleteBackup(serverId, backupId) {
 }
 
 function cleanupBackupsTab() {
+  stopAutoRefresh();
   currentServerId$1 = null;
+  isModalOpen = false;
 }
 
 let currentServerId = null;
@@ -45462,7 +45694,8 @@ async function renderNodeDetail(container, username, nodeId) {
     });
     
     document.getElementById('delete-node-btn').onclick = async () => {
-      if (!confirm('Are you sure you want to delete this node? This cannot be undone.')) return;
+      const confirmed = await confirm$1({ title: 'Delete Node', message: 'Are you sure you want to delete this node? This cannot be undone.', danger: true });
+      if (!confirmed) return;
       try {
         await api(`/api/admin/nodes/${nodeId}`, {
           method: 'DELETE',
@@ -46023,7 +46256,8 @@ async function renderServerDetail(container, username, serverId) {
     });
     
     document.getElementById('delete-server-btn').onclick = async () => {
-      if (!confirm('Are you sure you want to delete this server? This cannot be undone.')) return;
+      const confirmed = await confirm$1({ title: 'Delete Server', message: 'Are you sure you want to delete this server? This cannot be undone.', danger: true });
+      if (!confirmed) return;
       try {
         await api(`/api/admin/servers/${serverId}`, {
           method: 'DELETE',
@@ -46342,7 +46576,8 @@ function renderServerSubTab(server, username) {
       const reinstallBtn = document.getElementById('reinstall-btn');
       if (reinstallBtn) {
         reinstallBtn.onclick = async () => {
-          if (!confirm('Are you sure? All server files will be deleted.')) return;
+          const confirmed = await confirm$1({ title: 'Reinstall Server', message: 'Are you sure? All server files will be deleted.', danger: true });
+          if (!confirmed) return;
           try {
             await api(`/api/servers/${server.id}/reinstall`, {
               method: 'POST',
@@ -46372,7 +46607,8 @@ function renderServerSubTab(server, username) {
       };
       
       document.getElementById('delete-btn').onclick = async () => {
-        if (!confirm('Are you sure you want to delete this server? This cannot be undone.')) return;
+        const confirmed = await confirm$1({ title: 'Delete Server', message: 'Are you sure you want to delete this server? This cannot be undone.', danger: true });
+        if (!confirmed) return;
         try {
           await api(`/api/admin/servers/${server.id}`, {
             method: 'DELETE',
@@ -46428,7 +46664,8 @@ function setupOwnerSearch(server) {
               const userId = item.dataset.userId;
               const username = item.dataset.username;
               
-              if (!confirm(`Transfer server to @${username}?`)) return;
+              const confirmed = await confirm$1({ title: 'Transfer Server', message: `Transfer server to @${username}?`, confirmText: 'Transfer' });
+              if (!confirmed) return;
               
               try {
                 await api(`/api/admin/servers/${server.id}`, {
@@ -46526,7 +46763,8 @@ function setupEggSearch(server) {
               const eggId = item.dataset.eggId;
               const eggName = item.dataset.eggName;
               
-              if (!confirm(`Change egg to "${eggName}"? This will update the startup command and Docker image.`)) return;
+              const confirmed = await confirm$1({ title: 'Change Egg', message: `Change egg to "${eggName}"? This will update the startup command and Docker image.`, confirmText: 'Change' });
+              if (!confirmed) return;
               
               try {
                 const res = await api(`/api/admin/servers/${server.id}`, {
@@ -46668,7 +46906,8 @@ window.unsuspendServerAdmin = async function(serverId) {
 };
 
 window.deleteServerAdmin = async function(serverId) {
-  if (!confirm('Are you sure? This will delete the server from the node.')) return;
+  const confirmed = await confirm$1({ title: 'Delete Server', message: 'Are you sure? This will delete the server from the node.', danger: true });
+  if (!confirmed) return;
   try {
     await api(`/api/admin/servers/${serverId}`, {
       method: 'DELETE',
@@ -47135,7 +47374,7 @@ async function renderUserSubTab(user, username) {
       `;
       
       document.getElementById('delete-user-btn')?.addEventListener('click', async () => {
-        const confirmUsername = prompt('Type "' + user.username + '" to confirm deletion:');
+        const confirmUsername = await prompt(`Type "${user.username}" to confirm deletion:`, { title: 'Delete User', placeholder: user.username });
         if (confirmUsername !== user.username) {
           if (confirmUsername !== null) error('Username does not match');
           return;
@@ -47705,7 +47944,8 @@ window.editNestAdmin = async function(nestId) {
 };
 
 window.deleteNestAdmin = async function(nestId) {
-  if (!confirm('Delete this nest and all its eggs?')) return;
+  const confirmed = await confirm$1({ title: 'Delete Nest', message: 'Delete this nest and all its eggs?', danger: true });
+  if (!confirmed) return;
   
   try {
     await api(`/api/admin/nests/${nestId}`, {
@@ -47769,7 +48009,8 @@ window.editEggAdmin = function(eggId) {
 };
 
 window.deleteEggAdmin = async function(eggId) {
-  if (!confirm('Delete this egg?')) return;
+  const confirmed = await confirm$1({ title: 'Delete Egg', message: 'Delete this egg?', danger: true });
+  if (!confirmed) return;
   
   try {
     await api(`/api/admin/eggs/${eggId}`, {
@@ -47838,7 +48079,8 @@ async function renderEggDetail(container, username, eggId) {
     });
     
     document.getElementById('delete-egg-btn').onclick = async () => {
-      if (!confirm('Are you sure you want to delete this egg? This cannot be undone.')) return;
+      const confirmed = await confirm$1({ title: 'Delete Egg', message: 'Are you sure you want to delete this egg? This cannot be undone.', danger: true });
+      if (!confirmed) return;
       try {
         await api(`/api/admin/eggs/${eggId}`, {
           method: 'DELETE',
@@ -48196,7 +48438,8 @@ function renderEggVariablesTab(content, egg, username) {
   document.querySelectorAll('.delete-var-btn').forEach(btn => {
     btn.onclick = async (e) => {
       e.stopPropagation();
-      if (!confirm('Delete this variable?')) return;
+      const confirmed = await confirm$1({ title: 'Delete Variable', message: 'Delete this variable?', danger: true });
+      if (!confirmed) return;
       const idx = parseInt(btn.dataset.index);
       const newVars = [...variables];
       newVars.splice(idx, 1);
@@ -48483,7 +48726,8 @@ function showLocationModal(username, loadView) {
 }
 
 window.deleteLocationAdmin = async function(locationId) {
-  if (!confirm('Delete this location?')) return;
+  const confirmed = await confirm$1({ title: 'Delete Location', message: 'Delete this location?', danger: true });
+  if (!confirmed) return;
   
   try {
     await api(`/api/admin/locations/${locationId}`, {
@@ -48949,7 +49193,8 @@ async function loadOAuthProviders() {
     
     list.querySelectorAll('.delete-oauth-btn').forEach(btn => {
       btn.onclick = async () => {
-        if (!confirm('Delete this OAuth provider?')) return;
+        const confirmed = await confirm$1({ title: 'Delete OAuth Provider', message: 'Delete this OAuth provider?', danger: true });
+        if (!confirmed) return;
         try {
           await api(`/api/admin/oauth/providers/${btn.dataset.id}`, { method: 'DELETE' });
           success('Provider deleted');
@@ -49260,7 +49505,8 @@ async function loadAppApiKeys() {
       btn.onclick = async (e) => {
         e.stopPropagation();
         const id = btn.dataset.id;
-        if (!confirm('Are you sure you want to delete this application key?')) return;
+        const confirmed = await confirm$1({ title: 'Delete API Key', message: 'Are you sure you want to delete this application key?', danger: true });
+        if (!confirmed) return;
         
         try {
           await api(`/api/api-keys/application/${id}`, { method: 'DELETE' });
@@ -49458,7 +49704,7 @@ function renderMailSettings(content, config) {
   };
   
   document.getElementById('test-mail-btn').onclick = async () => {
-    const email = prompt('Enter email address to send test to:');
+    const email = await prompt('Enter email address to send test to:', { title: 'Test Email', placeholder: 'user@example.com' });
     if (!email) return;
     
     const btn = document.getElementById('test-mail-btn');
@@ -49596,7 +49842,8 @@ function renderAdvancedSettings(content, config) {
   };
   
   document.getElementById('clear-cache-btn').onclick = async () => {
-    if (!confirm('Clear all cache? Users may need to log in again.')) return;
+    const confirmed = await confirm$1({ title: 'Clear Cache', message: 'Clear all cache? Users may need to log in again.', danger: true });
+    if (!confirmed) return;
     info('Clearing cache...');
     try {
       await api('/api/admin/cache/clear', { method: 'POST' });
@@ -49607,7 +49854,8 @@ function renderAdvancedSettings(content, config) {
   };
   
   document.getElementById('rebuild-indexes-btn').onclick = async () => {
-    if (!confirm('Rebuild database indexes? This may take a moment.')) return;
+    const confirmed = await confirm$1({ title: 'Rebuild Indexes', message: 'Rebuild database indexes? This may take a moment?' });
+    if (!confirmed) return;
     info('Rebuilding indexes...');
     try {
       await api('/api/admin/database/rebuild', { method: 'POST' });
@@ -49821,7 +50069,8 @@ async function renderAnnouncementsList(container, username, loadView) {
     };
     
     window.deleteAnnouncement = async (id) => {
-      if (!confirm('Are you sure you want to delete this announcement?')) return;
+      const confirmed = await confirm$1({ title: 'Delete Announcement', message: 'Are you sure you want to delete this announcement?', danger: true });
+      if (!confirmed) return;
       
       try {
         await api(`/api/announcements/${id}`, { method: 'DELETE' });
@@ -50399,7 +50648,8 @@ function setupWebhookListeners(webhooks, loadView) {
   };
   
   window.deleteWebhook = async (id) => {
-    if (!confirm('Are you sure you want to delete this webhook?')) return;
+    const confirmed = await confirm$1({ title: 'Delete Webhook', message: 'Are you sure you want to delete this webhook?', danger: true });
+    if (!confirmed) return;
     
     try {
       const res = await api(`/api/webhooks/admin/${id}`, { method: 'DELETE' });
@@ -51049,9 +51299,9 @@ async function renderSetup() {
     
     document.getElementById('next-btn')?.addEventListener('click', () => {
       saveCurrentStep();
-      const error = validateCurrentStep();
-      if (error) {
-        alert(error);
+      const error$1 = validateCurrentStep();
+      if (error$1) {
+        error(error$1);
         return;
       }
       currentStep++;
@@ -51060,9 +51310,9 @@ async function renderSetup() {
     
     document.getElementById('finish-btn')?.addEventListener('click', async () => {
       saveCurrentStep();
-      const error = validateCurrentStep();
-      if (error) {
-        alert(error);
+      const error$1 = validateCurrentStep();
+      if (error$1) {
+        error(error$1);
         return;
       }
       
@@ -51097,7 +51347,7 @@ async function renderSetup() {
           </div>
         `;
       } catch (err) {
-        alert(err.message);
+        error(err.message);
         btn.disabled = false;
         btn.textContent = 'Complete Setup';
       }

@@ -1,5 +1,6 @@
 import { api } from '../../utils/api.js';
 import * as toast from '../../utils/toast.js';
+import * as modal from '../../utils/modal.js';
 
 let currentServerId = null;
 let allocations = [];
@@ -142,7 +143,8 @@ async function setAllocationPrimary(allocId) {
 }
 
 async function deleteAllocation(allocId) {
-  if (!confirm('Delete this allocation?')) return;
+  const confirmed = await modal.confirm({ title: 'Delete Allocation', message: 'Delete this allocation?', danger: true });
+  if (!confirmed) return;
   
   const username = localStorage.getItem('username');
   

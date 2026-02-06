@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
+import * as modal from '../../../utils/modal.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
 import { formatBytes, renderPagination, setupPaginationListeners, renderBreadcrumb, setupBreadcrumbListeners, jsonToYaml, renderSearchBox, setupSearchListeners } from '../utils/ui.js';
@@ -138,7 +139,8 @@ export async function renderNodeDetail(container, username, nodeId) {
     });
     
     document.getElementById('delete-node-btn').onclick = async () => {
-      if (!confirm('Are you sure you want to delete this node? This cannot be undone.')) return;
+      const confirmed = await modal.confirm({ title: 'Delete Node', message: 'Are you sure you want to delete this node? This cannot be undone.', danger: true });
+      if (!confirmed) return;
       try {
         await api(`/api/admin/nodes/${nodeId}`, {
           method: 'DELETE',

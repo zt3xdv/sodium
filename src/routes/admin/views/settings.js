@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
+import * as modal from '../../../utils/modal.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
 import { renderBreadcrumb, setupBreadcrumbListeners } from '../utils/ui.js';
@@ -455,7 +456,8 @@ async function loadOAuthProviders() {
     
     list.querySelectorAll('.delete-oauth-btn').forEach(btn => {
       btn.onclick = async () => {
-        if (!confirm('Delete this OAuth provider?')) return;
+        const confirmed = await modal.confirm({ title: 'Delete OAuth Provider', message: 'Delete this OAuth provider?', danger: true });
+        if (!confirmed) return;
         try {
           await api(`/api/admin/oauth/providers/${btn.dataset.id}`, { method: 'DELETE' });
           toast.success('Provider deleted');
@@ -766,7 +768,8 @@ async function loadAppApiKeys() {
       btn.onclick = async (e) => {
         e.stopPropagation();
         const id = btn.dataset.id;
-        if (!confirm('Are you sure you want to delete this application key?')) return;
+        const confirmed = await modal.confirm({ title: 'Delete API Key', message: 'Are you sure you want to delete this application key?', danger: true });
+        if (!confirmed) return;
         
         try {
           await api(`/api/api-keys/application/${id}`, { method: 'DELETE' });
@@ -964,7 +967,7 @@ function renderMailSettings(content, config) {
   };
   
   document.getElementById('test-mail-btn').onclick = async () => {
-    const email = prompt('Enter email address to send test to:');
+    const email = await modal.prompt('Enter email address to send test to:', { title: 'Test Email', placeholder: 'user@example.com' });
     if (!email) return;
     
     const btn = document.getElementById('test-mail-btn');
@@ -1102,7 +1105,8 @@ function renderAdvancedSettings(content, config) {
   };
   
   document.getElementById('clear-cache-btn').onclick = async () => {
-    if (!confirm('Clear all cache? Users may need to log in again.')) return;
+    const confirmed = await modal.confirm({ title: 'Clear Cache', message: 'Clear all cache? Users may need to log in again.', danger: true });
+    if (!confirmed) return;
     toast.info('Clearing cache...');
     try {
       await api('/api/admin/cache/clear', { method: 'POST' });
@@ -1113,7 +1117,8 @@ function renderAdvancedSettings(content, config) {
   };
   
   document.getElementById('rebuild-indexes-btn').onclick = async () => {
-    if (!confirm('Rebuild database indexes? This may take a moment.')) return;
+    const confirmed = await modal.confirm({ title: 'Rebuild Indexes', message: 'Rebuild database indexes? This may take a moment?' });
+    if (!confirmed) return;
     toast.info('Rebuilding indexes...');
     try {
       await api('/api/admin/database/rebuild', { method: 'POST' });

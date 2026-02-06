@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../../utils/security.js';
 import * as toast from '../../../utils/toast.js';
+import * as modal from '../../../utils/modal.js';
 import { api } from '../../../utils/api.js';
 import { state } from '../state.js';
 import { renderBreadcrumb, setupBreadcrumbListeners } from '../utils/ui.js';
@@ -306,7 +307,8 @@ function setupWebhookListeners(webhooks, loadView) {
   };
   
   window.deleteWebhook = async (id) => {
-    if (!confirm('Are you sure you want to delete this webhook?')) return;
+    const confirmed = await modal.confirm({ title: 'Delete Webhook', message: 'Are you sure you want to delete this webhook?', danger: true });
+    if (!confirmed) return;
     
     try {
       const res = await api(`/api/webhooks/admin/${id}`, { method: 'DELETE' });

@@ -5024,6 +5024,103 @@ input, textarea, select {
   margin: 1rem 0 0.5rem;
 }
 
+.backups-tab .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.backups-tab .card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.backups-tab .card-header .header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-refresh .material-icons-outlined {
+  transition: transform 0.3s ease;
+}
+.btn-refresh.refreshing .material-icons-outlined {
+  animation: spin 1s linear infinite;
+}
+
+.backup-item.pending .backup-progress {
+  height: 3px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.backup-item.pending .backup-progress .progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+  width: 30%;
+}
+.backup-item .backup-checksum {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(200%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+.backup-name-input.invalid {
+  border-color: var(--danger) !important;
+}
+
+.input-error {
+  color: var(--danger);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.schedule-card.executing {
+  border-color: var(--accent);
+}
+.schedule-card.executing .schedule-name .status-dot {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+.cron-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(var(--danger-rgb), 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.schedule-actions .btn-ghost.executing .material-icons-outlined {
+  animation: spin 1s linear infinite;
+}
+
 .status-page {
   max-width: 1000px;
   margin: 0 auto;
