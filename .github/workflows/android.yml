@@ -1,0 +1,499 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build dist
+        run: npm run build
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      
+      - name: Create Android project
+        run: |
+          mkdir -p android-app/app/src/main/java/com/sodium/app
+          mkdir -p android-app/app/src/main/res/layout
+          mkdir -p android-app/app/src/main/res/values
+          mkdir -p android-app/app/src/main/res/drawable
+          mkdir -p android-app/app/src/main/res/mipmap-hdpi
+          mkdir -p android-app/app/src/main/res/mipmap-mdpi
+          mkdir -p android-app/app/src/main/res/mipmap-xhdpi
+          mkdir -p android-app/app/src/main/res/mipmap-xxhdpi
+          mkdir -p android-app/app/src/main/res/mipmap-xxxhdpi
+          mkdir -p android-app/app/src/main/assets/www
+          
+          # Copy dist files to assets
+          cp -r dist/* android-app/app/src/main/assets/www/
+      
+      - name: Generate Android files
+        run: |
+          # MainActivity.java
+          cat > android-app/app/src/main/java/com/sodium/app/MainActivity.java << 'EOF'
+          package com.sodium.app;
+
+          import android.app.Activity;
+          import android.content.SharedPreferences;
+          import android.os.Bundle;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import android.webkit.WebSettings;
+          import android.webkit.WebChromeClient;
+          import android.view.View;
+          import android.view.Window;
+          import android.view.WindowManager;
+          import android.widget.Button;
+          import android.widget.EditText;
+          import android.widget.LinearLayout;
+          import android.widget.Toast;
+          import android.graphics.Color;
+          import android.os.Build;
+
+          public class MainActivity extends Activity {
+              private WebView webView;
+              private LinearLayout setupLayout;
+              private EditText urlInput;
+              private SharedPreferences prefs;
+              private static final String PREF_NAME = "sodium_prefs";
+              private static final String KEY_URL = "target_url";
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  
+                  requestWindowFeature(Window.FEATURE_NO_TITLE);
+                  getWindow().setFlags(
+                      WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                      WindowManager.LayoutParams.FLAG_FULLSCREEN
+                  );
+                  
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                      getWindow().setStatusBarColor(Color.parseColor("#0a0a0a"));
+                      getWindow().setNavigationBarColor(Color.parseColor("#0a0a0a"));
+                  }
+
+                  setContentView(R.layout.activity_main);
+                  
+                  prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+                  
+                  webView = findViewById(R.id.webview);
+                  setupLayout = findViewById(R.id.setup_layout);
+                  urlInput = findViewById(R.id.url_input);
+                  Button connectBtn = findViewById(R.id.connect_btn);
+                  Button resetBtn = findViewById(R.id.reset_btn);
+                  
+                  setupWebView();
+                  
+                  String savedUrl = prefs.getString(KEY_URL, null);
+                  if (savedUrl != null && !savedUrl.isEmpty()) {
+                      loadUrl(savedUrl);
+                  } else {
+                      showSetup();
+                  }
+                  
+                  connectBtn.setOnClickListener(v -> {
+                      String url = urlInput.getText().toString().trim();
+                      if (url.isEmpty()) {
+                          Toast.makeText(this, "Enter a URL", Toast.LENGTH_SHORT).show();
+                          return;
+                      }
+                      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                          url = "https://" + url;
+                      }
+                      prefs.edit().putString(KEY_URL, url).apply();
+                      loadUrl(url);
+                  });
+                  
+                  resetBtn.setOnClickListener(v -> {
+                      prefs.edit().remove(KEY_URL).apply();
+                      showSetup();
+                  });
+              }
+              
+              private void setupWebView() {
+                  WebSettings webSettings = webView.getSettings();
+                  webSettings.setJavaScriptEnabled(true);
+                  webSettings.setDomStorageEnabled(true);
+                  webSettings.setAllowFileAccess(true);
+                  webSettings.setAllowContentAccess(true);
+                  webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+                  webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+                  
+                  webView.setWebViewClient(new WebViewClient());
+                  webView.setWebChromeClient(new WebChromeClient());
+                  webView.setBackgroundColor(Color.parseColor("#0a0a0a"));
+              }
+              
+              private void showSetup() {
+                  setupLayout.setVisibility(View.VISIBLE);
+                  webView.setVisibility(View.GONE);
+                  findViewById(R.id.reset_btn).setVisibility(View.GONE);
+              }
+              
+              private void loadUrl(String url) {
+                  setupLayout.setVisibility(View.GONE);
+                  webView.setVisibility(View.VISIBLE);
+                  findViewById(R.id.reset_btn).setVisibility(View.VISIBLE);
+                  webView.loadUrl(url);
+              }
+
+              @Override
+              public void onBackPressed() {
+                  if (webView.getVisibility() == View.VISIBLE && webView.canGoBack()) {
+                      webView.goBack();
+                  } else {
+                      super.onBackPressed();
+                  }
+              }
+          }
+          EOF
+
+          # activity_main.xml
+          cat > android-app/app/src/main/res/layout/activity_main.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="#0a0a0a">
+              
+              <LinearLayout
+                  android:id="@+id/setup_layout"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:orientation="vertical"
+                  android:gravity="center"
+                  android:padding="32dp"
+                  android:visibility="gone">
+                  
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="⚡"
+                      android:textSize="64sp"
+                      android:layout_marginBottom="16dp" />
+                  
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="Sodium"
+                      android:textColor="#d97339"
+                      android:textSize="32sp"
+                      android:textStyle="bold"
+                      android:layout_marginBottom="8dp" />
+                  
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="Enter your panel URL"
+                      android:textColor="#888888"
+                      android:textSize="16sp"
+                      android:layout_marginBottom="32dp" />
+                  
+                  <EditText
+                      android:id="@+id/url_input"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:hint="https://panel.example.com"
+                      android:textColor="#ffffff"
+                      android:textColorHint="#666666"
+                      android:background="@drawable/input_bg"
+                      android:padding="16dp"
+                      android:textSize="16sp"
+                      android:inputType="textUri"
+                      android:layout_marginBottom="16dp" />
+                  
+                  <Button
+                      android:id="@+id/connect_btn"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Connect"
+                      android:textColor="#ffffff"
+                      android:background="@drawable/button_bg"
+                      android:padding="16dp"
+                      android:textSize="16sp"
+                      android:textAllCaps="false" />
+              </LinearLayout>
+              
+              <WebView
+                  android:id="@+id/webview"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:visibility="gone" />
+              
+              <Button
+                  android:id="@+id/reset_btn"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:layout_alignParentBottom="true"
+                  android:layout_alignParentEnd="true"
+                  android:layout_margin="16dp"
+                  android:text="⚙"
+                  android:textSize="20sp"
+                  android:background="@drawable/reset_btn_bg"
+                  android:padding="12dp"
+                  android:visibility="gone" />
+          </RelativeLayout>
+          EOF
+          
+          # input_bg.xml
+          cat > android-app/app/src/main/res/drawable/input_bg.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="#1a1a1a" />
+              <corners android:radius="12dp" />
+              <stroke android:width="1dp" android:color="#333333" />
+          </shape>
+          EOF
+          
+          # button_bg.xml
+          cat > android-app/app/src/main/res/drawable/button_bg.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="#d97339" />
+              <corners android:radius="12dp" />
+          </shape>
+          EOF
+          
+          # reset_btn_bg.xml
+          cat > android-app/app/src/main/res/drawable/reset_btn_bg.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="#2a2a2a" />
+              <corners android:radius="24dp" />
+          </shape>
+          EOF
+
+          # colors.xml
+          cat > android-app/app/src/main/res/values/colors.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="colorPrimary">#d97339</color>
+              <color name="colorPrimaryDark">#0a0a0a</color>
+              <color name="colorAccent">#d97339</color>
+              <color name="background">#0a0a0a</color>
+          </resources>
+          EOF
+
+          # strings.xml
+          cat > android-app/app/src/main/res/values/strings.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">Sodium</string>
+          </resources>
+          EOF
+
+          # styles.xml
+          cat > android-app/app/src/main/res/values/styles.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
+                  <item name="android:colorPrimary">@color/colorPrimary</item>
+                  <item name="android:colorPrimaryDark">@color/colorPrimaryDark</item>
+                  <item name="android:colorAccent">@color/colorAccent</item>
+                  <item name="android:windowBackground">@color/background</item>
+                  <item name="android:navigationBarColor">@color/background</item>
+                  <item name="android:statusBarColor">@color/background</item>
+              </style>
+          </resources>
+          EOF
+
+          # AndroidManifest.xml
+          cat > android-app/app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.sodium.app">
+              
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+              
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="@string/app_name"
+                  android:theme="@style/AppTheme"
+                  android:usesCleartextTraffic="true"
+                  android:hardwareAccelerated="true">
+                  
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:configChanges="orientation|screenSize|keyboardHidden"
+                      android:screenOrientation="unspecified">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # build.gradle (project)
+          cat > android-app/build.gradle << 'EOF'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.0'
+              }
+          }
+
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          task clean(type: Delete) {
+              delete rootProject.buildDir
+          }
+          EOF
+
+          # build.gradle (app)
+          cat > android-app/app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.sodium.app'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.sodium.app"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0.0"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled true
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+                  debug {
+                      minifyEnabled false
+                  }
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.webkit:webkit:1.8.0'
+          }
+          EOF
+
+          # proguard-rules.pro
+          cat > android-app/app/proguard-rules.pro << 'EOF'
+          -keepattributes *Annotation*
+          -keepclassmembers class * {
+              @android.webkit.JavascriptInterface <methods>;
+          }
+          EOF
+
+          # settings.gradle
+          cat > android-app/settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "Sodium"
+          include ':app'
+          EOF
+
+          # gradle.properties
+          cat > android-app/gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          EOF
+
+          # Create simple icon (orange bolt on dark background)
+          cat > android-app/app/src/main/res/drawable/ic_launcher_foreground.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:fillColor="#d97339"
+                  android:pathData="M54,28L38,54h12l-4,26l20-30H52l6-22z"/>
+          </vector>
+          EOF
+
+          # Adaptive icon
+          cat > android-app/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/background"/>
+              <foreground android:drawable="@drawable/ic_launcher_foreground"/>
+          </adaptive-icon>
+          EOF
+
+          mkdir -p android-app/app/src/main/res/mipmap-anydpi-v26
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build APK
+        working-directory: android-app
+        run: |
+          chmod +x gradlew 2>/dev/null || ./gradlew wrapper
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sodium-android
+          path: android-app/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: Upload APK to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: android-app/app/build/outputs/apk/debug/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
