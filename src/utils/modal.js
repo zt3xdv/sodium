@@ -162,62 +162,6 @@ export function show(options = {}) {
   });
 }
 
-export function custom(options = {}) {
-  return new Promise((resolve) => {
-    const { 
-      title = 'Modal', 
-      html = '', 
-      confirmText = 'Confirm', 
-      cancelText = 'Cancel',
-      danger = false,
-      width = '500px'
-    } = options;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-backdrop"></div>
-      <div class="modal-content" style="max-width: ${width};">
-        <div class="modal-header">
-          <h3>${escapeHtml(title)}</h3>
-          <button class="modal-close" id="modal-close-btn">
-            <span class="material-icons-outlined">close</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          ${html}
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-ghost" id="modal-cancel">${cancelText}</button>
-          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="modal-confirm">${confirmText}</button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    requestAnimationFrame(() => modal.classList.add('active'));
-    
-    const close = (result) => {
-      modal.classList.remove('active');
-      setTimeout(() => modal.remove(), 150);
-      resolve(result);
-    };
-    
-    modal.querySelector('#modal-cancel').onclick = () => close(false);
-    modal.querySelector('#modal-close-btn').onclick = () => close(false);
-    modal.querySelector('#modal-confirm').onclick = () => close(true);
-    modal.querySelector('.modal-backdrop').onclick = () => close(false);
-    
-    const handleKey = (e) => {
-      if (e.key === 'Escape') {
-        close(false);
-        document.removeEventListener('keydown', handleKey);
-      }
-    };
-    document.addEventListener('keydown', handleKey);
-  });
-}
-
 export function alert(message, options = {}) {
   return new Promise((resolve) => {
     const { title = 'Alert', confirmText = 'OK' } = options;

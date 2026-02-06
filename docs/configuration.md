@@ -47,21 +47,6 @@ Sodium stores all configuration in `data/config.json`. This file is created auto
   },
   "features": {
     "subusers": true
-  },
-  "billing": {
-    "enabled": false,
-    "requireEmail": true,
-    "requireEmailVerification": true,
-    "autoSuspend": true,
-    "currency": "USD",
-    "currencySymbol": "$",
-    "taxRate": 0,
-    "gracePeriodDays": 3
-  },
-  "tickets": {
-    "enabled": true,
-    "requireEmail": false,
-    "maxOpenTickets": 5
   }
 }
 ```
@@ -102,21 +87,6 @@ Sodium stores all configuration in `data/config.json`. This file is created auto
 
 **features**
 - `subusers` - Enable server sharing
-
-**billing** (see [Billing Documentation](billing.md) for full details)
-- `enabled` - Enable the billing system
-- `requireEmail` - Require email for billing
-- `requireEmailVerification` - Require verified email
-- `autoSuspend` - Suspend servers when subscription expires
-- `currency` - Currency code (USD, EUR, etc.)
-- `currencySymbol` - Display symbol ($, etc.)
-- `taxRate` - Tax percentage for invoices
-- `gracePeriodDays` - Days before suspension after expiration
-
-**tickets**
-- `enabled` - Enable the support ticket system
-- `requireEmail` - Require email for tickets
-- `maxOpenTickets` - Maximum open tickets per user
 
 ## Database
 

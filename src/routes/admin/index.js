@@ -10,8 +10,6 @@ import { renderSettingsPage } from './views/settings.js';
 import { renderAnnouncementsList } from './views/announcements.js';
 import { renderAuditLogPage, renderActivityLogPage } from './views/logs.js';
 import { renderWebhooksList } from './views/webhooks.js';
-import { renderBillingPage } from './views/billing.js';
-import { renderTicketsList, renderTicketDetail } from './views/tickets.js';
 
 function navigateTo(tab, id = null, subTab = null) {
   state.currentView = { 
@@ -95,9 +93,6 @@ export async function loadView() {
       case 'eggs':
         await renderEggDetail(container, username, state.currentView.id);
         break;
-      case 'tickets':
-        await renderTicketDetail(container, username, state.currentView.id);
-        break;
     }
   } else {
     switch (state.currentView.tab) {
@@ -130,12 +125,6 @@ export async function loadView() {
         break;
       case 'webhooks':
         await renderWebhooksList(container, username, loadView);
-        break;
-      case 'billing':
-        await renderBillingPage(container, username, loadView);
-        break;
-      case 'tickets':
-        await renderTicketsList(container, username, loadView);
         break;
     }
   }

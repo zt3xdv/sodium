@@ -26,7 +26,6 @@
 | **Easy Setup** | Single command install | Complex configuration |
 | **No .env files** | JSON config, setup wizard | Manual environment setup |
 | **Flexible Database** | File, SQLite, MySQL, PostgreSQL | Usually MySQL only |
-| **Built-in Billing** | Stripe, PayPal, coupons, invoices | Requires external addons |
 | **Modern Stack** | Node.js | PHP, older tech |
 
 ## Quick Start
@@ -65,7 +64,6 @@ See [docs/](docs/) for full documentation:
 - [Installation](docs/installation.md)
 - [Configuration](docs/configuration.md)
 - [Daemon Setup](docs/daemon-setup.md)
-- [Billing System](docs/billing.md)
 - [API Reference](docs/api.md)
 - [Architecture](docs/architecture.md)
 - [Eggs](eggs/)

@@ -101,23 +101,6 @@ export function router() {
     }
   }
   
-  if (!route && path.startsWith('/tickets/')) {
-    const ticketId = path.split('/')[2];
-    if (ticketId) {
-      route = {
-        render: async () => {
-          const { renderTickets } = await import('./routes/tickets.js');
-          renderTickets({ id: ticketId });
-        },
-        options: {
-          title: 'Ticket',
-          auth: true,
-          sidebar: true
-        }
-      };
-    }
-  }
-  
   if (!route) {
     route = routes['/404'];
   }

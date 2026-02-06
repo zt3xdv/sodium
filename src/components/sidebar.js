@@ -31,9 +31,7 @@ export function renderSidebar() {
       label: 'Account',
       items: [
         { path: '/profile', icon: 'person', label: 'Profile' },
-        { path: '/settings', icon: 'settings', label: 'Settings' },
-        { path: '/billing', icon: 'payments', label: 'Billing' },
-        { path: '/tickets', icon: 'support_agent', label: 'Support' }
+        { path: '/settings', icon: 'settings', label: 'Settings' }
       ]
     }
   ];
@@ -48,8 +46,6 @@ export function renderSidebar() {
       { path: '/admin/locations', icon: 'location_on', label: 'Locations' },
       { path: '/admin/announcements', icon: 'campaign', label: 'Announcements' },
       { path: '/admin/webhooks', icon: 'webhook', label: 'Webhooks' },
-      { path: '/admin/billing', icon: 'payments', label: 'Billing' },
-      { path: '/admin/tickets', icon: 'support_agent', label: 'Tickets' },
       { path: '/admin/audit', icon: 'history', label: 'Audit Log' },
       { path: '/admin/settings', icon: 'tune', label: 'Panel Settings' }
     ]

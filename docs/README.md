@@ -5,9 +5,8 @@
 1. [Installation](installation.md) - Setup guide for the panel
 2. [Configuration](configuration.md) - Panel and database configuration
 3. [Daemon Setup](daemon-setup.md) - Setting up Sodium Reaction on nodes
-4. [Billing System](billing.md) - Subscriptions, payments, and invoices
-5. [API Reference](api.md) - REST API documentation
-6. [Architecture](architecture.md) - System architecture overview
+4. [API Reference](api.md) - REST API documentation
+5. [Architecture](architecture.md) - System architecture overview
 
 ## Quick Start
 

@@ -11,8 +11,6 @@ import { renderStatus, cleanupStatus } from './status.js';
 import { renderAdmin, cleanupAdmin } from './admin/index.js';
 import { renderActivityLog } from './activity-log.js';
 import { renderSetup } from './setup.js';
-import { renderBilling, cleanupBilling } from './billing.js';
-import { renderTickets, cleanupTickets } from './tickets.js';
 
 export const routes = {
   '/': {
@@ -135,34 +133,6 @@ export const routes = {
     render: (params) => renderAdmin('webhooks', params),
     cleanup: cleanupAdmin,
     options: { title: 'Webhooks', auth: true, sidebar: true }
-  },
-  '/admin/billing': {
-    render: (params) => renderAdmin('billing', params),
-    cleanup: cleanupAdmin,
-    options: { title: 'Billing', auth: true, sidebar: true }
-  },
-  '/admin/tickets': {
-    render: (params) => renderAdmin('tickets', params),
-    cleanup: cleanupAdmin,
-    options: { title: 'Tickets', auth: true, sidebar: true }
-  },
-  '/billing': {
-    render: renderBilling,
-    cleanup: cleanupBilling,
-    options: {
-      title: 'Billing',
-      auth: true,
-      sidebar: true
-    }
-  },
-  '/tickets': {
-    render: () => renderTickets(),
-    cleanup: cleanupTickets,
-    options: {
-      title: 'Support',
-      auth: true,
-      sidebar: true
-    }
   },
   '/profile': {
     render: renderProfile,
