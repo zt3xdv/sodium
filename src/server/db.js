@@ -36,7 +36,8 @@ const COLLECTIONS = {
   billingPayments: 15,
   billingInvoices: 16,
   tickets: 17,
-  ticketMessages: 18
+  ticketMessages: 18,
+  billingCoupons: 19
 };
 
 let cache = {
@@ -57,7 +58,8 @@ let cache = {
   billingPayments: [],
   billingInvoices: [],
   tickets: [],
-  ticketMessages: []
+  ticketMessages: [],
+  billingCoupons: []
 };
 
 let dbConnection = null;
@@ -375,6 +377,7 @@ const billingPlansAccessors = createCollectionAccessors('billingPlans');
 const billingSubscriptionsAccessors = createCollectionAccessors('billingSubscriptions');
 const billingPaymentsAccessors = createCollectionAccessors('billingPayments');
 const billingInvoicesAccessors = createCollectionAccessors('billingInvoices');
+const billingCouponsAccessors = createCollectionAccessors('billingCoupons');
 const ticketsAccessors = createCollectionAccessors('tickets');
 const ticketMessagesAccessors = createCollectionAccessors('ticketMessages');
 
@@ -410,6 +413,8 @@ export const loadBillingPayments = billingPaymentsAccessors.load;
 export const saveBillingPayments = billingPaymentsAccessors.save;
 export const loadBillingInvoices = billingInvoicesAccessors.load;
 export const saveBillingInvoices = billingInvoicesAccessors.save;
+export const loadBillingCoupons = billingCouponsAccessors.load;
+export const saveBillingCoupons = billingCouponsAccessors.save;
 export const loadTickets = ticketsAccessors.load;
 export const saveTickets = ticketsAccessors.save;
 export const loadTicketMessages = ticketMessagesAccessors.load;

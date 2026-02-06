@@ -11,6 +11,7 @@ let currentBillingTab = 'overview';
 const BILLING_TABS = [
   { id: 'overview', label: 'Overview', icon: 'dashboard' },
   { id: 'plans', label: 'Plans', icon: 'inventory_2' },
+  { id: 'coupons', label: 'Coupons', icon: 'local_offer' },
   { id: 'subscriptions', label: 'Subscriptions', icon: 'card_membership' },
   { id: 'invoices', label: 'Invoices', icon: 'receipt_long' },
   { id: 'payments', label: 'Payments', icon: 'payments' },
@@ -71,6 +72,9 @@ async function renderBillingContent() {
       break;
     case 'plans':
       await renderPlansTab(content);
+      break;
+    case 'coupons':
+      await renderCouponsTab(content);
       break;
     case 'subscriptions':
       await renderSubscriptionsTab(content);
@@ -388,6 +392,218 @@ async function showPlanModal(existingPlan = null) {
     }
   } catch (e) {
     toast.error('Failed to save plan');
+  }
+}
+
+async function renderCouponsTab(content) {
+  try {
+    const res = await api('/api/billing/admin/coupons');
+    const { coupons } = await res.json();
+    
+    const configRes = await api('/api/billing/admin/settings');
+    const { billing } = await configRes.json();
+    const symbol = billing?.currencySymbol || '$';
+    
+    content.innerHTML = `
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <div>
+            <h2>Discount Coupons</h2>
+            <p>Create and manage discount codes for subscriptions.</p>
+          </div>
+          <button class="btn btn-primary" id="create-coupon-btn">
+            <span class="material-icons-outlined">add</span>
+            Create Coupon
+          </button>
+        </div>
+        
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Discount</th>
+                <th>Uses</th>
+                <th>Expires</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${coupons.length === 0 ? `
+                <tr><td colspan="6" class="empty-cell">No coupons created yet</td></tr>
+              ` : coupons.map(coupon => `
+                <tr>
+                  <td>
+                    <strong class="coupon-code">${escapeHtml(coupon.code)}</strong>
+                    ${coupon.description ? `<br><small class="text-muted">${escapeHtml(coupon.description)}</small>` : ''}
+                  </td>
+                  <td>
+                    ${coupon.type === 'percentage' 
+                      ? `${coupon.value}%` 
+                      : `${symbol}${coupon.value.toFixed(2)}`}
+                  </td>
+                  <td>${coupon.usedCount || 0}${coupon.maxUses ? ` / ${coupon.maxUses}` : ''}</td>
+                  <td>${coupon.expiresAt ? formatDate(coupon.expiresAt) : 'Never'}</td>
+                  <td>
+                    <span class="badge badge-${coupon.active ? 'success' : 'secondary'}">
+                      ${coupon.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="action-btns">
+                      <button class="btn btn-sm btn-secondary edit-coupon-btn" data-id="${coupon.id}">Edit</button>
+                      <button class="btn btn-sm btn-danger delete-coupon-btn" data-id="${coupon.id}">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('create-coupon-btn').onclick = () => showCouponModal();
+    
+    content.querySelectorAll('.edit-coupon-btn').forEach(btn => {
+      btn.onclick = () => {
+        const coupon = coupons.find(c => c.id === btn.dataset.id);
+        if (coupon) showCouponModal(coupon);
+      };
+    });
+    
+    content.querySelectorAll('.delete-coupon-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const confirmed = await modal.confirm({ 
+          title: 'Delete Coupon', 
+          message: 'Are you sure you want to delete this coupon?',
+          danger: true 
+        });
+        if (!confirmed) return;
+        
+        try {
+          const res = await api(`/api/billing/admin/coupons/${btn.dataset.id}`, { method: 'DELETE' });
+          if (res.ok) {
+            toast.success('Coupon deleted');
+            renderBillingContent();
+          } else {
+            toast.error('Failed to delete coupon');
+          }
+        } catch (e) {
+          toast.error('Failed to delete coupon');
+        }
+      };
+    });
+  } catch (e) {
+    content.innerHTML = '<div class="error">Failed to load coupons</div>';
+  }
+}
+
+async function showCouponModal(existingCoupon = null) {
+  const isEdit = !!existingCoupon;
+  
+  const plansRes = await api('/api/billing/admin/plans');
+  const { plans } = await plansRes.json();
+  
+  const html = `
+    <form id="coupon-form" class="modal-form">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Coupon Code *</label>
+          <input type="text" name="code" value="${escapeHtml(existingCoupon?.code || '')}" 
+                 style="text-transform: uppercase" required ${isEdit ? 'readonly' : ''} />
+        </div>
+        <div class="form-group">
+          <label>Discount Type</label>
+          <select name="type">
+            <option value="percentage" ${existingCoupon?.type === 'percentage' ? 'selected' : ''}>Percentage (%)</option>
+            <option value="fixed" ${existingCoupon?.type === 'fixed' ? 'selected' : ''}>Fixed Amount</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Discount Value *</label>
+          <input type="number" name="value" value="${existingCoupon?.value || 0}" min="0" step="0.01" required />
+        </div>
+        <div class="form-group">
+          <label>Max Uses</label>
+          <input type="number" name="maxUses" value="${existingCoupon?.maxUses || ''}" min="0" placeholder="Unlimited" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" name="description" value="${escapeHtml(existingCoupon?.description || '')}" />
+      </div>
+      <div class="form-group">
+        <label>Expires At</label>
+        <input type="date" name="expiresAt" value="${existingCoupon?.expiresAt ? existingCoupon.expiresAt.split('T')[0] : ''}" />
+      </div>
+      <div class="form-group">
+        <label>Applicable Plans</label>
+        <select name="planIds" multiple style="height: 100px;">
+          ${plans.map(p => `
+            <option value="${p.id}" ${existingCoupon?.planIds?.includes(p.id) ? 'selected' : ''}>
+              ${escapeHtml(p.name)}
+            </option>
+          `).join('')}
+        </select>
+        <small class="form-hint">Leave empty to apply to all plans</small>
+      </div>
+      <div class="form-toggles">
+        <label class="toggle-item">
+          <input type="checkbox" name="active" ${existingCoupon?.active !== false ? 'checked' : ''} />
+          <span class="toggle-content">
+            <span class="toggle-title">Active</span>
+          </span>
+        </label>
+      </div>
+    </form>
+  `;
+  
+  const confirmed = await modal.custom({
+    title: isEdit ? 'Edit Coupon' : 'Create Coupon',
+    html,
+    confirmText: isEdit ? 'Save Changes' : 'Create Coupon',
+    width: '500px'
+  });
+  
+  if (!confirmed) return;
+  
+  const form = document.getElementById('coupon-form');
+  const selectedPlans = Array.from(form.planIds.selectedOptions).map(o => o.value);
+  
+  const couponData = {
+    code: form.code.value.toUpperCase(),
+    description: form.description.value,
+    type: form.type.value,
+    value: parseFloat(form.value.value) || 0,
+    maxUses: form.maxUses.value ? parseInt(form.maxUses.value) : null,
+    planIds: selectedPlans,
+    expiresAt: form.expiresAt.value ? new Date(form.expiresAt.value).toISOString() : null,
+    active: form.active.checked
+  };
+  
+  try {
+    const url = isEdit ? `/api/billing/admin/coupons/${existingCoupon.id}` : '/api/billing/admin/coupons';
+    const method = isEdit ? 'PUT' : 'POST';
+    
+    const res = await api(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coupon: couponData })
+    });
+    
+    if (res.ok) {
+      toast.success(isEdit ? 'Coupon updated' : 'Coupon created');
+      renderBillingContent();
+    } else {
+      const data = await res.json();
+      toast.error(data.error || 'Failed to save coupon');
+    }
+  } catch (e) {
+    toast.error('Failed to save coupon');
   }
 }
 
@@ -726,6 +942,13 @@ async function renderBillingSettings(content) {
                   <span class="toggle-desc">Users must verify their email before billing</span>
                 </span>
               </label>
+              <label class="toggle-item">
+                <input type="checkbox" name="autoSuspend" ${billing?.autoSuspend ? 'checked' : ''} />
+                <span class="toggle-content">
+                  <span class="toggle-title">Auto-Suspend on Expiration</span>
+                  <span class="toggle-desc">Automatically suspend servers when subscription expires</span>
+                </span>
+              </label>
             </div>
           </div>
           
@@ -766,6 +989,64 @@ async function renderBillingSettings(content) {
               <label>Manual Payment Instructions</label>
               <textarea name="manualInstructions" rows="3">${escapeHtml(billing?.paymentMethods?.manual?.instructions || '')}</textarea>
               <small class="form-hint">Shown to users when they need to pay manually</small>
+            </div>
+          </div>
+          
+          <div class="detail-card">
+            <h3>Stripe</h3>
+            <div class="form-toggles">
+              <label class="toggle-item">
+                <input type="checkbox" name="stripeEnabled" ${billing?.paymentMethods?.stripe?.enabled ? 'checked' : ''} />
+                <span class="toggle-content">
+                  <span class="toggle-title">Enable Stripe</span>
+                  <span class="toggle-desc">Accept credit card payments via Stripe</span>
+                </span>
+              </label>
+            </div>
+            <div class="form-grid" style="margin-top: 1rem;">
+              <div class="form-group">
+                <label>Public Key</label>
+                <input type="text" name="stripePublicKey" value="${escapeHtml(billing?.paymentMethods?.stripe?.publicKey || '')}" placeholder="pk_..." />
+              </div>
+              <div class="form-group">
+                <label>Secret Key</label>
+                <input type="password" name="stripeSecretKey" value="${escapeHtml(billing?.paymentMethods?.stripe?.secretKey || '')}" placeholder="sk_..." />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Webhook Secret</label>
+              <input type="password" name="stripeWebhookSecret" value="${escapeHtml(billing?.paymentMethods?.stripe?.webhookSecret || '')}" placeholder="whsec_..." />
+              <small class="form-hint">From Stripe Dashboard → Webhooks</small>
+            </div>
+          </div>
+          
+          <div class="detail-card">
+            <h3>PayPal</h3>
+            <div class="form-toggles">
+              <label class="toggle-item">
+                <input type="checkbox" name="paypalEnabled" ${billing?.paymentMethods?.paypal?.enabled ? 'checked' : ''} />
+                <span class="toggle-content">
+                  <span class="toggle-title">Enable PayPal</span>
+                  <span class="toggle-desc">Accept payments via PayPal</span>
+                </span>
+              </label>
+              <label class="toggle-item">
+                <input type="checkbox" name="paypalSandbox" ${billing?.paymentMethods?.paypal?.sandbox ? 'checked' : ''} />
+                <span class="toggle-content">
+                  <span class="toggle-title">Sandbox Mode</span>
+                  <span class="toggle-desc">Use PayPal sandbox for testing</span>
+                </span>
+              </label>
+            </div>
+            <div class="form-grid" style="margin-top: 1rem;">
+              <div class="form-group">
+                <label>Client ID</label>
+                <input type="text" name="paypalClientId" value="${escapeHtml(billing?.paymentMethods?.paypal?.clientId || '')}" />
+              </div>
+              <div class="form-group">
+                <label>Client Secret</label>
+                <input type="password" name="paypalClientSecret" value="${escapeHtml(billing?.paymentMethods?.paypal?.clientSecret || '')}" />
+              </div>
             </div>
           </div>
           
@@ -812,6 +1093,7 @@ async function renderBillingSettings(content) {
           enabled: form.enabled.checked,
           requireEmail: form.requireEmail.checked,
           requireEmailVerification: form.requireEmailVerification.checked,
+          autoSuspend: form.autoSuspend.checked,
           currency: form.currency.value,
           currencySymbol: form.currencySymbol.value,
           taxRate: parseFloat(form.taxRate.value) || 0,
@@ -820,6 +1102,18 @@ async function renderBillingSettings(content) {
             manual: {
               enabled: form.manualEnabled.checked,
               instructions: form.manualInstructions.value
+            },
+            stripe: {
+              enabled: form.stripeEnabled.checked,
+              publicKey: form.stripePublicKey.value,
+              secretKey: form.stripeSecretKey.value,
+              webhookSecret: form.stripeWebhookSecret.value
+            },
+            paypal: {
+              enabled: form.paypalEnabled.checked,
+              clientId: form.paypalClientId.value,
+              clientSecret: form.paypalClientSecret.value,
+              sandbox: form.paypalSandbox.checked
             }
           },
           notifications: {

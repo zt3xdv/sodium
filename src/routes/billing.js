@@ -72,11 +72,21 @@ export async function renderBilling() {
             ${!subscription ? `
               <div class="detail-card">
                 <h2>Available Plans</h2>
+                
+                <div class="coupon-input" style="margin-bottom: 1.5rem;">
+                  <label>Have a coupon code?</label>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="coupon-code" placeholder="Enter code" style="flex: 1; text-transform: uppercase;" />
+                    <button class="btn btn-secondary" id="apply-coupon-btn">Apply</button>
+                  </div>
+                  <div id="coupon-result" style="margin-top: 0.5rem;"></div>
+                </div>
+                
                 <div class="plans-grid">
                   ${plans.length === 0 ? `
                     <p class="text-muted">No plans available at this time.</p>
                   ` : plans.sort((a, b) => a.sortOrder - b.sortOrder).map(plan => `
-                    <div class="plan-card">
+                    <div class="plan-card" data-plan-id="${plan.id}" data-plan-price="${plan.price}">
                       <div class="plan-header">
                         <h3>${escapeHtml(plan.name)}</h3>
                       </div>
@@ -226,7 +236,12 @@ async function loadPaymentHistory(symbol) {
                 <span class="invoice-amount">${symbol}${inv.total.toFixed(2)}</span>
                 <span class="invoice-date">Due: ${formatDate(inv.dueDate)}</span>
               </div>
-              <span class="badge badge-warning">Pending</span>
+              <div class="invoice-actions">
+                <button class="btn btn-sm btn-primary pay-invoice-btn" data-invoice='${JSON.stringify(inv)}'>Pay</button>
+                <button class="btn btn-sm btn-secondary download-invoice-btn" data-id="${inv.id}" title="Download PDF">
+                  <span class="material-icons-outlined" style="font-size: 16px;">download</span>
+                </button>
+              </div>
             </div>
           `).join('')}
         </div>
@@ -246,12 +261,66 @@ async function loadPaymentHistory(symbol) {
         ${payments.length === 0 ? '<p class="text-muted">No payments yet</p>' : ''}
       </div>
     `;
+    
+    container.querySelectorAll('.pay-invoice-btn').forEach(btn => {
+      btn.onclick = () => {
+        const invoice = JSON.parse(btn.dataset.invoice);
+        showPaymentOptions(invoice);
+      };
+    });
+    
+    container.querySelectorAll('.download-invoice-btn').forEach(btn => {
+      btn.onclick = () => downloadInvoice(btn.dataset.id);
+    });
   } catch (e) {
     container.innerHTML = '<p class="text-muted">Failed to load history</p>';
   }
 }
 
+let appliedCoupon = null;
+
 function setupEventListeners(requirementsMet) {
+  const couponBtn = document.getElementById('apply-coupon-btn');
+  const couponInput = document.getElementById('coupon-code');
+  const couponResult = document.getElementById('coupon-result');
+  
+  if (couponBtn) {
+    couponBtn.onclick = async () => {
+      const code = couponInput.value.trim();
+      if (!code) {
+        couponResult.innerHTML = '<span class="text-danger">Please enter a code</span>';
+        return;
+      }
+      
+      try {
+        const res = await api('/api/billing/validate-coupon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        
+        const data = await res.json();
+        
+        if (data.valid) {
+          appliedCoupon = data.coupon;
+          const discountText = data.coupon.type === 'percentage' 
+            ? `${data.coupon.value}% off` 
+            : `${billingConfig.currencySymbol}${data.coupon.value} off`;
+          couponResult.innerHTML = `<span class="text-success">✓ ${discountText} applied!</span>`;
+          couponInput.disabled = true;
+          couponBtn.textContent = 'Applied';
+          couponBtn.disabled = true;
+        } else {
+          couponResult.innerHTML = `<span class="text-danger">${data.error}</span>`;
+          appliedCoupon = null;
+        }
+      } catch (e) {
+        couponResult.innerHTML = '<span class="text-danger">Failed to validate coupon</span>';
+        appliedCoupon = null;
+      }
+    };
+  }
+  
   document.querySelectorAll('.subscribe-btn').forEach(btn => {
     btn.onclick = async () => {
       if (!requirementsMet) {
@@ -263,7 +332,9 @@ function setupEventListeners(requirementsMet) {
       
       const confirmed = await modal.confirm({
         title: 'Subscribe to Plan',
-        message: 'Are you sure you want to subscribe to this plan?'
+        message: appliedCoupon 
+          ? `Subscribe with coupon "${appliedCoupon.code}" applied?`
+          : 'Are you sure you want to subscribe to this plan?'
       });
       
       if (!confirmed) return;
@@ -272,17 +343,26 @@ function setupEventListeners(requirementsMet) {
       btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
       
       try {
+        const payload = { planId };
+        if (appliedCoupon) {
+          payload.couponCode = appliedCoupon.code;
+        }
+        
         const res = await api('/api/billing/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ planId })
+          body: JSON.stringify(payload)
         });
         
         const data = await res.json();
         
         if (data.success) {
-          toast.success(data.message || 'Subscription created');
-          setTimeout(() => window.location.reload(), 1000);
+          if (data.invoice && billingConfig.paymentMethods?.stripe) {
+            showPaymentOptions(data.invoice);
+          } else {
+            toast.success(data.message || 'Subscription created');
+            setTimeout(() => window.location.reload(), 1000);
+          }
         } else {
           toast.error(data.error || 'Failed to subscribe');
           btn.disabled = false;
@@ -329,4 +409,108 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString();
 }
 
-export function cleanupBilling() {}
+async function showPaymentOptions(invoice) {
+  const symbol = billingConfig.currencySymbol || '$';
+  
+  const html = `
+    <div class="payment-options">
+      <p style="margin-bottom: 1.5rem;">
+        <strong>Amount Due:</strong> ${symbol}${invoice.total.toFixed(2)}
+      </p>
+      
+      ${billingConfig.paymentMethods?.stripe ? `
+        <button class="btn btn-primary btn-block" id="pay-stripe-btn" style="margin-bottom: 0.75rem;">
+          <span class="material-icons-outlined">credit_card</span>
+          Pay with Card (Stripe)
+        </button>
+      ` : ''}
+      
+      ${billingConfig.paymentMethods?.paypal ? `
+        <button class="btn btn-secondary btn-block" id="pay-paypal-btn" style="margin-bottom: 0.75rem;">
+          Pay with PayPal
+        </button>
+      ` : ''}
+      
+      ${billingConfig.paymentMethods?.manual ? `
+        <div class="manual-payment-info" style="margin-top: 1rem; padding: 1rem; background: var(--bg-tertiary); border-radius: 8px;">
+          <h4 style="margin: 0 0 0.5rem;">Manual Payment</h4>
+          <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);">
+            Contact admin or follow instructions to complete payment manually.
+          </p>
+        </div>
+      ` : ''}
+    </div>
+  `;
+  
+  const confirmed = await modal.custom({
+    title: 'Complete Payment',
+    html,
+    confirmText: 'Close',
+    width: '400px'
+  });
+  
+  setTimeout(() => {
+    const stripeBtn = document.getElementById('pay-stripe-btn');
+    const paypalBtn = document.getElementById('pay-paypal-btn');
+    
+    if (stripeBtn) {
+      stripeBtn.onclick = async () => {
+        stripeBtn.disabled = true;
+        stripeBtn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
+        
+        try {
+          const res = await api('/api/billing/stripe/create-checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invoiceId: invoice.id })
+          });
+          
+          const data = await res.json();
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            toast.error('Failed to create checkout session');
+            stripeBtn.disabled = false;
+            stripeBtn.innerHTML = '<span class="material-icons-outlined">credit_card</span> Pay with Card';
+          }
+        } catch (e) {
+          toast.error('Payment failed');
+          stripeBtn.disabled = false;
+        }
+      };
+    }
+    
+    if (paypalBtn) {
+      paypalBtn.onclick = async () => {
+        paypalBtn.disabled = true;
+        
+        try {
+          const res = await api('/api/billing/paypal/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invoiceId: invoice.id })
+          });
+          
+          const data = await res.json();
+          if (data.orderId) {
+            window.open(`https://www.paypal.com/checkoutnow?token=${data.orderId}`, '_blank');
+          } else {
+            toast.error('Failed to create PayPal order');
+            paypalBtn.disabled = false;
+          }
+        } catch (e) {
+          toast.error('Payment failed');
+          paypalBtn.disabled = false;
+        }
+      };
+    }
+  }, 100);
+}
+
+function downloadInvoice(invoiceId) {
+  window.open(`/api/billing/invoices/${invoiceId}/pdf`, '_blank');
+}
+
+export function cleanupBilling() {
+  appliedCoupon = null;
+}

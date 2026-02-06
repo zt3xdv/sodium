@@ -24,7 +24,7 @@ import setupRoutes from './routes/setup.js';
 import healthRoutes from './routes/health.js';
 import metricsRoutes, { recordRequest } from './routes/metrics.js';
 import applicationApiRoutes from './routes/application-api.js';
-import billingRoutes from './routes/billing.js';
+import billingRoutes, { startBillingScheduler } from './routes/billing.js';
 import ticketsRoutes from './routes/tickets.js';
 import { setupWebSocket } from './socket.js';
 import { isInstalled, loadFullConfig } from './config.js';
@@ -119,6 +119,7 @@ async function startServer() {
   // Start schedule runner if installed
   if (isInstalled()) {
     startScheduler();
+    startBillingScheduler();
   }
   
   server.listen(PORT, () => {
