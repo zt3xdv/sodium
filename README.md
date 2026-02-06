@@ -28,7 +28,7 @@ All configuration is stored in `data/config.json`. No manual environment variabl
 |---------|-------------|
 | `npm start` | Start production server |
 | `npm run build` | Build frontend |
-| `npm run fast-build` | Quick build |
+| `npm run fast` | Quick build |
 | `npm run watch` | Development mode |
 
 ## Documentation
