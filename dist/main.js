@@ -3087,6 +3087,8 @@ let selectedNest = null;
 let selectedEgg = null;
 let nestsData = null;
 let limitsData = null;
+let nodesData = null;
+let selectedNode = null;
 
 async function renderCreateServer() {
   const app = document.getElementById('app');
@@ -3108,19 +3110,32 @@ async function renderCreateServer() {
   `;
   
   try {
-    const [nestsRes, limitsRes] = await Promise.all([
+    const [nestsRes, limitsRes, nodesRes] = await Promise.all([
       api('/api/servers/nests'),
-      api(`/api/user/limits?username=${encodeURIComponent(user.username)}`)
+      api(`/api/user/limits?username=${encodeURIComponent(user.username)}`),
+      api('/api/servers/available-nodes')
     ]);
     
     nestsData = await nestsRes.json();
     limitsData = await limitsRes.json();
+    nodesData = await nodesRes.json();
     
     if (!nestsData.nests || nestsData.nests.length === 0) {
       document.querySelector('.create-server-content').innerHTML = `
         <div class="empty-state">
           <span class="material-icons-outlined">egg_alt</span>
           <p>No eggs configured. Contact an administrator.</p>
+          <a href="/servers" class="btn btn-primary">Go Back</a>
+        </div>
+      `;
+      return;
+    }
+    
+    if (!nodesData.nodes || nodesData.nodes.length === 0) {
+      document.querySelector('.create-server-content').innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">dns</span>
+          <p>No nodes available. Contact an administrator.</p>
           <a href="/servers" class="btn btn-primary">Go Back</a>
         </div>
       `;
@@ -3199,6 +3214,14 @@ function renderCreateForm(remaining) {
             <div class="form-group">
               <label>Description (optional)</label>
               <textarea name="description" rows="2" placeholder="What is this server for?"></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label>Node</label>
+              <select name="node_id" id="node-select" required>
+                ${nodesData.nodes.map(n => `<option value="${n.id}">${escapeHtml$1(n.name)} - ${n.available_memory}MB RAM available</option>`).join('')}
+              </select>
+              <span class="resource-hint">The server will be created on this node</span>
             </div>
             
             <div class="form-section">
@@ -3455,6 +3478,7 @@ async function submitCreateServer(remaining) {
       body: JSON.stringify({
         name: formData.get('name'),
         description: formData.get('description'),
+        node_id: formData.get('node_id'),
         egg_id: selectedEgg.id,
         docker_image: formData.get('docker_image') || null,
         memory,
@@ -3488,6 +3512,8 @@ function cleanupCreateServer() {
   selectedEgg = null;
   nestsData = null;
   limitsData = null;
+  nodesData = null;
+  selectedNode = null;
 }
 
 function formatBytes(bytes, decimals = 2) {
@@ -3610,7 +3636,7 @@ let resourcesCallback = null;
 let serverIdGetter = null;
 let resizeTimeout = null;
 let receivedLogs = new Set();
-let currentServerId$7 = null;
+let currentServerId$8 = null;
 
 function setConsoleCallbacks(onStatus, onResources, getServerId) {
   statusCallback = onStatus;
@@ -3635,12 +3661,12 @@ function renderConsoleTab() {
 }
 
 function initConsoleTab(serverId) {
-  if (currentServerId$7 === serverId && consoleSocket && consoleSocket.readyState === WebSocket.OPEN) {
+  if (currentServerId$8 === serverId && consoleSocket && consoleSocket.readyState === WebSocket.OPEN) {
     return;
   }
   
   cleanupConsoleTab();
-  currentServerId$7 = serverId;
+  currentServerId$8 = serverId;
   receivedLogs.clear();
   
   initTerminal();
@@ -3967,7 +3993,7 @@ function cleanupConsoleTab() {
     consoleSocket = null;
   }
   
-  currentServerId$7 = null;
+  currentServerId$8 = null;
   receivedLogs.clear();
 }
 
@@ -41050,7 +41076,7 @@ function alert$1(message, options = {}) {
 }
 
 let currentPath = '/';
-let currentServerId$6 = null;
+let currentServerId$7 = null;
 let progressSocket = null;
 let activeProgressIndicators = new Map();
 let isEditing = false;
@@ -41174,7 +41200,7 @@ function showCompressIndicator() {
       el.remove();
       if (success$1) {
         success('Compressed successfully');
-        loadFiles(currentServerId$6, currentPath);
+        loadFiles(currentServerId$7, currentPath);
       } else {
         error(error$1 || 'Failed to compress');
       }
@@ -41216,7 +41242,7 @@ function showDecompressIndicator(filename) {
       el.remove();
       if (success$1) {
         success('Extracted successfully');
-        loadFiles(currentServerId$6, currentPath);
+        loadFiles(currentServerId$7, currentPath);
       } else {
         error(error$1 || 'Failed to extract');
       }
@@ -41357,7 +41383,7 @@ function renderFilesTab() {
 
 function initFilesTab(serverId) {
   currentPath = '/';
-  currentServerId$6 = serverId;
+  currentServerId$7 = serverId;
   isEditing = false;
   editingPath = null;
   selectedFiles.clear();
@@ -42212,7 +42238,7 @@ function cleanupFilesTab() {
   }
 }
 
-let currentServerId$5 = null;
+let currentServerId$6 = null;
 let serverData$2 = null;
 let eggData = null;
 
@@ -42386,7 +42412,7 @@ function renderStartupTab() {
 }
 
 async function initStartupTab(serverId) {
-  currentServerId$5 = serverId;
+  currentServerId$6 = serverId;
   await loadStartupData(serverId);
 }
 
@@ -42614,7 +42640,7 @@ async function saveStartup() {
   saveBtn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> Saving...';
   
   try {
-    const res = await api(`/api/servers/${currentServerId$5}/startup`, {
+    const res = await api(`/api/servers/${currentServerId$6}/startup`, {
       method: 'PUT',
       
       body: JSON.stringify({
@@ -42669,12 +42695,12 @@ async function resetToDefaults() {
 }
 
 function cleanupStartupTab() {
-  currentServerId$5 = null;
+  currentServerId$6 = null;
   serverData$2 = null;
   eggData = null;
 }
 
-let currentServerId$4 = null;
+let currentServerId$5 = null;
 let allocations = [];
 
 function renderNetworkTab() {
@@ -42695,7 +42721,7 @@ function renderNetworkTab() {
 }
 
 async function initNetworkTab(serverId) {
-  currentServerId$4 = serverId;
+  currentServerId$5 = serverId;
   await loadAllocations();
   
   document.getElementById('btn-add-allocation').onclick = addAllocation;
@@ -42706,7 +42732,7 @@ async function loadAllocations() {
   const list = document.getElementById('allocations-list');
   
   try {
-    const res = await api(`/api/servers/${currentServerId$4}/allocations`);
+    const res = await api(`/api/servers/${currentServerId$5}/allocations`);
     const data = await res.json();
     
     if (data.error) {
@@ -42770,7 +42796,7 @@ async function addAllocation() {
   btn.innerHTML = '<span class="material-icons-outlined spinning">sync</span>';
   
   try {
-    const res = await api(`/api/servers/${currentServerId$4}/allocations`, {
+    const res = await api(`/api/servers/${currentServerId$5}/allocations`, {
       method: 'POST',
       
       body: JSON.stringify({})
@@ -42796,7 +42822,7 @@ async function setAllocationPrimary(allocId) {
   const username = localStorage.getItem('username');
   
   try {
-    const res = await api(`/api/servers/${currentServerId$4}/allocations/${allocId}/primary`, {
+    const res = await api(`/api/servers/${currentServerId$5}/allocations/${allocId}/primary`, {
       method: 'PUT',
       
       body: JSON.stringify({})
@@ -42820,7 +42846,7 @@ async function deleteAllocation(allocId) {
   const username = localStorage.getItem('username');
   
   try {
-    const res = await api(`/api/servers/${currentServerId$4}/allocations/${allocId}`, {
+    const res = await api(`/api/servers/${currentServerId$5}/allocations/${allocId}`, {
       method: 'DELETE',
       
       body: JSON.stringify({})
@@ -42839,7 +42865,7 @@ async function deleteAllocation(allocId) {
 }
 
 function cleanupNetworkTab() {
-  currentServerId$4 = null;
+  currentServerId$5 = null;
   allocations = [];
 }
 
@@ -42870,7 +42896,11 @@ const PERMISSIONS = {
   'startup.update': 'Edit startup',
   'settings.rename': 'Rename server',
   'settings.reinstall': 'Reinstall server',
-  'activity.read': 'View activity'
+  'activity.read': 'View activity',
+  'schedule.read': 'View schedules',
+  'schedule.create': 'Create schedules',
+  'schedule.update': 'Edit schedules',
+  'schedule.delete': 'Delete schedules'
 };
 
 const PERMISSION_GROUPS = {
@@ -42881,7 +42911,8 @@ const PERMISSION_GROUPS = {
   'Allocations': ['allocation.read', 'allocation.create', 'allocation.update', 'allocation.delete'],
   'Startup': ['startup.read', 'startup.update'],
   'Settings': ['settings.rename', 'settings.reinstall'],
-  'Activity': ['activity.read']
+  'Activity': ['activity.read'],
+  'Schedules': ['schedule.read', 'schedule.create', 'schedule.update', 'schedule.delete']
 };
 
 function hasPermission(permissions, permission) {
@@ -42894,7 +42925,7 @@ function hasAnyPermission(permissions, perms) {
   return perms.some(p => hasPermission(permissions, p));
 }
 
-let currentServerId$3 = null;
+let currentServerId$4 = null;
 let subusers = [];
 
 function renderUsersTab() {
@@ -42944,7 +42975,7 @@ function renderUsersTab() {
 }
 
 async function initUsersTab(serverId) {
-  currentServerId$3 = serverId;
+  currentServerId$4 = serverId;
   await loadSubusers();
   
   document.getElementById('btn-add-subuser').onclick = () => openModal();
@@ -42960,7 +42991,7 @@ async function loadSubusers() {
   const list = document.getElementById('subusers-list');
   
   try {
-    const res = await api(`/api/servers/${currentServerId$3}/subusers`);
+    const res = await api(`/api/servers/${currentServerId$4}/subusers`);
     const data = await res.json();
     
     if (data.error) {
@@ -43112,7 +43143,7 @@ async function saveSubuser(editId) {
   
   try {
     if (editId) {
-      const res = await api(`/api/servers/${currentServerId$3}/subusers/${editId}`, {
+      const res = await api(`/api/servers/${currentServerId$4}/subusers/${editId}`, {
         method: 'PUT',
         
         body: JSON.stringify({ permissions })
@@ -43123,7 +43154,7 @@ async function saveSubuser(editId) {
       const targetUsername = document.getElementById('subuser-username').value.trim();
       if (!targetUsername) throw new Error('Username required');
       
-      const res = await api(`/api/servers/${currentServerId$3}/subusers`, {
+      const res = await api(`/api/servers/${currentServerId$4}/subusers`, {
         method: 'POST',
         
         body: JSON.stringify({ target_username: targetUsername, permissions })
@@ -43149,7 +43180,7 @@ async function deleteSubuser(id) {
   const username = localStorage.getItem('username');
   
   try {
-    const res = await api(`/api/servers/${currentServerId$3}/subusers/${id}`, {
+    const res = await api(`/api/servers/${currentServerId$4}/subusers/${id}`, {
       method: 'DELETE',
       
       body: JSON.stringify({})
@@ -43168,8 +43199,532 @@ async function deleteSubuser(id) {
 }
 
 function cleanupUsersTab() {
-  currentServerId$3 = null;
+  currentServerId$4 = null;
   subusers = [];
+}
+
+let currentServerId$3 = null;
+
+function renderSchedulesTab(serverId) {
+  currentServerId$3 = serverId;
+  return `
+    <div class="schedules-tab">
+      <div class="tab-header">
+        <h2>Schedules</h2>
+        <button class="btn btn-primary" id="create-schedule-btn">
+          <span class="material-icons-outlined">add</span>
+          New Schedule
+        </button>
+      </div>
+      <div class="schedules-list" id="schedules-list">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  `;
+}
+
+async function initSchedulesTab(serverId) {
+  currentServerId$3 = serverId;
+  await loadSchedules();
+  
+  document.getElementById('create-schedule-btn')?.addEventListener('click', showCreateScheduleModal);
+}
+
+function cleanupSchedulesTab() {
+  currentServerId$3 = null;
+}
+
+async function loadSchedules() {
+  const container = document.getElementById('schedules-list');
+  if (!container) return;
+  
+  try {
+    const res = await api(`/api/servers/${currentServerId$3}/schedules`);
+    const data = await res.json();
+    
+    if (data.schedules.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">schedule</span>
+          <p>No schedules configured</p>
+          <span class="text-muted">Create automated tasks for your server</span>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = data.schedules.map(schedule => `
+      <div class="schedule-card" data-id="${schedule.id}">
+        <div class="schedule-header">
+          <div class="schedule-info">
+            <div class="schedule-name">
+              <span class="status-dot ${schedule.is_active ? 'active' : 'inactive'}"></span>
+              ${escapeHtml$1(schedule.name)}
+            </div>
+            <div class="schedule-cron">${formatCron(schedule.cron)}</div>
+          </div>
+          <div class="schedule-actions">
+            <button class="btn btn-sm btn-ghost" title="Run Now" data-action="execute" data-id="${schedule.id}">
+              <span class="material-icons-outlined">play_arrow</span>
+            </button>
+            <button class="btn btn-sm btn-ghost" title="Edit" data-action="edit" data-id="${schedule.id}">
+              <span class="material-icons-outlined">edit</span>
+            </button>
+            <button class="btn btn-sm btn-ghost btn-danger" title="Delete" data-action="delete" data-id="${schedule.id}">
+              <span class="material-icons-outlined">delete</span>
+            </button>
+          </div>
+        </div>
+        <div class="schedule-meta">
+          <span class="meta-item">
+            <span class="material-icons-outlined">task</span>
+            ${schedule.tasks?.length || 0} task${schedule.tasks?.length !== 1 ? 's' : ''}
+          </span>
+          ${schedule.last_run_at ? `
+            <span class="meta-item">
+              <span class="material-icons-outlined">history</span>
+              Last: ${formatRelativeTime(schedule.last_run_at)}
+            </span>
+          ` : ''}
+          ${schedule.next_run_at ? `
+            <span class="meta-item">
+              <span class="material-icons-outlined">schedule</span>
+              Next: ${formatRelativeTime(schedule.next_run_at)}
+            </span>
+          ` : ''}
+        </div>
+        <div class="schedule-tasks" id="tasks-${schedule.id}">
+          ${renderTasks(schedule.tasks || [], schedule.id)}
+        </div>
+        <button class="btn btn-sm btn-ghost add-task-btn" data-schedule="${schedule.id}">
+          <span class="material-icons-outlined">add</span>
+          Add Task
+        </button>
+      </div>
+    `).join('');
+    
+    attachScheduleListeners();
+  } catch (err) {
+    container.innerHTML = `<div class="error">Failed to load schedules</div>`;
+  }
+}
+
+function renderTasks(tasks, scheduleId) {
+  if (tasks.length === 0) {
+    return '<div class="no-tasks">No tasks configured</div>';
+  }
+  
+  return tasks.sort((a, b) => a.sequence_id - b.sequence_id).map(task => `
+    <div class="task-item" data-task="${task.id}" data-schedule="${scheduleId}">
+      <div class="task-order">#${task.sequence_id}</div>
+      <div class="task-info">
+        <span class="task-action ${task.action}">${getActionLabel(task.action)}</span>
+        <span class="task-payload">${escapeHtml$1(task.payload || '-')}</span>
+        ${task.time_offset > 0 ? `<span class="task-delay">+${task.time_offset}s delay</span>` : ''}
+      </div>
+      <div class="task-actions">
+        <button class="btn btn-xs btn-ghost" data-action="edit-task" data-task="${task.id}" data-schedule="${scheduleId}">
+          <span class="material-icons-outlined">edit</span>
+        </button>
+        <button class="btn btn-xs btn-ghost btn-danger" data-action="delete-task" data-task="${task.id}" data-schedule="${scheduleId}">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function attachScheduleListeners() {
+  document.querySelectorAll('[data-action="execute"]').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      btn.disabled = true;
+      try {
+        await api(`/api/servers/${currentServerId$3}/schedules/${id}/execute`, { method: 'POST' });
+        success('Schedule executed');
+        await loadSchedules();
+      } catch {
+        error('Failed to execute schedule');
+      }
+      btn.disabled = false;
+    };
+  });
+  
+  document.querySelectorAll('[data-action="edit"]').forEach(btn => {
+    btn.onclick = () => showEditScheduleModal(btn.dataset.id);
+  });
+  
+  document.querySelectorAll('[data-action="delete"]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('Delete this schedule?')) return;
+      try {
+        await api(`/api/servers/${currentServerId$3}/schedules/${btn.dataset.id}`, { method: 'DELETE' });
+        success('Schedule deleted');
+        await loadSchedules();
+      } catch {
+        error('Failed to delete schedule');
+      }
+    };
+  });
+  
+  document.querySelectorAll('.add-task-btn').forEach(btn => {
+    btn.onclick = () => showAddTaskModal(btn.dataset.schedule);
+  });
+  
+  document.querySelectorAll('[data-action="edit-task"]').forEach(btn => {
+    btn.onclick = () => showEditTaskModal(btn.dataset.schedule, btn.dataset.task);
+  });
+  
+  document.querySelectorAll('[data-action="delete-task"]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('Delete this task?')) return;
+      try {
+        await api(`/api/servers/${currentServerId$3}/schedules/${btn.dataset.schedule}/tasks/${btn.dataset.task}`, { method: 'DELETE' });
+        success('Task deleted');
+        await loadSchedules();
+      } catch {
+        error('Failed to delete task');
+      }
+    };
+  });
+}
+
+function showCreateScheduleModal() {
+  showScheduleModal(null);
+}
+
+async function showEditScheduleModal(id) {
+  try {
+    const res = await api(`/api/servers/${currentServerId$3}/schedules/${id}`);
+    const data = await res.json();
+    showScheduleModal(data.schedule);
+  } catch {
+    error('Failed to load schedule');
+  }
+}
+
+function showScheduleModal(schedule) {
+  const existing = document.getElementById('schedule-modal');
+  if (existing) existing.remove();
+  
+  const isEdit = !!schedule;
+  
+  const modal = document.createElement('div');
+  modal.id = 'schedule-modal';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal modal-md">
+      <div class="modal-header">
+        <h3>${isEdit ? 'Edit Schedule' : 'Create Schedule'}</h3>
+        <button class="modal-close" id="close-schedule-modal">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+      <form id="schedule-form" class="modal-body">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" name="name" value="${schedule?.name || ''}" required maxlength="100" placeholder="Daily Restart" />
+        </div>
+        
+        <div class="form-section-title">Schedule (Cron)</div>
+        <div class="cron-inputs">
+          <div class="form-group">
+            <label>Minute</label>
+            <input type="text" name="minute" value="${schedule?.cron?.minute || '*'}" placeholder="*" />
+            <small>0-59 or *</small>
+          </div>
+          <div class="form-group">
+            <label>Hour</label>
+            <input type="text" name="hour" value="${schedule?.cron?.hour || '*'}" placeholder="*" />
+            <small>0-23 or *</small>
+          </div>
+          <div class="form-group">
+            <label>Day of Month</label>
+            <input type="text" name="day_of_month" value="${schedule?.cron?.day_of_month || '*'}" placeholder="*" />
+            <small>1-31 or *</small>
+          </div>
+          <div class="form-group">
+            <label>Day of Week</label>
+            <input type="text" name="day_of_week" value="${schedule?.cron?.day_of_week || '*'}" placeholder="*" />
+            <small>0-6 or *</small>
+          </div>
+          <div class="form-group">
+            <label>Month</label>
+            <input type="text" name="month" value="${schedule?.cron?.month || '*'}" placeholder="*" />
+            <small>1-12 or *</small>
+          </div>
+        </div>
+        
+        <div class="form-toggles">
+          <label class="toggle-item">
+            <input type="checkbox" name="is_active" ${schedule?.is_active !== false ? 'checked' : ''} />
+            <span class="toggle-content">
+              <span class="toggle-title">Active</span>
+              <span class="toggle-desc">Enable this schedule</span>
+            </span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" name="only_when_online" ${schedule?.only_when_online ? 'checked' : ''} />
+            <span class="toggle-content">
+              <span class="toggle-title">Only When Online</span>
+              <span class="toggle-desc">Only run when server is online</span>
+            </span>
+          </label>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="cancel-schedule-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">${isEdit ? 'Save' : 'Create'}</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const closeModal = () => modal.remove();
+  document.getElementById('close-schedule-modal').onclick = closeModal;
+  document.getElementById('cancel-schedule-modal').onclick = closeModal;
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+  
+  document.getElementById('schedule-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    
+    const payload = {
+      name: form.name.value,
+      minute: form.minute.value || '*',
+      hour: form.hour.value || '*',
+      day_of_month: form.day_of_month.value || '*',
+      day_of_week: form.day_of_week.value || '*',
+      month: form.month.value || '*',
+      is_active: form.is_active.checked,
+      only_when_online: form.only_when_online.checked
+    };
+    
+    try {
+      const url = isEdit 
+        ? `/api/servers/${currentServerId$3}/schedules/${schedule.id}`
+        : `/api/servers/${currentServerId$3}/schedules`;
+      
+      await api(url, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      success(isEdit ? 'Schedule updated' : 'Schedule created');
+      closeModal();
+      await loadSchedules();
+    } catch {
+      error('Failed to save schedule');
+      btn.disabled = false;
+    }
+  };
+}
+
+function showAddTaskModal(scheduleId) {
+  showTaskModal(scheduleId, null);
+}
+
+async function showEditTaskModal(scheduleId, taskId) {
+  try {
+    const res = await api(`/api/servers/${currentServerId$3}/schedules/${scheduleId}`);
+    const data = await res.json();
+    const task = data.schedule.tasks?.find(t => t.id === taskId);
+    if (task) showTaskModal(scheduleId, task);
+  } catch {
+    error('Failed to load task');
+  }
+}
+
+function showTaskModal(scheduleId, task) {
+  const existing = document.getElementById('task-modal');
+  if (existing) existing.remove();
+  
+  const isEdit = !!task;
+  
+  const modal = document.createElement('div');
+  modal.id = 'task-modal';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3>${isEdit ? 'Edit Task' : 'Add Task'}</h3>
+        <button class="modal-close" id="close-task-modal">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+      <form id="task-form" class="modal-body">
+        <div class="form-group">
+          <label>Action</label>
+          <select name="action" id="task-action" required>
+            <option value="command" ${task?.action === 'command' ? 'selected' : ''}>Send Command</option>
+            <option value="power" ${task?.action === 'power' ? 'selected' : ''}>Power Action</option>
+            <option value="backup" ${task?.action === 'backup' ? 'selected' : ''}>Create Backup</option>
+          </select>
+        </div>
+        
+        <div class="form-group" id="payload-group">
+          <label id="payload-label">Command</label>
+          <input type="text" name="payload" id="payload-input" value="${escapeHtml$1(task?.payload || '')}" placeholder="say Server restarting in 5 minutes!" />
+        </div>
+        
+        <div class="form-group" id="power-group" style="display: none;">
+          <label>Power Action</label>
+          <select name="power_action" id="power-select">
+            <option value="start" ${task?.payload === 'start' ? 'selected' : ''}>Start</option>
+            <option value="stop" ${task?.payload === 'stop' ? 'selected' : ''}>Stop</option>
+            <option value="restart" ${task?.payload === 'restart' ? 'selected' : ''}>Restart</option>
+            <option value="kill" ${task?.payload === 'kill' ? 'selected' : ''}>Kill</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Time Offset (seconds)</label>
+          <input type="number" name="time_offset" value="${task?.time_offset || 0}" min="0" max="900" />
+          <small>Delay before executing this task (0-900 seconds)</small>
+        </div>
+        
+        <div class="form-toggles">
+          <label class="toggle-item">
+            <input type="checkbox" name="continue_on_failure" ${task?.continue_on_failure ? 'checked' : ''} />
+            <span class="toggle-content">
+              <span class="toggle-title">Continue on Failure</span>
+              <span class="toggle-desc">Continue to next task if this one fails</span>
+            </span>
+          </label>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="cancel-task-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">${isEdit ? 'Save' : 'Add Task'}</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const closeModal = () => modal.remove();
+  document.getElementById('close-task-modal').onclick = closeModal;
+  document.getElementById('cancel-task-modal').onclick = closeModal;
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+  
+  const actionSelect = document.getElementById('task-action');
+  const payloadGroup = document.getElementById('payload-group');
+  const powerGroup = document.getElementById('power-group');
+  const payloadLabel = document.getElementById('payload-label');
+  
+  function updatePayloadVisibility() {
+    const action = actionSelect.value;
+    if (action === 'command') {
+      payloadGroup.style.display = 'block';
+      powerGroup.style.display = 'none';
+      payloadLabel.textContent = 'Command';
+    } else if (action === 'power') {
+      payloadGroup.style.display = 'none';
+      powerGroup.style.display = 'block';
+    } else {
+      payloadGroup.style.display = 'none';
+      powerGroup.style.display = 'none';
+    }
+  }
+  
+  actionSelect.onchange = updatePayloadVisibility;
+  updatePayloadVisibility();
+  
+  document.getElementById('task-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    
+    const action = form.action.value;
+    let payload = '';
+    
+    if (action === 'command') {
+      payload = form.payload.value;
+    } else if (action === 'power') {
+      payload = form.power_action.value;
+    }
+    
+    const data = {
+      action,
+      payload,
+      time_offset: parseInt(form.time_offset.value) || 0,
+      continue_on_failure: form.continue_on_failure.checked
+    };
+    
+    try {
+      const url = isEdit 
+        ? `/api/servers/${currentServerId$3}/schedules/${scheduleId}/tasks/${task.id}`
+        : `/api/servers/${currentServerId$3}/schedules/${scheduleId}/tasks`;
+      
+      await api(url, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      success(isEdit ? 'Task updated' : 'Task added');
+      closeModal();
+      await loadSchedules();
+    } catch {
+      error('Failed to save task');
+      btn.disabled = false;
+    }
+  };
+}
+
+// Helpers
+function formatCron(cron) {
+  if (!cron) return 'Not set';
+  const { minute, hour, day_of_month, day_of_week, month } = cron;
+  
+  let desc = [];
+  
+  if (minute !== '*') desc.push(`at minute ${minute}`);
+  if (hour !== '*') desc.push(`at hour ${hour}`);
+  if (day_of_month !== '*') desc.push(`on day ${day_of_month}`);
+  if (day_of_week !== '*') {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    desc.push(`on ${days[parseInt(day_of_week)] || day_of_week}`);
+  }
+  if (month !== '*') desc.push(`in month ${month}`);
+  
+  if (desc.length === 0) return 'Every minute';
+  return desc.join(', ');
+}
+
+function formatRelativeTime(isoString) {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diff = date - now;
+  const absDiff = Math.abs(diff);
+  
+  const minutes = Math.floor(absDiff / 60000);
+  const hours = Math.floor(absDiff / 3600000);
+  const days = Math.floor(absDiff / 86400000);
+  
+  let text;
+  if (minutes < 1) text = 'just now';
+  else if (minutes < 60) text = `${minutes}m`;
+  else if (hours < 24) text = `${hours}h`;
+  else text = `${days}d`;
+  
+  return diff > 0 ? `in ${text}` : `${text} ago`;
+}
+
+function getActionLabel(action) {
+  const labels = {
+    command: 'Command',
+    power: 'Power',
+    backup: 'Backup'
+  };
+  return labels[action] || action;
 }
 
 let currentServerId$2 = null;
@@ -43831,6 +44386,7 @@ const tabs = [
   { id: 'files', label: 'Files', icon: 'folder' },
   { id: 'backups', label: 'Backups', icon: 'cloud' },
   { id: 'startup', label: 'Startup', icon: 'play_circle' },
+  { id: 'schedules', label: 'Schedules', icon: 'schedule' },
   { id: 'network', label: 'Network', icon: 'lan' },
   { id: 'users', label: 'Users', icon: 'group' },
   { id: 'settings', label: 'Settings', icon: 'settings' }
@@ -44035,6 +44591,10 @@ function switchTab(tabId) {
       content.innerHTML = renderStartupTab();
       initStartupTab(currentServerId);
       break;
+    case 'schedules':
+      content.innerHTML = renderSchedulesTab(currentServerId);
+      initSchedulesTab(currentServerId);
+      break;
     case 'network':
       content.innerHTML = renderNetworkTab();
       initNetworkTab(currentServerId);
@@ -44065,6 +44625,9 @@ function cleanupCurrentTab() {
       break;
     case 'startup':
       cleanupStartupTab();
+      break;
+    case 'schedules':
+      cleanupSchedulesTab();
       break;
     case 'network':
       cleanupNetworkTab();
@@ -45213,7 +45776,7 @@ async function renderServersList(container, username, loadView) {
       <div class="admin-list">
         ${data.servers.length === 0 ? `
           <div class="empty-state">
-            <span class="material-icons-outlined">storage</span>
+            <span class="material-icons-outlined">dns</span>
             <p>No servers yet</p>
           </div>
         ` : `
@@ -45268,7 +45831,7 @@ async function renderServersList(container, username, loadView) {
               <div class="list-card" data-id="${s.id}">
                 <div class="list-card-header">
                   <div class="list-card-icon">
-                    <span class="material-icons-outlined">storage</span>
+                    <span class="material-icons-outlined">dns</span>
                   </div>
                   <div class="list-card-title">
                     <h3>${escapeHtml$1(s.name)}</h3>
@@ -46183,6 +46746,7 @@ async function renderUsersList(container, username, loadView) {
                       <div class="resource-pills">
                         <span class="pill">${u.limits?.servers || 2} servers</span>
                         <span class="pill">${formatBytes((u.limits?.memory || 2048) * 1024 * 1024)}</span>
+                        <span class="pill">${u.limits?.backups ?? 3} backups</span>
                       </div>
                     </td>
                     <td><span class="status-indicator ${u.allowSubusers === false ? 'status-danger' : 'status-success'}"></span> ${u.allowSubusers === false ? 'Disabled' : 'Enabled'}</td>
@@ -46216,6 +46780,10 @@ async function renderUsersList(container, username, loadView) {
                   <div class="stat">
                     <span class="stat-label">Memory</span>
                     <span class="stat-value">${formatBytes((u.limits?.memory || 2048) * 1024 * 1024)}</span>
+                  </div>
+                  <div class="stat">
+                    <span class="stat-label">Backups</span>
+                    <span class="stat-value">${u.limits?.backups ?? 3}</span>
                   </div>
                   <div class="stat">
                     <span class="stat-label">Subusers</span>
@@ -46455,6 +47023,10 @@ async function renderUserSubTab(user, username) {
                 <span class="info-label">Max Allocations</span>
                 <span class="info-value">${user.limits?.allocations || 5}</span>
               </div>
+              <div class="info-item">
+                <span class="info-label">Max Backups</span>
+                <span class="info-value">${user.limits?.backups ?? 3}</span>
+              </div>
             </div>
           </div>
         
@@ -46628,6 +47200,10 @@ async function renderUserSubTab(user, username) {
                 <label>Max Allocations</label>
                 <input type="number" name="allocations" value="${user.limits?.allocations || 5}" min="0" required />
               </div>
+              <div class="form-group">
+                <label>Max Backups</label>
+                <input type="number" name="backups" value="${user.limits?.backups ?? 3}" min="0" required />
+              </div>
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">Update Limits</button>
@@ -46644,7 +47220,8 @@ async function renderUserSubTab(user, username) {
           memory: parseInt(form.get('memory')),
           disk: parseInt(form.get('disk')),
           cpu: parseInt(form.get('cpu')),
-          allocations: parseInt(form.get('allocations'))
+          allocations: parseInt(form.get('allocations')),
+          backups: parseInt(form.get('backups'))
         };
         
         try {
@@ -48120,6 +48697,11 @@ function renderDefaultsSettings(content, config) {
               <input type="number" name="default_cpu" value="${config.defaults?.cpu || 200}" min="0" step="25" />
               <small class="form-hint">Total CPU allocation (100% = 1 core)</small>
             </div>
+            <div class="form-group">
+              <label>Max Backups</label>
+              <input type="number" name="default_backups" value="${config.defaults?.backups || 3}" min="0" />
+              <small class="form-hint">Maximum number of backups per user</small>
+            </div>
           </div>
         </div>
         
@@ -48142,7 +48724,8 @@ function renderDefaultsSettings(content, config) {
         servers: parseInt(form.default_servers.value) || 2,
         memory: parseInt(form.default_memory.value) || 2048,
         disk: parseInt(form.default_disk.value) || 10240,
-        cpu: parseInt(form.default_cpu.value) || 200
+        cpu: parseInt(form.default_cpu.value) || 200,
+        backups: parseInt(form.default_backups.value) || 3
       }
     };
     
@@ -50054,7 +50637,7 @@ async function renderSetup() {
     database: { type: 'file', host: 'localhost', port: 3306, name: 'sodium', user: 'sodium', password: '' },
     redis: { enabled: false, host: 'localhost', port: 6379, password: '' },
     registration: { enabled: true },
-    defaults: { servers: 2, memory: 2048, disk: 10240, cpu: 200, allocations: 5 },
+    defaults: { servers: 2, memory: 2048, disk: 10240, cpu: 200, allocations: 5, backups: 3 },
     admin: { username: '', email: '', password: '', confirmPassword: '' }
   };
   
@@ -50252,10 +50835,17 @@ async function renderSetup() {
         </div>
       </div>
       
-      <div class="form-group">
-        <label class="form-label">CPU (%)</label>
-        <input type="number" class="form-control" id="default-cpu" value="${config.defaults.cpu}">
-        <small class="text-muted">100% = 1 CPU core</small>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">CPU (%)</label>
+          <input type="number" class="form-control" id="default-cpu" value="${config.defaults.cpu}">
+          <small class="text-muted">100% = 1 CPU core</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max Backups</label>
+          <input type="number" class="form-control" id="default-backups" value="${config.defaults.backups}">
+          <small class="text-muted">Maximum backups per user</small>
+        </div>
       </div>
       
       <div class="form-group">
@@ -50322,6 +50912,7 @@ async function renderSetup() {
         config.defaults.memory = parseInt(document.getElementById('default-memory')?.value) || 2048;
         config.defaults.disk = parseInt(document.getElementById('default-disk')?.value) || 10240;
         config.defaults.cpu = parseInt(document.getElementById('default-cpu')?.value) || 200;
+        config.defaults.backups = parseInt(document.getElementById('default-backups')?.value) || 3;
         config.registration.enabled = document.getElementById('registration-enabled')?.checked || false;
         break;
       case 5:
@@ -50744,8 +51335,12 @@ function renderNav() {
     if (toggle) {
       toggle.addEventListener('click', () => {
         const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
         if (sidebar) {
-          sidebar.classList.toggle('open');
+          const isOpen = sidebar.classList.toggle('open');
+          if (overlay) {
+            overlay.classList.toggle('active', isOpen);
+          }
         }
       });
     }
@@ -50777,6 +51372,10 @@ function renderNav() {
 }
 
 function renderSidebar() {
+  const overlay = document.createElement('div');
+  overlay.id = 'sidebar-overlay';
+  overlay.className = 'sidebar-overlay';
+  
   const sidebar = document.createElement('aside');
   sidebar.id = 'sidebar';
   sidebar.className = 'sidebar';
@@ -50812,7 +51411,7 @@ function renderSidebar() {
     label: 'Administration',
     items: [
       { path: '/admin/nodes', icon: 'dns', label: 'Nodes' },
-      { path: '/admin/servers', icon: 'storage', label: 'Servers' },
+      { path: '/admin/servers', icon: 'dns', label: 'Servers' },
       { path: '/admin/users', icon: 'people', label: 'Users' },
       { path: '/admin/nests', icon: 'egg', label: 'Nests' },
       { path: '/admin/locations', icon: 'location_on', label: 'Locations' },
@@ -50868,19 +51467,28 @@ function renderSidebar() {
     </div>
   `;
   
+  const closeSidebar = () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+  };
+  
+  overlay.addEventListener('click', closeSidebar);
+  
   setTimeout(() => {
-    const closeOnMobile = () => {
-      if (window.innerWidth <= 768) {
-        sidebar.classList.remove('open');
-      }
-    };
-    
     sidebar.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', closeOnMobile);
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+          closeSidebar();
+        }
+      });
     });
   }, 0);
   
-  return sidebar;
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(overlay);
+  fragment.appendChild(sidebar);
+  
+  return fragment;
 }
 
 let mounted = false;

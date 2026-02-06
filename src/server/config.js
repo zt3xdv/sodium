@@ -40,7 +40,8 @@ export const DEFAULT_CONFIG = {
     memory: 2048,
     disk: 10240,
     cpu: 200,
-    allocations: 5
+    allocations: 5,
+    backups: 3
   },
   features: {
     subusers: true
@@ -90,4 +91,13 @@ function deepMerge(target, source) {
     }
   }
   return result;
+}
+
+export function clearConfigCache() {
+  configCache = null;
+}
+
+export function reloadConfig() {
+  configCache = null;
+  return loadFullConfig();
 }

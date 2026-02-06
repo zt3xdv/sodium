@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sodium 3D Logo</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  
+  <script type="module">
+    import * as THREE from 'three';
+    import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+    import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+    import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+    
+    RectAreaLightUniformsLib.init();
+    
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+    
+    const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+    camera.position.z = 6;
+    
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      powerPreference: 'high-performance',
+      precision: 'highp',
+      alpha: false,
+      stencil: false
+    });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.max(devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.3;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+    
+    // High quality environment map
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    
+    const envScene = new THREE.Scene();
+    envScene.background = new THREE.Color(0x000000);
+    
+    // Multiple light strips for studio lighting reflections
+    const createStrip = (w, h, color, x, y, z, rx, ry) => {
+      const m = new THREE.Mesh(
+        new THREE.PlaneGeometry(w, h),
+        new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })
+      );
+      m.position.set(x, y, z);
+      if (rx) m.rotation.x = rx;
+      if (ry) m.rotation.y = ry;
+      envScene.add(m);
+    };
+    
+    // Orange/gold strips (right side)
+    createStrip(15, 0.8, 0xff6a1a, 6, 3, -8, 0, -0.4);
+    createStrip(12, 0.5, 0xffaa44, 5, 0, -7, 0, -0.3);
+    createStrip(10, 0.4, 0xff8833, 4, -2, -6, 0, -0.2);
+    
+    // Red strips (left/top)
+    createStrip(12, 0.6, 0x8b1a1a, -5, 4, -7, 0, 0.3);
+    createStrip(8, 0.3, 0x661111, -4, 1, -5, 0, 0.2);
+    
+    // Subtle white highlights
+    createStrip(6, 0.15, 0xffffff, 0, 5, -6, 0.2, 0);
+    createStrip(4, 0.1, 0xcccccc, 2, -4, -5, -0.1, 0.1);
+    
+    const envMap = pmremGenerator.fromScene(envScene, 0, 0.1, 100).texture;
+    scene.environment = envMap;
+    
+    // Ambient
+    scene.add(new THREE.AmbientLight(0x0a0505, 0.2));
+    
+    // Main orange rim light (RectAreaLight for soft studio look)
+    const rectLight1 = new THREE.RectAreaLight(0xff6a1a, 25, 4, 4);
+    rectLight1.position.set(5, 3, 4);
+    rectLight1.lookAt(0, 0, 0);
+    scene.add(rectLight1);
+    
+    // Secondary orange
+    const rectLight2 = new THREE.RectAreaLight(0xffaa44, 15, 3, 3);
+    rectLight2.position.set(4, -2, 3);
+    rectLight2.lookAt(0, 0, 0);
+    scene.add(rectLight2);
+    
+    // Red key light
+    const rectLight3 = new THREE.RectAreaLight(0x8b1a1a, 12, 3, 3);
+    rectLight3.position.set(-4, 3, 3);
+    rectLight3.lookAt(0, 0, 0);
+    scene.add(rectLight3);
+    
+    // Back rim
+    const backLight = new THREE.PointLight(0xff4400, 40, 12);
+    backLight.position.set(0, 0, -4);
+    scene.add(backLight);
+    
+    // Subtle fill
+    const fillLight = new THREE.PointLight(0x331111, 20, 10);
+    fillLight.position.set(-3, -2, 2);
+    scene.add(fillLight);
+    
+    // Load SVG
+    const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M11,21h-1l1-7H7.5c-0.88,0-0.33-0.75-0.31-0.78C8.48,10.94,10.42,7.54,13.01,3h1l-1,7h3.51c0.4,0,0.62,0.19,0.4,0.66 C12.97,17.55,11,21,11,21z"/>
+    </svg>`;
+    
+    const loader = new SVGLoader();
+    const svgData = loader.parse(svgMarkup);
+    const group = new THREE.Group();
+    
+    svgData.paths.forEach(path => {
+      const shapes = SVGLoader.createShapes(path);
+      shapes.forEach(shape => {
+        const geo = new THREE.ExtrudeGeometry(shape, {
+          depth: 2.5,
+          bevelEnabled: true,
+          bevelThickness: 0.5,
+          bevelSize: 0.35,
+          bevelOffset: 0,
+          bevelSegments: 32,
+          curveSegments: 64,
+          steps: 1
+        });
+        geo.center();
+        geo.deleteAttribute('normal');
+        geo.computeVertexNormals();
+        
+        const mat = new THREE.MeshPhysicalMaterial({
+          color: 0x3a1212,
+          emissive: 0x0a0202,
+          emissiveIntensity: 0.05,
+          metalness: 1.0,
+          roughness: 0.08,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.05,
+          reflectivity: 1.0,
+          envMapIntensity: 2.5,
+          ior: 2.0,
+          sheen: 0.2,
+          sheenRoughness: 0.2,
+          sheenColor: new THREE.Color(0xff6a1a)
+        });
+        
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.scale.set(0.12, -0.12, 0.12);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        group.add(mesh);
+      });
+    });
+    
+    scene.add(group);
+    
+    // High quality post-processing with MSAA
+    const renderTarget = new THREE.WebGLRenderTarget(innerWidth, innerHeight, {
+      samples: 8,
+      type: THREE.HalfFloatType,
+      format: THREE.RGBAFormat,
+      colorSpace: THREE.SRGBColorSpace
+    });
+    
+    const composer = new EffectComposer(renderer, renderTarget);
+    composer.addPass(new RenderPass(scene, camera));
+    
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(innerWidth, innerHeight), 
+      0.7,
+      0.25,
+      0.92
+    );
+    composer.addPass(bloomPass);
+    
+    const smaaPass = new SMAAPass(innerWidth, innerHeight);
+    composer.addPass(smaaPass);
+    
+    composer.addPass(new OutputPass());
+    
+    let t = 0;
+    (function loop() {
+      requestAnimationFrame(loop);
+      t += 0.006;
+      
+      group.rotation.y = t * 0.35;
+      group.rotation.x = Math.sin(t * 0.2) * 0.06;
+      
+      // Subtle light animation
+      rectLight1.position.x = 5 + Math.sin(t * 0.5) * 0.5;
+      rectLight1.position.y = 3 + Math.cos(t * 0.4) * 0.3;
+      
+      composer.render();
+    })();
+    
+    onresize = () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      composer.setSize(innerWidth, innerHeight);
+      smaaPass.setSize(innerWidth, innerHeight);
+    };
+  </script>
+</body>
+</html>

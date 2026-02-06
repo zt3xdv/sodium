@@ -29,7 +29,8 @@ const COLLECTIONS = {
   announcements: 8,
   auditLogs: 9,
   activityLogs: 10,
-  webhooks: 11
+  webhooks: 11,
+  schedules: 12
 };
 
 let cache = {
@@ -43,7 +44,8 @@ let cache = {
   announcements: [],
   auditLogs: [],
   activityLogs: [],
-  webhooks: []
+  webhooks: [],
+  schedules: []
 };
 
 let dbConnection = null;
@@ -356,6 +358,7 @@ const announcementsAccessors = createCollectionAccessors('announcements');
 const auditLogsAccessors = createCollectionAccessors('auditLogs');
 const activityLogsAccessors = createCollectionAccessors('activityLogs');
 const webhooksAccessors = createCollectionAccessors('webhooks');
+const schedulesAccessors = createCollectionAccessors('schedules');
 
 export const loadUsers = usersAccessors.load;
 export const saveUsers = usersAccessors.save;
@@ -379,6 +382,8 @@ export const loadActivityLogs = activityLogsAccessors.load;
 export const saveActivityLogs = activityLogsAccessors.save;
 export const loadWebhooks = webhooksAccessors.load;
 export const saveWebhooks = webhooksAccessors.save;
+export const loadSchedules = schedulesAccessors.load;
+export const saveSchedules = schedulesAccessors.save;
 
 export function loadConfig() {
   return loadFullConfig();
@@ -432,9 +437,19 @@ export function getAll(collection) {
 }
 
 export function getDbInfo() {
+  const dbConfig = getDbConfig();
   return {
-    type: dbConnection ? DB_TYPE : 'file',
+    type: dbConnection ? dbConfig.type : 'file',
     connected: !!dbConnection,
     driver: dbDriver
   };
+}
+
+export function reloadDatabase() {
+  if (dbConnection) {
+    return loadFromExternalDb();
+  } else {
+    loadDatabase();
+    return Promise.resolve();
+  }
 }

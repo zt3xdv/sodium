@@ -59,6 +59,7 @@ export async function renderUsersList(container, username, loadView) {
                       <div class="resource-pills">
                         <span class="pill">${u.limits?.servers || 2} servers</span>
                         <span class="pill">${formatBytes((u.limits?.memory || 2048) * 1024 * 1024)}</span>
+                        <span class="pill">${u.limits?.backups ?? 3} backups</span>
                       </div>
                     </td>
                     <td><span class="status-indicator ${u.allowSubusers === false ? 'status-danger' : 'status-success'}"></span> ${u.allowSubusers === false ? 'Disabled' : 'Enabled'}</td>
@@ -92,6 +93,10 @@ export async function renderUsersList(container, username, loadView) {
                   <div class="stat">
                     <span class="stat-label">Memory</span>
                     <span class="stat-value">${formatBytes((u.limits?.memory || 2048) * 1024 * 1024)}</span>
+                  </div>
+                  <div class="stat">
+                    <span class="stat-label">Backups</span>
+                    <span class="stat-value">${u.limits?.backups ?? 3}</span>
                   </div>
                   <div class="stat">
                     <span class="stat-label">Subusers</span>
@@ -331,6 +336,10 @@ async function renderUserSubTab(user, username) {
                 <span class="info-label">Max Allocations</span>
                 <span class="info-value">${user.limits?.allocations || 5}</span>
               </div>
+              <div class="info-item">
+                <span class="info-label">Max Backups</span>
+                <span class="info-value">${user.limits?.backups ?? 3}</span>
+              </div>
             </div>
           </div>
         
@@ -504,6 +513,10 @@ async function renderUserSubTab(user, username) {
                 <label>Max Allocations</label>
                 <input type="number" name="allocations" value="${user.limits?.allocations || 5}" min="0" required />
               </div>
+              <div class="form-group">
+                <label>Max Backups</label>
+                <input type="number" name="backups" value="${user.limits?.backups ?? 3}" min="0" required />
+              </div>
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">Update Limits</button>
@@ -520,7 +533,8 @@ async function renderUserSubTab(user, username) {
           memory: parseInt(form.get('memory')),
           disk: parseInt(form.get('disk')),
           cpu: parseInt(form.get('cpu')),
-          allocations: parseInt(form.get('allocations'))
+          allocations: parseInt(form.get('allocations')),
+          backups: parseInt(form.get('backups'))
         };
         
         try {

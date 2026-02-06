@@ -25,7 +25,11 @@ export const PERMISSIONS = {
   'startup.update': 'Edit startup',
   'settings.rename': 'Rename server',
   'settings.reinstall': 'Reinstall server',
-  'activity.read': 'View activity'
+  'activity.read': 'View activity',
+  'schedule.read': 'View schedules',
+  'schedule.create': 'Create schedules',
+  'schedule.update': 'Edit schedules',
+  'schedule.delete': 'Delete schedules'
 };
 
 export const PERMISSION_GROUPS = {
@@ -36,7 +40,8 @@ export const PERMISSION_GROUPS = {
   'Allocations': ['allocation.read', 'allocation.create', 'allocation.update', 'allocation.delete'],
   'Startup': ['startup.read', 'startup.update'],
   'Settings': ['settings.rename', 'settings.reinstall'],
-  'Activity': ['activity.read']
+  'Activity': ['activity.read'],
+  'Schedules': ['schedule.read', 'schedule.create', 'schedule.update', 'schedule.delete']
 };
 
 export function hasPermission(permissions, permission) {

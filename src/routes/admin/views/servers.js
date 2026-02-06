@@ -27,7 +27,7 @@ export async function renderServersList(container, username, loadView) {
       <div class="admin-list">
         ${data.servers.length === 0 ? `
           <div class="empty-state">
-            <span class="material-icons-outlined">storage</span>
+            <span class="material-icons-outlined">dns</span>
             <p>No servers yet</p>
           </div>
         ` : `
@@ -82,7 +82,7 @@ export async function renderServersList(container, username, loadView) {
               <div class="list-card" data-id="${s.id}">
                 <div class="list-card-header">
                   <div class="list-card-icon">
-                    <span class="material-icons-outlined">storage</span>
+                    <span class="material-icons-outlined">dns</span>
                   </div>
                   <div class="list-card-title">
                     <h3>${escapeHtml(s.name)}</h3>

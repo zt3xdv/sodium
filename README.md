@@ -49,5 +49,3 @@ See [docs/](docs/) for full documentation:
 ## License
 
 [MIT](LICENSE)
-
-<!-- test push -->

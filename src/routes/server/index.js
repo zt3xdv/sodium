@@ -5,6 +5,7 @@ import { renderFilesTab, initFilesTab, cleanupFilesTab } from './files.js';
 import { renderStartupTab, initStartupTab, cleanupStartupTab } from './startup.js';
 import { renderNetworkTab, initNetworkTab, cleanupNetworkTab } from './network.js';
 import { renderUsersTab, initUsersTab, cleanupUsersTab } from './users.js';
+import { renderSchedulesTab, initSchedulesTab, cleanupSchedulesTab } from './schedules.js';
 import { renderSettingsTab, initSettingsTab, cleanupSettingsTab } from './settings.js';
 import { renderBackupsTab, initBackupsTab, cleanupBackupsTab } from './backups.js';
 
@@ -26,6 +27,7 @@ const tabs = [
   { id: 'files', label: 'Files', icon: 'folder' },
   { id: 'backups', label: 'Backups', icon: 'cloud' },
   { id: 'startup', label: 'Startup', icon: 'play_circle' },
+  { id: 'schedules', label: 'Schedules', icon: 'schedule' },
   { id: 'network', label: 'Network', icon: 'lan' },
   { id: 'users', label: 'Users', icon: 'group' },
   { id: 'settings', label: 'Settings', icon: 'settings' }
@@ -230,6 +232,10 @@ function switchTab(tabId) {
       content.innerHTML = renderStartupTab();
       initStartupTab(currentServerId);
       break;
+    case 'schedules':
+      content.innerHTML = renderSchedulesTab(currentServerId);
+      initSchedulesTab(currentServerId);
+      break;
     case 'network':
       content.innerHTML = renderNetworkTab();
       initNetworkTab(currentServerId);
@@ -260,6 +266,9 @@ function cleanupCurrentTab() {
       break;
     case 'startup':
       cleanupStartupTab();
+      break;
+    case 'schedules':
+      cleanupSchedulesTab();
       break;
     case 'network':
       cleanupNetworkTab();

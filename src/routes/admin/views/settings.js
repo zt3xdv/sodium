@@ -293,6 +293,11 @@ function renderDefaultsSettings(content, config) {
               <input type="number" name="default_cpu" value="${config.defaults?.cpu || 200}" min="0" step="25" />
               <small class="form-hint">Total CPU allocation (100% = 1 core)</small>
             </div>
+            <div class="form-group">
+              <label>Max Backups</label>
+              <input type="number" name="default_backups" value="${config.defaults?.backups || 3}" min="0" />
+              <small class="form-hint">Maximum number of backups per user</small>
+            </div>
           </div>
         </div>
         
@@ -315,7 +320,8 @@ function renderDefaultsSettings(content, config) {
         servers: parseInt(form.default_servers.value) || 2,
         memory: parseInt(form.default_memory.value) || 2048,
         disk: parseInt(form.default_disk.value) || 10240,
-        cpu: parseInt(form.default_cpu.value) || 200
+        cpu: parseInt(form.default_cpu.value) || 200,
+        backups: parseInt(form.default_backups.value) || 3
       }
     };
     

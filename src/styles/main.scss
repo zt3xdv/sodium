@@ -246,6 +246,23 @@ input, textarea, select { font: inherit; }
   }
 }
 
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 199;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+  
+  @media (max-width: 768px) {
+    &.active {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+}
+
 .sidebar {
   position: fixed;
   left: 0;

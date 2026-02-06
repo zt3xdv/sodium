@@ -8,6 +8,31 @@ import logger from '../utils/logger.js';
 
 const router = express.Router();
 
+// Nodos disponibles para crear servidores
+router.get('/available-nodes', authenticateUser, (req, res) => {
+  const nodes = loadNodes();
+  const availableNodes = [];
+  
+  for (const node of nodes.nodes) {
+    if (node.maintenance_mode) continue;
+    
+    const resources = getNodeAvailableResources(node.id);
+    if (!resources) continue;
+    if (resources.available_ports.length === 0) continue;
+    
+    availableNodes.push({
+      id: node.id,
+      name: node.name,
+      fqdn: node.fqdn,
+      available_memory: resources.available_memory,
+      available_disk: resources.available_disk,
+      available_ports: resources.available_ports.length
+    });
+  }
+  
+  res.json({ nodes: availableNodes });
+});
+
 // Ruta pública para obtener nests con eggs (para crear servidores)
 router.get('/nests', authenticateUser, (req, res) => {
   const nests = loadNests();
@@ -167,36 +192,61 @@ router.post('/', authenticateUser, async (req, res) => {
   if (!egg) return res.status(400).json({ error: 'Invalid egg' });
   
   const nodes = loadNodes();
-  let bestNode = null;
-  let bestNodeResources = null;
-  let lowestUsage = Infinity;
-  
-  for (const n of nodes.nodes) {
-    if (n.maintenance_mode) continue;
-    
-    const resources = getNodeAvailableResources(n.id);
-    if (!resources) continue;
-    
-    if (resources.available_memory < requestedMemory) continue;
-    if (resources.available_disk < requestedDisk) continue;
-    if (resources.available_ports.length === 0) continue;
-    
-    const memoryUsage = 1 - (resources.available_memory / n.memory);
-    const diskUsage = 1 - (resources.available_disk / n.disk);
-    const avgUsage = (memoryUsage + diskUsage) / 2;
-    
-    if (avgUsage < lowestUsage) {
-      lowestUsage = avgUsage;
-      bestNode = n;
-      bestNodeResources = resources;
+  let selectedNode = null;
+  let selectedNodeResources = null;
+
+  // Si el usuario especificó un nodo, usarlo
+  if (req.body.node_id) {
+    const requestedNode = nodes.nodes.find(n => n.id === req.body.node_id);
+    if (!requestedNode) {
+      return res.status(400).json({ error: 'Node not found' });
+    }
+    if (requestedNode.maintenance_mode) {
+      return res.status(400).json({ error: 'Node is in maintenance mode' });
+    }
+    const resources = getNodeAvailableResources(requestedNode.id);
+    if (!resources) {
+      return res.status(400).json({ error: 'Cannot check node resources' });
+    }
+    if (resources.available_memory < requestedMemory) {
+      return res.status(400).json({ error: 'Node has insufficient memory' });
+    }
+    if (resources.available_disk < requestedDisk) {
+      return res.status(400).json({ error: 'Node has insufficient disk space' });
+    }
+    if (resources.available_ports.length === 0) {
+      return res.status(400).json({ error: 'Node has no available ports' });
+    }
+    selectedNode = requestedNode;
+    selectedNodeResources = resources;
+  } else {
+    // Selección automática
+    let lowestUsage = Infinity;
+    for (const n of nodes.nodes) {
+      if (n.maintenance_mode) continue;
+      const resources = getNodeAvailableResources(n.id);
+      if (!resources) continue;
+      if (resources.available_memory < requestedMemory) continue;
+      if (resources.available_disk < requestedDisk) continue;
+      if (resources.available_ports.length === 0) continue;
+      
+      const memoryUsage = 1 - (resources.available_memory / n.memory);
+      const diskUsage = 1 - (resources.available_disk / n.disk);
+      const avgUsage = (memoryUsage + diskUsage) / 2;
+      
+      if (avgUsage < lowestUsage) {
+        lowestUsage = avgUsage;
+        selectedNode = n;
+        selectedNodeResources = resources;
+      }
     }
   }
-  
-  if (!bestNode || !bestNodeResources) {
+
+  if (!selectedNode || !selectedNodeResources) {
     return res.status(400).json({ error: 'No available nodes with enough resources' });
   }
   
-  const availablePorts = bestNodeResources.available_ports;
+  const availablePorts = selectedNodeResources.available_ports;
   
   let allocations = [];
   let allocation = null;
@@ -218,7 +268,7 @@ router.post('/', authenticateUser, async (req, res) => {
     name: sanitizeText(name),
     description: sanitizeText((description || '').slice(0, 200)),
     user_id: user.id,
-    node_id: bestNode.id,
+    node_id: selectedNode.id,
     egg_id: egg_id,
     docker_image: egg.docker_image,
     startup: egg.startup,
@@ -240,7 +290,7 @@ router.post('/', authenticateUser, async (req, res) => {
     created_at: new Date().toISOString()
   };
   
-  const node = bestNode;
+  const node = selectedNode;
   
   let startupConfig = { done: ['Done'] };
   let stopConfig = { type: 'command', value: 'stop' };
@@ -374,7 +424,15 @@ router.post('/:id/power', authenticateUser, async (req, res) => {
   if (!['start', 'stop', 'restart', 'kill'].includes(action)) {
     return res.status(400).json({ error: 'Invalid action' });
   }
-  const result = await getServerAndNode(req.params.id, req.user);
+  
+  const permissionMap = {
+    start: 'control.start',
+    stop: 'control.stop',
+    restart: 'control.restart',
+    kill: 'control.stop'
+  };
+  
+  const result = await getServerAndNode(req.params.id, req.user, permissionMap[action]);
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -387,7 +445,7 @@ router.post('/:id/power', authenticateUser, async (req, res) => {
 
 router.post('/:id/command', authenticateUser, async (req, res) => {
   const { command } = req.body;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'control.console');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -605,7 +663,7 @@ router.put('/:id/startup', authenticateUser, async (req, res) => {
 // Files
 router.get('/:id/files/list', authenticateUser, async (req, res) => {
   const { path } = req.query;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.read');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -618,7 +676,7 @@ router.get('/:id/files/list', authenticateUser, async (req, res) => {
 
 router.post('/:id/files/folder', authenticateUser, async (req, res) => {
   const { path } = req.body;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.create');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -631,7 +689,7 @@ router.post('/:id/files/folder', authenticateUser, async (req, res) => {
 
 router.post('/:id/files/write', authenticateUser, async (req, res) => {
   const { path, content } = req.body;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.update');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -644,7 +702,7 @@ router.post('/:id/files/write', authenticateUser, async (req, res) => {
 
 router.post('/:id/files/delete', authenticateUser, async (req, res) => {
   const { path, root, files } = req.body;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.delete');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -668,7 +726,7 @@ router.post('/:id/files/delete', authenticateUser, async (req, res) => {
 
 router.post('/:id/files/rename', authenticateUser, async (req, res) => {
   const { from, to, root, files } = req.body;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.update');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -692,7 +750,7 @@ router.post('/:id/files/rename', authenticateUser, async (req, res) => {
 
 router.post('/:id/files/compress', authenticateUser, async (req, res) => {
   const { root, files } = req.body;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.archive');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -708,7 +766,7 @@ router.post('/:id/files/compress', authenticateUser, async (req, res) => {
 
 router.get('/:id/files/contents', authenticateUser, async (req, res) => {
   const { path } = req.query;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.read');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -729,7 +787,7 @@ router.get('/:id/files/contents', authenticateUser, async (req, res) => {
 
 router.get('/:id/files/download', authenticateUser, async (req, res) => {
   const { path } = req.query;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.read');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -752,7 +810,7 @@ router.get('/:id/files/download', authenticateUser, async (req, res) => {
 
 router.post('/:id/files/upload', authenticateUser, async (req, res) => {
   const { path } = req.body;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.create');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node, user } = result;
   
@@ -776,7 +834,7 @@ router.post('/:id/files/upload', authenticateUser, async (req, res) => {
 
 router.post('/:id/files/decompress', authenticateUser, async (req, res) => {
   const { root, file, extractTo } = req.body;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.archive');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -792,7 +850,7 @@ router.post('/:id/files/decompress', authenticateUser, async (req, res) => {
 
 router.post('/:id/files/copy', authenticateUser, async (req, res) => {
   const { location } = req.body;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.create');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -805,7 +863,7 @@ router.post('/:id/files/copy', authenticateUser, async (req, res) => {
 
 router.post('/:id/files/chmod', authenticateUser, async (req, res) => {
   const { root, files } = req.body;
-  const result = await getServerAndNode(req.params.id, req.user);
+  const result = await getServerAndNode(req.params.id, req.user, 'file.update');
   if (result.error) return res.status(result.status).json({ error: result.error });
   const { server, node } = result;
   try {
@@ -1168,6 +1226,114 @@ router.post('/:id/unsuspend', authenticateUser, async (req, res) => {
   }
   
   res.json({ success: true });
+});
+
+// ==================== BACKUPS ====================
+
+router.get('/:id/backups', authenticateUser, async (req, res) => {
+  const result = await getServerAndNode(req.params.id, req.user, 'backup.read');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  
+  try {
+    const backups = await wingsRequest(node, 'GET', `/api/servers/${server.uuid}/backup`);
+    res.json({ backups: backups || [] });
+  } catch (e) {
+    res.json({ backups: [] });
+  }
+});
+
+router.post('/:id/backups', authenticateUser, async (req, res) => {
+  const result = await getServerAndNode(req.params.id, req.user, 'backup.create');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  
+  const data = loadServers();
+  const serverData = data.servers.find(s => s.id === req.params.id);
+  const users = loadUsers();
+  const owner = users.users.find(u => u.id === serverData.user_id);
+  
+  const backupLimit = owner?.limits?.backups ?? 3;
+  const featureLimit = serverData.feature_limits?.backups ?? 0;
+  const effectiveLimit = Math.max(backupLimit, featureLimit);
+  
+  if (effectiveLimit <= 0) {
+    return res.status(400).json({ error: 'Backups are disabled for this server' });
+  }
+  
+  try {
+    const existingBackups = await wingsRequest(node, 'GET', `/api/servers/${server.uuid}/backup`);
+    if (Array.isArray(existingBackups) && existingBackups.length >= effectiveLimit) {
+      return res.status(400).json({ error: `Backup limit reached (${effectiveLimit})` });
+    }
+  } catch (e) {
+    // Continue if we can't check
+  }
+  
+  const { name, ignored } = req.body;
+  
+  try {
+    const backup = await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/backup`, {
+      adapter: 'wings',
+      uuid: generateUUID(),
+      ignore: ignored || ''
+    });
+    
+    res.json({ success: true, backup });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/:id/backups/:backupId/download', authenticateUser, async (req, res) => {
+  const result = await getServerAndNode(req.params.id, req.user, 'backup.read');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  
+  try {
+    const downloadUrl = `${node.scheme}://${node.fqdn}:${node.daemon_port}/download/backup?token=${node.daemon_token}&server=${server.uuid}&backup=${req.params.backupId}`;
+    res.json({ url: downloadUrl });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/:id/backups/:backupId/restore', authenticateUser, async (req, res) => {
+  const result = await getServerAndNode(req.params.id, req.user, 'backup.restore');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  
+  const { truncate } = req.body;
+  
+  try {
+    await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/backup/${req.params.backupId}/restore`, {
+      truncate: truncate !== false
+    });
+    
+    const data = loadServers();
+    const serverIdx = data.servers.findIndex(s => s.id === req.params.id);
+    if (serverIdx !== -1) {
+      data.servers[serverIdx].status = 'restoring_backup';
+      saveServers(data);
+    }
+    
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.delete('/:id/backups/:backupId', authenticateUser, async (req, res) => {
+  const result = await getServerAndNode(req.params.id, req.user, 'backup.delete');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  
+  try {
+    await wingsRequest(node, 'DELETE', `/api/servers/${server.uuid}/backup/${req.params.backupId}`);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 export default router;

@@ -83,7 +83,8 @@ router.post('/complete', async (req, res) => {
         memory: parseInt(defaults?.memory) || 2048,
         disk: parseInt(defaults?.disk) || 10240,
         cpu: parseInt(defaults?.cpu) || 200,
-        allocations: parseInt(defaults?.allocations) || 5
+        allocations: parseInt(defaults?.allocations) || 5,
+        backups: parseInt(defaults?.backups) || 3
       }
     };
     

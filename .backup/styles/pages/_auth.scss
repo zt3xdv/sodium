@@ -1,0 +1,262 @@
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - var(--navbar-height) - 40px);
+  padding: 20px;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-md);
+  
+  @media (max-width: 480px) { padding: 20px 16px; }
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 24px;
+  
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    
+    .material-icons-outlined { font-size: 28px; color: var(--accent); }
+    .logo-text { font-size: 22px; font-weight: 700; }
+  }
+  
+  .auth-subtitle { color: var(--text-secondary); font-size: 13px; }
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 3px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  margin-bottom: 20px;
+  
+  .tab-btn {
+    flex: 1;
+    padding: 8px;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    
+    &:hover { color: var(--text-primary); }
+    
+    &.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+}
+
+.auth-form {
+  display: none;
+  &.active { display: block; }
+}
+
+.form-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  
+  .material-icons-outlined { font-size: 20px; color: var(--accent); }
+  
+  &.success {
+    background: rgba(16, 185, 129, 0.1);
+    .material-icons-outlined { color: var(--success); }
+  }
+}
+
+.auth-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  
+  .link-btn {
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+    
+    &:hover { color: var(--accent); }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
+  }
+  
+  .divider { color: var(--border-color); }
+}
+
+.oauth-section {
+  margin-top: 20px;
+}
+
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  
+  &::before, &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+  }
+  
+  span {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+}
+
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+  
+  &:hover {
+    background: var(--bg-elevated);
+    border-color: var(--accent);
+  }
+  
+  &.oauth-discord {
+    background: #5865F2;
+    border-color: #5865F2;
+    color: #fff;
+    &:hover { background: #4752C4; }
+  }
+  
+  &.oauth-github {
+    background: #24292e;
+    border-color: #24292e;
+    color: #fff;
+    &:hover { background: #1b1f23; }
+  }
+  
+  &.oauth-google {
+    background: #fff;
+    border-color: #ddd;
+    color: #333;
+    &:hover { background: #f5f5f5; }
+  }
+  
+  &.oauth-gitlab {
+    background: #FC6D26;
+    border-color: #FC6D26;
+    color: #fff;
+    &:hover { background: #e24329; }
+  }
+  
+  &.oauth-microsoft {
+    background: #00a4ef;
+    border-color: #00a4ef;
+    color: #fff;
+    &:hover { background: #0078d4; }
+  }
+  
+  &.oauth-twitter {
+    background: #000;
+    border-color: #000;
+    color: #fff;
+    &:hover { background: #1a1a1a; }
+  }
+  
+  &.oauth-facebook {
+    background: #1877f2;
+    border-color: #1877f2;
+    color: #fff;
+    &:hover { background: #166fe5; }
+  }
+  
+  &.oauth-apple {
+    background: #000;
+    border-color: #000;
+    color: #fff;
+    &:hover { background: #1a1a1a; }
+  }
+  
+  &.oauth-twitch {
+    background: #9146ff;
+    border-color: #9146ff;
+    color: #fff;
+    &:hover { background: #772ce8; }
+  }
+  
+  &.oauth-slack {
+    background: #4a154b;
+    border-color: #4a154b;
+    color: #fff;
+    &:hover { background: #3e1042; }
+  }
+  
+  &.oauth-linkedin {
+    background: #0a66c2;
+    border-color: #0a66c2;
+    color: #fff;
+    &:hover { background: #004182; }
+  }
+  
+  &.oauth-spotify {
+    background: #1db954;
+    border-color: #1db954;
+    color: #fff;
+    &:hover { background: #1aa34a; }
+  }
+  
+  &.oauth-reddit {
+    background: #ff4500;
+    border-color: #ff4500;
+    color: #fff;
+    &:hover { background: #e03d00; }
+  }
+  
+  &.oauth-bitbucket {
+    background: #0052cc;
+    border-color: #0052cc;
+    color: #fff;
+    &:hover { background: #0747a6; }
+  }
+}

@@ -19,9 +19,11 @@ import auditLogsRoutes from './routes/audit-logs.js';
 import activityLogsRoutes from './routes/activity-logs.js';
 import webhooksRoutes from './routes/webhooks.js';
 import backupsRoutes from './routes/backups.js';
+import schedulesRoutes, { startScheduler } from './routes/schedules.js';
 import setupRoutes from './routes/setup.js';
 import healthRoutes from './routes/health.js';
 import metricsRoutes, { recordRequest } from './routes/metrics.js';
+import applicationApiRoutes from './routes/application-api.js';
 import { setupWebSocket } from './socket.js';
 import { isInstalled, loadFullConfig } from './config.js';
 
@@ -99,6 +101,8 @@ app.use('/api/admin/audit-logs', auditLogsRoutes);
 app.use('/api/activity', activityLogsRoutes);
 app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/servers', backupsRoutes);
+app.use('/api', schedulesRoutes);
+app.use('/api/application', applicationApiRoutes);
 
 // Fallback para SPA
 app.get(/.*/, (req, res) => {
@@ -107,6 +111,11 @@ app.get(/.*/, (req, res) => {
 
 async function startServer() {
   setupWebSocket(server);
+  
+  // Start schedule runner if installed
+  if (isInstalled()) {
+    startScheduler();
+  }
   
   server.listen(PORT, () => {
     logger.startup(PORT, !isInstalled());

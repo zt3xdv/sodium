@@ -57,8 +57,12 @@ export function renderNav() {
     if (toggle) {
       toggle.addEventListener('click', () => {
         const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
         if (sidebar) {
-          sidebar.classList.toggle('open');
+          const isOpen = sidebar.classList.toggle('open');
+          if (overlay) {
+            overlay.classList.toggle('active', isOpen);
+          }
         }
       });
     }

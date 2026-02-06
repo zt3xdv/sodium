@@ -14,7 +14,7 @@ export async function renderSetup() {
     database: { type: 'file', host: 'localhost', port: 3306, name: 'sodium', user: 'sodium', password: '' },
     redis: { enabled: false, host: 'localhost', port: 6379, password: '' },
     registration: { enabled: true },
-    defaults: { servers: 2, memory: 2048, disk: 10240, cpu: 200, allocations: 5 },
+    defaults: { servers: 2, memory: 2048, disk: 10240, cpu: 200, allocations: 5, backups: 3 },
     admin: { username: '', email: '', password: '', confirmPassword: '' }
   };
   
@@ -212,10 +212,17 @@ export async function renderSetup() {
         </div>
       </div>
       
-      <div class="form-group">
-        <label class="form-label">CPU (%)</label>
-        <input type="number" class="form-control" id="default-cpu" value="${config.defaults.cpu}">
-        <small class="text-muted">100% = 1 CPU core</small>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">CPU (%)</label>
+          <input type="number" class="form-control" id="default-cpu" value="${config.defaults.cpu}">
+          <small class="text-muted">100% = 1 CPU core</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max Backups</label>
+          <input type="number" class="form-control" id="default-backups" value="${config.defaults.backups}">
+          <small class="text-muted">Maximum backups per user</small>
+        </div>
       </div>
       
       <div class="form-group">
@@ -282,6 +289,7 @@ export async function renderSetup() {
         config.defaults.memory = parseInt(document.getElementById('default-memory')?.value) || 2048;
         config.defaults.disk = parseInt(document.getElementById('default-disk')?.value) || 10240;
         config.defaults.cpu = parseInt(document.getElementById('default-cpu')?.value) || 200;
+        config.defaults.backups = parseInt(document.getElementById('default-backups')?.value) || 3;
         config.registration.enabled = document.getElementById('registration-enabled')?.checked || false;
         break;
       case 5:

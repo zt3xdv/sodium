@@ -6,6 +6,8 @@ let selectedNest = null;
 let selectedEgg = null;
 let nestsData = null;
 let limitsData = null;
+let nodesData = null;
+let selectedNode = null;
 
 export async function renderCreateServer() {
   const app = document.getElementById('app');
@@ -27,19 +29,32 @@ export async function renderCreateServer() {
   `;
   
   try {
-    const [nestsRes, limitsRes] = await Promise.all([
+    const [nestsRes, limitsRes, nodesRes] = await Promise.all([
       api('/api/servers/nests'),
-      api(`/api/user/limits?username=${encodeURIComponent(user.username)}`)
+      api(`/api/user/limits?username=${encodeURIComponent(user.username)}`),
+      api('/api/servers/available-nodes')
     ]);
     
     nestsData = await nestsRes.json();
     limitsData = await limitsRes.json();
+    nodesData = await nodesRes.json();
     
     if (!nestsData.nests || nestsData.nests.length === 0) {
       document.querySelector('.create-server-content').innerHTML = `
         <div class="empty-state">
           <span class="material-icons-outlined">egg_alt</span>
           <p>No eggs configured. Contact an administrator.</p>
+          <a href="/servers" class="btn btn-primary">Go Back</a>
+        </div>
+      `;
+      return;
+    }
+    
+    if (!nodesData.nodes || nodesData.nodes.length === 0) {
+      document.querySelector('.create-server-content').innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">dns</span>
+          <p>No nodes available. Contact an administrator.</p>
           <a href="/servers" class="btn btn-primary">Go Back</a>
         </div>
       `;
@@ -118,6 +133,14 @@ function renderCreateForm(remaining) {
             <div class="form-group">
               <label>Description (optional)</label>
               <textarea name="description" rows="2" placeholder="What is this server for?"></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label>Node</label>
+              <select name="node_id" id="node-select" required>
+                ${nodesData.nodes.map(n => `<option value="${n.id}">${escapeHtml(n.name)} - ${n.available_memory}MB RAM available</option>`).join('')}
+              </select>
+              <span class="resource-hint">The server will be created on this node</span>
             </div>
             
             <div class="form-section">
@@ -374,6 +397,7 @@ async function submitCreateServer(remaining) {
       body: JSON.stringify({
         name: formData.get('name'),
         description: formData.get('description'),
+        node_id: formData.get('node_id'),
         egg_id: selectedEgg.id,
         docker_image: formData.get('docker_image') || null,
         memory,
@@ -407,4 +431,6 @@ export function cleanupCreateServer() {
   selectedEgg = null;
   nestsData = null;
   limitsData = null;
+  nodesData = null;
+  selectedNode = null;
 }

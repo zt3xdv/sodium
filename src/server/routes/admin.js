@@ -239,7 +239,8 @@ router.post('/users', async (req, res) => {
       servers: user.limits?.servers ?? defaults.servers ?? 2,
       memory: user.limits?.memory ?? defaults.memory ?? 2048,
       disk: user.limits?.disk ?? defaults.disk ?? 10240,
-      cpu: user.limits?.cpu ?? defaults.cpu ?? 200
+      cpu: user.limits?.cpu ?? defaults.cpu ?? 200,
+      backups: user.limits?.backups ?? defaults.backups ?? 3
     },
     createdAt: new Date().toISOString(),
     settings: {
@@ -1017,7 +1018,8 @@ router.put('/settings', async (req, res) => {
       servers: newConfig.defaults.servers !== undefined ? parseInt(newConfig.defaults.servers) : config.defaults?.servers || 2,
       memory: newConfig.defaults.memory !== undefined ? parseInt(newConfig.defaults.memory) : config.defaults?.memory || 2048,
       disk: newConfig.defaults.disk !== undefined ? parseInt(newConfig.defaults.disk) : config.defaults?.disk || 10240,
-      cpu: newConfig.defaults.cpu !== undefined ? parseInt(newConfig.defaults.cpu) : config.defaults?.cpu || 200
+      cpu: newConfig.defaults.cpu !== undefined ? parseInt(newConfig.defaults.cpu) : config.defaults?.cpu || 200,
+      backups: newConfig.defaults.backups !== undefined ? parseInt(newConfig.defaults.backups) : config.defaults?.backups || 3
     };
   }
   
@@ -1104,12 +1106,80 @@ router.get('/mail/status', async (req, res) => {
 
 // ==================== CACHE & DATABASE ====================
 
-router.post('/cache/clear', (req, res) => {
-  res.json({ success: true, message: 'Cache cleared' });
+router.post('/cache/clear', async (req, res) => {
+  try {
+    const { clearConfigCache, reloadConfig } = await import('../config.js');
+    clearConfigCache();
+    reloadConfig();
+    
+    logger.info(`Cache cleared by admin ${req.user.username}`);
+    res.json({ success: true, message: 'Configuration cache cleared and reloaded' });
+  } catch (e) {
+    logger.error(`Cache clear failed: ${e.message}`);
+    res.status(500).json({ error: 'Failed to clear cache' });
+  }
 });
 
-router.post('/database/rebuild', (req, res) => {
-  res.json({ success: true, message: 'Indexes rebuilt' });
+router.post('/database/rebuild', async (req, res) => {
+  try {
+    const { waitForDb } = await import('../db.js');
+    
+    const users = loadUsers();
+    saveUsers(users);
+    
+    const nodes = loadNodes();
+    saveNodes(nodes);
+    
+    const servers = loadServers();
+    saveServers(servers);
+    
+    const nests = loadNests();
+    saveNests(nests);
+    
+    const eggs = loadEggs();
+    saveEggs(eggs);
+    
+    const locations = loadLocations();
+    saveLocations(locations);
+    
+    logger.info(`Database rebuilt by admin ${req.user.username}`);
+    res.json({ 
+      success: true, 
+      message: 'Database indexes rebuilt',
+      stats: {
+        users: users.users?.length || 0,
+        nodes: nodes.nodes?.length || 0,
+        servers: servers.servers?.length || 0,
+        nests: nests.nests?.length || 0,
+        eggs: eggs.eggs?.length || 0,
+        locations: locations.locations?.length || 0
+      }
+    });
+  } catch (e) {
+    logger.error(`Database rebuild failed: ${e.message}`);
+    res.status(500).json({ error: 'Failed to rebuild database' });
+  }
+});
+
+// ==================== SYSTEM INFO ====================
+
+router.get('/system/info', async (req, res) => {
+  const { getDbInfo } = await import('../db.js');
+  const config = loadConfig();
+  
+  res.json({
+    version: '1.0.0',
+    node_version: process.version,
+    platform: process.platform,
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    database: getDbInfo(),
+    features: {
+      subusers: config.features?.subusers || false,
+      emailVerification: config.registration?.emailVerification || false,
+      registration: config.registration?.enabled || false
+    }
+  });
 });
 
 export default router;

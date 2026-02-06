@@ -1,6 +1,10 @@
 import { getUser } from '../utils/api.js';
 
 export function renderSidebar() {
+  const overlay = document.createElement('div');
+  overlay.id = 'sidebar-overlay';
+  overlay.className = 'sidebar-overlay';
+  
   const sidebar = document.createElement('aside');
   sidebar.id = 'sidebar';
   sidebar.className = 'sidebar';
@@ -36,7 +40,7 @@ export function renderSidebar() {
     label: 'Administration',
     items: [
       { path: '/admin/nodes', icon: 'dns', label: 'Nodes' },
-      { path: '/admin/servers', icon: 'storage', label: 'Servers' },
+      { path: '/admin/servers', icon: 'dns', label: 'Servers' },
       { path: '/admin/users', icon: 'people', label: 'Users' },
       { path: '/admin/nests', icon: 'egg', label: 'Nests' },
       { path: '/admin/locations', icon: 'location_on', label: 'Locations' },
@@ -92,17 +96,26 @@ export function renderSidebar() {
     </div>
   `;
   
+  const closeSidebar = () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+  };
+  
+  overlay.addEventListener('click', closeSidebar);
+  
   setTimeout(() => {
-    const closeOnMobile = () => {
-      if (window.innerWidth <= 768) {
-        sidebar.classList.remove('open');
-      }
-    };
-    
     sidebar.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', closeOnMobile);
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+          closeSidebar();
+        }
+      });
     });
   }, 0);
   
-  return sidebar;
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(overlay);
+  fragment.appendChild(sidebar);
+  
+  return fragment;
 }
