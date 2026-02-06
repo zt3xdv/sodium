@@ -1,29 +1,36 @@
 import { escapeHtml } from '../utils/security.js';
 import * as toast from '../utils/toast.js';
-import { api, getToken } from '../utils/api.js';
+import { api, getToken, getUser } from '../utils/api.js';
 
 let pollInterval = null;
 let statusSockets = new Map();
 
-export function renderServers() {
+export async function renderServers() {
   const app = document.getElementById('app');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = getUser();
+  
+  let canCreate = true;
+  try {
+    const limitsRes = await api(`/api/user/limits?username=${encodeURIComponent(user.username)}`);
+    const limitsData = await limitsRes.json();
+    canCreate = limitsData.canCreateServers !== false;
+  } catch {}
   
   app.innerHTML = `
     <div class="servers-page">
       <div class="page-header">
         <h1>My Servers</h1>
-        <a href="/servers/create" class="btn btn-primary">
-          <span class="material-icons-outlined">add</span>
-          Create Server
-        </a>
+        ${canCreate ? `
+          <a href="/servers/create" class="btn btn-primary" id="create-server-btn">
+            <span class="material-icons-outlined">add</span>
+            Create Server
+          </a>
+        ` : ''}
       </div>
       
       <div class="servers-grid" id="servers-list">
         <div class="loading-spinner"></div>
       </div>
-      
-
     </div>
   `;
   

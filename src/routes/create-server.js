@@ -40,6 +40,18 @@ export async function renderCreateServer() {
     limitsData = await limitsRes.json();
     nodesData = await nodesRes.json();
     
+    if (limitsData.canCreateServers === false) {
+      document.querySelector('.create-server-content').innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">block</span>
+          <p>Server creation is disabled</p>
+          <p class="hint">Contact an administrator to create servers for you.</p>
+          <a href="/servers" class="btn btn-primary">Go Back</a>
+        </div>
+      `;
+      return;
+    }
+    
     if (!nestsData.nests || nestsData.nests.length === 0) {
       document.querySelector('.create-server-content').innerHTML = `
         <div class="empty-state">

@@ -198,7 +198,10 @@ router.get('/limits', (req, res) => {
   
   const limits = user.limits || { servers: 2, memory: 2048, disk: 10240, cpu: 200, allocations: 5 };
   
-  res.json({ limits, used });
+  const config = loadConfig();
+  const canCreateServers = user.isAdmin || !config.features?.disableUserServerCreation;
+  
+  res.json({ limits, used, canCreateServers });
 });
 
 // ==================== SSH KEYS ====================

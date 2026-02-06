@@ -44,7 +44,8 @@ export const DEFAULT_CONFIG = {
     backups: 3
   },
   features: {
-    subusers: true
+    subusers: true,
+    disableUserServerCreation: false
   }
 };
 

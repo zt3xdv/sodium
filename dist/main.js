@@ -3144,25 +3144,32 @@ function info(message, duration) {
 let pollInterval$1 = null;
 let statusSockets = new Map();
 
-function renderServers() {
+async function renderServers() {
   const app = document.getElementById('app');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = getUser();
+  
+  let canCreate = true;
+  try {
+    const limitsRes = await api(`/api/user/limits?username=${encodeURIComponent(user.username)}`);
+    const limitsData = await limitsRes.json();
+    canCreate = limitsData.canCreateServers !== false;
+  } catch {}
   
   app.innerHTML = `
     <div class="servers-page">
       <div class="page-header">
         <h1>My Servers</h1>
-        <a href="/servers/create" class="btn btn-primary">
-          <span class="material-icons-outlined">add</span>
-          Create Server
-        </a>
+        ${canCreate ? `
+          <a href="/servers/create" class="btn btn-primary" id="create-server-btn">
+            <span class="material-icons-outlined">add</span>
+            Create Server
+          </a>
+        ` : ''}
       </div>
       
       <div class="servers-grid" id="servers-list">
         <div class="loading-spinner"></div>
       </div>
-      
-
     </div>
   `;
   
@@ -3330,6 +3337,18 @@ async function renderCreateServer() {
     nestsData = await nestsRes.json();
     limitsData = await limitsRes.json();
     nodesData = await nodesRes.json();
+    
+    if (limitsData.canCreateServers === false) {
+      document.querySelector('.create-server-content').innerHTML = `
+        <div class="empty-state">
+          <span class="material-icons-outlined">block</span>
+          <p>Server creation is disabled</p>
+          <p class="hint">Contact an administrator to create servers for you.</p>
+          <a href="/servers" class="btn btn-primary">Go Back</a>
+        </div>
+      `;
+      return;
+    }
     
     if (!nestsData.nests || nestsData.nests.length === 0) {
       document.querySelector('.create-server-content').innerHTML = `
