@@ -546,5 +546,105 @@
 
 .no-selection { color: var(--text-tertiary); font-size: 12px; }
 
+.nodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
+}
+
+.node-select-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: var(--bg-tertiary);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  
+  &:hover:not(.insufficient) { border-color: var(--accent); }
+  
+  &.selected {
+    border-color: var(--accent);
+    background: var(--accent-muted);
+    .node-select-check { opacity: 1; color: var(--accent); }
+  }
+  
+  &.insufficient {
+    opacity: 0.5;
+    cursor: not-allowed;
+    
+    .node-select-icon .material-icons-outlined { color: var(--danger); }
+  }
+  
+  .node-select-icon {
+    width: 42px;
+    height: 42px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    
+    .material-icons-outlined { font-size: 22px; color: var(--accent); }
+  }
+  
+  .node-select-info {
+    flex: 1;
+    min-width: 0;
+    
+    h4 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
+  }
+  
+  .node-resources {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .node-resource {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    
+    .resource-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; }
+    
+    .resource-bar {
+      height: 4px;
+      background: var(--bg-secondary);
+      border-radius: 2px;
+      overflow: hidden;
+      
+      .resource-fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 2px;
+        transition: width 0.2s ease;
+      }
+    }
+    
+    .resource-values { font-size: 11px; color: var(--text-secondary); }
+    
+    &.exceeded {
+      .resource-bar .resource-fill { background: var(--danger); }
+      .resource-values { color: var(--danger); }
+    }
+  }
+  
+  .node-select-check { font-size: 20px; opacity: 0; transition: opacity var(--transition-fast); flex-shrink: 0; }
+}
+
+.empty-nodes {
+  grid-column: 1 / -1;
+  padding: 28px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
 .spinning { animation: spin .8s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

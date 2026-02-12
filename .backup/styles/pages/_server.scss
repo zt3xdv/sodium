@@ -1,3 +1,17 @@
+.power-action {
+  padding: 6px;
+
+  &.start {
+    color: var(--success);
+  }
+  &.restart {
+    color: var(--warning);
+  }
+  &.stop, &.kill {
+    color: var(--danger);
+  }
+}
+
 .server-page {
   display: flex;
   flex-direction: column;
@@ -98,8 +112,8 @@
     gap: .4rem;
     margin-bottom: .6rem;
     
-    .material-icons-outlined { font-size: 1rem; color: var(--accent); }
-    h3 { font-size: .7rem; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .04em; margin: 0; }
+    .material-icons-outlined { font-size: 1.2rem; color: var(--accent); }
+    h3 { font-size: .75rem; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .04em; margin: 0; }
   }
 }
 
@@ -778,6 +792,152 @@
   input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); }
 }
 
+// Backups Tab
+.backups-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  
+  .card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 350px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 12px;
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    
+    h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+}
+
+.backups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  overflow-y: auto;
+  
+  .loading, .error {
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-tertiary);
+  }
+  
+  .error { color: var(--danger); }
+  
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    flex: 1;
+    
+    .material-icons-outlined {
+      font-size: 48px;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+    
+    p {
+      margin: 0;
+      color: var(--text-secondary);
+      
+      &.hint {
+        font-size: 12px;
+        color: var(--text-tertiary);
+        margin-top: 4px;
+      }
+    }
+  }
+}
+
+.backup-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  
+  &.pending {
+    opacity: 0.7;
+    
+    .backup-icon .material-icons-outlined {
+      animation: spin 2s linear infinite;
+    }
+  }
+  
+  .backup-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--accent-muted);
+    border-radius: var(--radius-sm);
+    
+    .material-icons-outlined {
+      font-size: 20px;
+      color: var(--accent);
+    }
+  }
+  
+  .backup-info {
+    flex: 1;
+    min-width: 0;
+    
+    .backup-name {
+      font-weight: 500;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      
+      .locked-icon {
+        font-size: 14px;
+        color: var(--warning);
+      }
+    }
+    
+    .backup-meta {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+      
+      .separator {
+        margin: 0 4px;
+      }
+    }
+  }
+  
+  .backup-actions {
+    display: flex;
+    gap: 3px;
+    
+    .btn-danger:hover {
+      color: var(--danger);
+    }
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 // Schedules Tab
 .schedules-tab {
   .tab-header {
@@ -958,4 +1118,111 @@
   font-size: .85rem;
   color: var(--text-secondary);
   margin: 1rem 0 .5rem;
+}
+
+// Backups improvements
+.backups-tab {
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    
+    h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+    
+    .header-actions {
+      display: flex;
+      gap: .5rem;
+    }
+  }
+}
+
+.btn-refresh {
+  .material-icons-outlined {
+    transition: transform 0.3s ease;
+  }
+  
+  &.refreshing .material-icons-outlined {
+    animation: spin 1s linear infinite;
+  }
+}
+
+.backup-item {
+  &.pending {
+    .backup-progress {
+      height: 3px;
+      background: var(--bg-secondary);
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+      
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+        animation: progress-indeterminate 1.5s ease-in-out infinite;
+        width: 30%;
+      }
+    }
+  }
+  
+  .backup-checksum {
+    font-size: 10px;
+    font-family: monospace;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+}
+
+@keyframes progress-indeterminate {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(200%); }
+  100% { transform: translateX(-100%); }
+}
+
+.backup-name-input {
+  &.invalid {
+    border-color: var(--danger) !important;
+  }
+}
+
+.input-error {
+  color: var(--danger);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+// Schedule improvements
+.schedule-card {
+  &.executing {
+    border-color: var(--accent);
+    
+    .schedule-name .status-dot {
+      animation: pulse 1s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.cron-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(var(--danger-rgb), 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.schedule-actions {
+  .btn-ghost {
+    &.executing .material-icons-outlined {
+      animation: spin 1s linear infinite;
+    }
+  }
 }

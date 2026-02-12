@@ -550,9 +550,6 @@
   .page-total { font-size: 12px; color: var(--text-tertiary); @media (max-width: 480px) { display: none; } }
 }
 
-.btn-success { background: var(--success); color: #fff; &:hover { filter: brightness(.9); } }
-.btn-warning { background: var(--warning); color: #000; &:hover { filter: brightness(.9); } }
-
 .error-page {
   display: flex;
   flex-direction: column;
