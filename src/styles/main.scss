@@ -16,7 +16,7 @@
 html, body {
   height: 100%;
   font-family: 'Geist Sans', system-ui, -apple-system, sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--text-primary);
   background: var(--bg-primary);
@@ -114,6 +114,8 @@ input, textarea, select { font: inherit; }
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 #app {

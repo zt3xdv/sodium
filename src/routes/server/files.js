@@ -12,6 +12,18 @@ let isEditing = false;
 let editingPath = null;
 let selectedFiles = new Set();
 let editorInstance = null;
+let viewMode = 'list';
+let sortBy = 'name';
+let sortOrder = 'asc';
+let searchQuery = '';
+let searchTimeout = null;
+
+const clipboard = {
+  files: [],
+  operation: null,
+  sourceDir: null,
+  serverId: null
+};
 
 const EDITABLE_MIMETYPES = [
   'text/', 'application/json', 'application/xml', 'application/javascript',
@@ -25,6 +37,13 @@ const ARCHIVE_MIMETYPES = [
   'application/x-gzip', 'application/x-rar', 'application/x-7z-compressed',
   'application/x-compressed-tar', 'application/x-bzip2'
 ];
+
+const PREVIEW_TYPES = {
+  image: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'],
+  video: ['video/mp4', 'video/webm', 'video/ogg'],
+  audio: ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/mp3'],
+  pdf: ['application/pdf']
+};
 
 function connectProgressSocket(serverId) {
   if (progressSocket && progressSocket.readyState === WebSocket.OPEN) {
@@ -41,14 +60,10 @@ function connectProgressSocket(serverId) {
     try {
       const message = JSON.parse(event.data);
       handleProgressEvent(message);
-    } catch (e) {
-      // Ignore parse errors
-    }
+    } catch (e) {}
   };
   
-  progressSocket.onerror = () => {
-    // Silent fail - will use fallback
-  };
+  progressSocket.onerror = () => {};
 }
 
 function handleProgressEvent(message) {
@@ -183,16 +198,13 @@ function showDecompressIndicator(filename) {
 function isArchive(file) {
   const mime = (file.mimetype || file.mime || '').toLowerCase();
   
-  // Si hay mimetype, usarlo como fuente de verdad
   if (mime) {
-    // Si es texto o editable, NO es archivo comprimido aunque tenga extensión .zip
     if (mime.startsWith('text/') || mime === 'application/json' || mime === 'application/javascript') {
       return false;
     }
     if (ARCHIVE_MIMETYPES.some(m => mime.includes(m.replace('application/', '')))) return true;
   }
   
-  // Fallback a extensión solo si no hay mimetype
   if (!mime) {
     const name = file.name.toLowerCase();
     return name.endsWith('.zip') || name.endsWith('.tar') || name.endsWith('.tar.gz') || 
@@ -205,25 +217,36 @@ function isArchive(file) {
 function isEditable(file) {
   const mime = (file.mimetype || file.mime || '').toLowerCase();
   
-  // Si hay mimetype, usarlo como fuente de verdad
   if (mime) {
-    // Es editable si es texto o tipos conocidos de texto
     if (EDITABLE_MIMETYPES.some(m => mime.startsWith(m))) return true;
     if (mime === 'inode/x-empty') return true;
-    
-    // NO es editable si es binario/comprimido aunque tenga extensión .txt
     if (ARCHIVE_MIMETYPES.some(m => mime.includes(m.replace('application/', '')))) return false;
     if (mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('audio/')) return false;
     if (mime === 'application/octet-stream') return false;
   }
   
-  // Fallback a extensión si no hay mimetype o es desconocido
   const ext = file.name.split('.').pop().toLowerCase();
   const textExts = ['txt', 'log', 'md', 'json', 'yml', 'yaml', 'toml', 'xml', 'js', 'ts', 'jsx', 'tsx', 
     'css', 'scss', 'less', 'html', 'htm', 'php', 'py', 'rb', 'java', 'c', 'cpp', 'h', 'hpp', 'cs',
     'sh', 'bash', 'bat', 'ps1', 'cmd', 'properties', 'cfg', 'conf', 'ini', 'env', 'sql', 'lua', 
     'go', 'rs', 'swift', 'kt', 'gradle'];
   return textExts.includes(ext) || !file.name.includes('.');
+}
+
+function isPreviewable(file) {
+  const mime = (file.mimetype || file.mime || '').toLowerCase();
+  if (!mime) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const previewExts = { 
+      'png': 'image', 'jpg': 'image', 'jpeg': 'image', 'gif': 'image', 'webp': 'image', 'svg': 'image',
+      'mp4': 'video', 'webm': 'video', 'ogg': 'audio', 'mp3': 'audio', 'wav': 'audio', 'pdf': 'pdf'
+    };
+    return previewExts[ext] || null;
+  }
+  for (const [type, mimes] of Object.entries(PREVIEW_TYPES)) {
+    if (mimes.some(m => mime.startsWith(m.split('/')[0] + '/') || mime === m)) return type;
+  }
+  return null;
 }
 
 function getFileIcon(file) {
@@ -269,6 +292,18 @@ export function renderFilesTab() {
             <span class="breadcrumb-item" data-path="/">/</span>
           </div>
           <div class="files-actions">
+            <div class="files-search-wrapper" id="files-search-wrapper">
+              <button class="btn btn-xs btn-ghost" id="btn-search-toggle" title="Search">
+                <span class="material-icons-outlined">search</span>
+              </button>
+              <input type="text" class="files-search-input" id="files-search-input" placeholder="Search files..." style="display:none;">
+            </div>
+            <button class="btn btn-xs btn-ghost" id="btn-sort" title="Sort">
+              <span class="material-icons-outlined">sort</span>
+            </button>
+            <button class="btn btn-xs btn-ghost" id="btn-view-toggle" title="Toggle view">
+              <span class="material-icons-outlined">grid_view</span>
+            </button>
             <button class="btn btn-xs btn-ghost" id="btn-refresh" title="Refresh">
               <span class="material-icons-outlined">refresh</span>
             </button>
@@ -288,6 +323,12 @@ export function renderFilesTab() {
             <span id="selection-count">0</span> selected
           </div>
           <div class="selection-actions">
+            <button class="btn btn-xs btn-ghost" id="btn-copy-clipboard" title="Copy">
+              <span class="material-icons-outlined">content_copy</span>
+            </button>
+            <button class="btn btn-xs btn-ghost" id="btn-cut-clipboard" title="Cut">
+              <span class="material-icons-outlined">content_cut</span>
+            </button>
             <button class="btn btn-xs btn-ghost" id="btn-move" title="Move">
               <span class="material-icons-outlined">drive_file_move</span>
             </button>
@@ -298,6 +339,20 @@ export function renderFilesTab() {
               <span class="material-icons-outlined">delete</span>
             </button>
             <button class="btn btn-xs btn-ghost" id="btn-clear-selection" title="Clear">
+              <span class="material-icons-outlined">close</span>
+            </button>
+          </div>
+        </div>
+        <div class="files-paste-bar" id="files-paste-bar" style="display: none;">
+          <div class="selection-info">
+            <span id="paste-info">0 file(s) in clipboard</span>
+          </div>
+          <div class="selection-actions">
+            <button class="btn btn-xs btn-ghost" id="btn-paste" title="Paste here">
+              <span class="material-icons-outlined">content_paste</span>
+              Paste
+            </button>
+            <button class="btn btn-xs btn-ghost" id="btn-cancel-paste" title="Cancel">
               <span class="material-icons-outlined">close</span>
             </button>
           </div>
@@ -316,6 +371,7 @@ export function initFilesTab(serverId) {
   isEditing = false;
   editingPath = null;
   selectedFiles.clear();
+  searchQuery = '';
   loadFiles(serverId, currentPath);
   
   document.getElementById('btn-refresh').onclick = () => loadFiles(serverId, currentPath);
@@ -327,6 +383,399 @@ export function initFilesTab(serverId) {
   document.getElementById('btn-compress').onclick = () => compressSelectedFiles(serverId);
   document.getElementById('btn-delete-selected').onclick = () => deleteSelectedFiles(serverId);
   document.getElementById('btn-clear-selection').onclick = () => clearSelection();
+  
+  document.getElementById('btn-copy-clipboard').onclick = () => clipboardCopy(serverId);
+  document.getElementById('btn-cut-clipboard').onclick = () => clipboardCut(serverId);
+  document.getElementById('btn-paste').onclick = () => clipboardPaste(serverId);
+  document.getElementById('btn-cancel-paste').onclick = () => clipboardClear();
+
+  const searchToggle = document.getElementById('btn-search-toggle');
+  const searchInput = document.getElementById('files-search-input');
+  searchToggle.onclick = () => {
+    const visible = searchInput.style.display !== 'none';
+    searchInput.style.display = visible ? 'none' : 'inline-block';
+    if (!visible) searchInput.focus();
+    else { searchInput.value = ''; searchQuery = ''; loadFiles(serverId, currentPath); }
+  };
+  searchInput.oninput = () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      searchQuery = searchInput.value.trim();
+      if (searchQuery.length >= 2) {
+        searchFiles(serverId, searchQuery);
+      } else if (searchQuery.length === 0) {
+        loadFiles(serverId, currentPath);
+      }
+    }, 300);
+  };
+
+  document.getElementById('btn-sort').onclick = () => showSortMenu(serverId);
+  document.getElementById('btn-view-toggle').onclick = () => toggleViewMode(serverId);
+
+  initKeyboardShortcuts(serverId);
+  initDragDrop(serverId);
+}
+
+function initKeyboardShortcuts(serverId) {
+  const handler = (e) => {
+    if (isEditing) return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    if (e.ctrlKey && e.key === 'c') {
+      if (selectedFiles.size > 0) { e.preventDefault(); clipboardCopy(serverId); }
+    }
+    if (e.ctrlKey && e.key === 'x') {
+      if (selectedFiles.size > 0) { e.preventDefault(); clipboardCut(serverId); }
+    }
+    if (e.ctrlKey && e.key === 'v') {
+      if (clipboard.files.length > 0) { e.preventDefault(); clipboardPaste(serverId); }
+    }
+    if (e.key === 'Delete' && selectedFiles.size > 0) {
+      deleteSelectedFiles(serverId);
+    }
+    if (e.ctrlKey && e.key === 'a') {
+      e.preventDefault();
+      selectAll();
+    }
+    if (e.key === 'F2' && selectedFiles.size === 1) {
+      renameFile(serverId, [...selectedFiles][0]);
+    }
+  };
+
+  document.addEventListener('keydown', handler);
+  window._filesKeyboardHandler = handler;
+}
+
+function initDragDrop(serverId) {
+  const filesList = document.getElementById('files-list');
+  if (!filesList) return;
+
+  filesList.addEventListener('dragover', (e) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      filesList.classList.add('drag-over');
+    }
+  });
+
+  filesList.addEventListener('dragleave', (e) => {
+    if (!filesList.contains(e.relatedTarget)) {
+      filesList.classList.remove('drag-over');
+    }
+  });
+
+  filesList.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    filesList.classList.remove('drag-over');
+
+    const items = e.dataTransfer.items;
+    if (!items || items.length === 0) return;
+
+    const files = [];
+    const promises = [];
+
+    for (const item of items) {
+      if (item.webkitGetAsEntry) {
+        const entry = item.webkitGetAsEntry();
+        if (entry) promises.push(traverseEntry(entry, '', files));
+      } else if (item.kind === 'file') {
+        files.push({ file: item.getAsFile(), path: '' });
+      }
+    }
+
+    await Promise.all(promises);
+    if (files.length > 0) {
+      uploadMultipleFiles(serverId, files);
+    }
+  });
+}
+
+async function traverseEntry(entry, basePath, files) {
+  if (entry.isFile) {
+    const file = await new Promise(r => entry.file(r));
+    files.push({ file, path: basePath });
+  } else if (entry.isDirectory) {
+    const reader = entry.createDirectoryReader();
+    const entries = await new Promise((resolve, reject) => {
+      reader.readEntries(resolve, reject);
+    });
+    for (const child of entries) {
+      await traverseEntry(child, `${basePath}/${entry.name}`, files);
+    }
+  }
+}
+
+async function uploadMultipleFiles(serverId, fileList) {
+  const queue = [...fileList];
+  const MAX_CONCURRENT = 3;
+  const indicators = new Map();
+
+  for (const item of fileList) {
+    indicators.set(item, showUploadIndicator(item.file.name));
+  }
+
+  let active = 0;
+
+  function processNext() {
+    while (active < MAX_CONCURRENT && queue.length > 0) {
+      const item = queue.shift();
+      active++;
+      uploadSingleFileFromQueue(serverId, item, indicators.get(item)).then(() => {
+        active--;
+        indicators.get(item).remove();
+        if (queue.length === 0 && active === 0) {
+          loadFiles(serverId, currentPath);
+        } else {
+          processNext();
+        }
+      }).catch(() => {
+        active--;
+        indicators.get(item).remove();
+        processNext();
+      });
+    }
+  }
+
+  processNext();
+}
+
+async function uploadSingleFileFromQueue(serverId, item, indicator) {
+  const res = await api(`/api/servers/${serverId}/files/upload`, {
+    method: 'POST',
+    body: JSON.stringify({ path: currentPath })
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.url) {
+    toast.error(`Failed to upload ${item.file.name}`);
+    return;
+  }
+
+  let uploadDir = currentPath === '/' ? '' : currentPath.replace(/^\//, '');
+  if (item.path) {
+    uploadDir = uploadDir ? `${uploadDir}${item.path}` : item.path.replace(/^\//, '');
+  }
+  const uploadUrl = `${data.url}&directory=${encodeURIComponent(uploadDir)}`;
+
+  const formData = new FormData();
+  formData.append('files', item.file);
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', uploadUrl);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        indicator.update(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        toast.error(`Failed to upload ${item.file.name}`);
+        reject();
+      }
+    };
+
+    xhr.onerror = () => {
+      toast.error(`Failed to upload ${item.file.name}`);
+      reject();
+    };
+
+    xhr.send(formData);
+  });
+}
+
+function clipboardCopy(serverId) {
+  clipboard.files = [...selectedFiles];
+  clipboard.operation = 'copy';
+  clipboard.sourceDir = currentPath;
+  clipboard.serverId = serverId;
+  toast.success(`${clipboard.files.length} file(s) copied`);
+  clearSelection();
+  updatePasteBar();
+}
+
+function clipboardCut(serverId) {
+  clipboard.files = [...selectedFiles];
+  clipboard.operation = 'cut';
+  clipboard.sourceDir = currentPath;
+  clipboard.serverId = serverId;
+  toast.success(`${clipboard.files.length} file(s) cut`);
+  clearSelection();
+  updatePasteBar();
+}
+
+function clipboardClear() {
+  clipboard.files = [];
+  clipboard.operation = null;
+  clipboard.sourceDir = null;
+  clipboard.serverId = null;
+  updatePasteBar();
+}
+
+function updatePasteBar() {
+  const bar = document.getElementById('files-paste-bar');
+  const info = document.getElementById('paste-info');
+  if (!bar) return;
+  if (clipboard.files.length > 0) {
+    bar.style.display = 'flex';
+    info.textContent = `${clipboard.files.length} file(s) ${clipboard.operation === 'cut' ? 'cut' : 'copied'}`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function clipboardPaste(serverId) {
+  if (clipboard.files.length === 0) return;
+
+  try {
+    const res = await api(`/api/servers/${serverId}/files/paste`, {
+      method: 'POST',
+      body: JSON.stringify({
+        files: clipboard.files,
+        sourceDir: clipboard.sourceDir,
+        destDir: currentPath,
+        operation: clipboard.operation
+      })
+    });
+
+    if (res.ok) {
+      toast.success(`${clipboard.files.length} file(s) ${clipboard.operation === 'cut' ? 'moved' : 'copied'}`);
+      if (clipboard.operation === 'cut') clipboardClear();
+      loadFiles(serverId, currentPath);
+    } else {
+      const data = await res.json();
+      toast.error(data.error || 'Paste failed');
+    }
+  } catch (e) {
+    toast.error('Paste failed');
+  }
+}
+
+function selectAll() {
+  document.querySelectorAll('.file-item:not(.upload-indicator):not(.compress-indicator):not(.decompress-indicator)').forEach(item => {
+    const name = item.dataset.name;
+    if (name) {
+      selectedFiles.add(name);
+      item.classList.add('selected');
+      const cb = item.querySelector('.file-checkbox');
+      if (cb) cb.checked = true;
+    }
+  });
+  updateSelectionBar();
+}
+
+function showSortMenu(serverId) {
+  const options = [
+    { label: 'Name', value: 'name' },
+    { label: 'Size', value: 'size' },
+    { label: 'Modified', value: 'modified' }
+  ];
+
+  const current = options.find(o => o.value === sortBy);
+  const menuHtml = options.map(o => 
+    `<div class="sort-option ${o.value === sortBy ? 'active' : ''}" data-sort="${o.value}">
+      ${o.label} ${o.value === sortBy ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+    </div>`
+  ).join('');
+
+  const btn = document.getElementById('btn-sort');
+  const rect = btn.getBoundingClientRect();
+
+  let existing = document.querySelector('.sort-menu');
+  if (existing) { existing.remove(); return; }
+
+  const menu = document.createElement('div');
+  menu.className = 'sort-menu';
+  menu.innerHTML = menuHtml;
+  menu.style.position = 'fixed';
+  menu.style.top = `${rect.bottom + 4}px`;
+  menu.style.right = `${window.innerWidth - rect.right}px`;
+  document.body.appendChild(menu);
+
+  menu.querySelectorAll('.sort-option').forEach(opt => {
+    opt.onclick = () => {
+      const val = opt.dataset.sort;
+      if (val === sortBy) {
+        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortBy = val;
+        sortOrder = 'asc';
+      }
+      menu.remove();
+      loadFiles(serverId, currentPath);
+    };
+  });
+
+  const close = (e) => {
+    if (!menu.contains(e.target) && e.target !== btn) {
+      menu.remove();
+      document.removeEventListener('click', close);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+function toggleViewMode(serverId) {
+  viewMode = viewMode === 'list' ? 'grid' : 'list';
+  const btn = document.getElementById('btn-view-toggle');
+  const icon = btn.querySelector('.material-icons-outlined');
+  icon.textContent = viewMode === 'list' ? 'grid_view' : 'view_list';
+  loadFiles(serverId, currentPath);
+}
+
+async function searchFiles(serverId, query) {
+  const filesList = document.getElementById('files-list');
+  filesList.innerHTML = '<div class="files-loading">Searching...</div>';
+
+  try {
+    const res = await api(`/api/servers/${serverId}/files/search?query=${encodeURIComponent(query)}&directory=${encodeURIComponent(currentPath)}`);
+    
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      filterFilesLocally(serverId, query);
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.error) {
+      filesList.innerHTML = `<div class="files-error">${data.error}</div>`;
+      return;
+    }
+
+    const results = data.results || [];
+    if (results.length === 0) {
+      filesList.innerHTML = '<div class="files-empty">No files found</div>';
+      return;
+    }
+
+    renderFilesList(results.map(f => ({ ...f, _searchResult: true })), serverId);
+  } catch (e) {
+    filterFilesLocally(serverId, query);
+  }
+}
+
+async function filterFilesLocally(serverId, query) {
+  const filesList = document.getElementById('files-list');
+  try {
+    const res = await api(`/api/servers/${serverId}/files/list?path=${encodeURIComponent(currentPath)}`);
+    const data = await res.json();
+    if (data.error) {
+      filesList.innerHTML = `<div class="files-error">${data.error}</div>`;
+      return;
+    }
+    const files = (data.files || []).filter(f => f.name.toLowerCase().includes(query.toLowerCase()));
+    if (files.length === 0) {
+      filesList.innerHTML = '<div class="files-empty">No files found</div>';
+      return;
+    }
+    renderFilesList(files.map(f => ({ ...f, _searchResult: true })), serverId);
+  } catch {
+    filesList.innerHTML = '<div class="files-error">Search failed</div>';
+  }
 }
 
 function updateSelectionBar() {
@@ -343,16 +792,17 @@ function updateSelectionBar() {
 function clearSelection() {
   selectedFiles.clear();
   document.querySelectorAll('.file-item.selected').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = false);
   updateSelectionBar();
 }
 
 async function loadFiles(serverId, path) {
-  const username = localStorage.getItem('username');
   const filesList = document.getElementById('files-list');
   
   filesList.innerHTML = '<div class="files-loading">Loading files...</div>';
   selectedFiles.clear();
   updateSelectionBar();
+  updatePasteBar();
   
   try {
     const res = await api(`/api/servers/${serverId}/files/list?path=${encodeURIComponent(path)}`);
@@ -379,13 +829,10 @@ function updateBreadcrumb(path, serverId) {
   let html = `<span class="breadcrumb-item clickable" data-path="/"><span class="material-icons-outlined" style="font-size: 16px; vertical-align: middle;">home</span></span>`;
   
   if (parts.length === 0) {
-    // En home, no mostrar nada más
   } else if (parts.length === 1) {
-    // home/carpeta
     html += `<span class="breadcrumb-separator">/</span>`;
     html += `<span class="breadcrumb-item" data-path="/${parts[0]}">${parts[0]}</span>`;
   } else {
-    // home/.../ultima_carpeta
     const lastPath = '/' + parts.join('/');
     html += `<span class="breadcrumb-separator">/</span>`;
     html += `<span class="breadcrumb-ellipsis">...</span>`;
@@ -408,25 +855,60 @@ function isDirectory(file) {
   return false;
 }
 
+function sortFiles(files) {
+  const dirs = files.filter(f => isDirectory(f));
+  const fileList = files.filter(f => !isDirectory(f));
+
+  const sorter = (a, b) => {
+    let cmp;
+    switch (sortBy) {
+      case 'name': cmp = a.name.localeCompare(b.name); break;
+      case 'size': cmp = (a.size || 0) - (b.size || 0); break;
+      case 'modified': cmp = new Date(a.modified_at || 0) - new Date(b.modified_at || 0); break;
+      default: cmp = 0;
+    }
+    return sortOrder === 'desc' ? -cmp : cmp;
+  };
+
+  return [...dirs.sort(sorter), ...fileList.sort(sorter)];
+}
+
 function renderFilesList(files, serverId) {
   const filesList = document.getElementById('files-list');
   
   if (files.length === 0) {
-    filesList.innerHTML = '<div class="files-empty">This directory is empty</div>';
+    filesList.innerHTML = `<div class="files-empty">
+      <span class="material-icons-outlined" style="font-size: 2rem; margin-bottom: .5rem;">folder_open</span>
+      <p>This directory is empty</p>
+      <p style="font-size: .7rem; margin-top: .25rem;">Drag files here or use the upload button</p>
+    </div>`;
     return;
   }
   
-  const sorted = [...files].sort((a, b) => {
-    if (isDirectory(a) && !isDirectory(b)) return -1;
-    if (!isDirectory(a) && isDirectory(b)) return 1;
-    return a.name.localeCompare(b.name);
-  });
+  const sorted = sortFiles(files);
+  
+  const isGrid = viewMode === 'grid';
+  filesList.className = `files-list ${isGrid ? 'files-grid' : ''}`;
   
   filesList.innerHTML = sorted.map(file => {
     const isDir = isDirectory(file);
     const canEdit = !isDir && isEditable(file);
+    const previewType = !isDir ? isPreviewable(file) : null;
+    const searchPath = file._searchResult ? `<span class="file-search-path">${file.path}</span>` : '';
+    
+    if (isGrid) {
+      return `
+      <div class="file-item-grid ${isDir ? 'directory' : 'file'}" data-name="${file.name}" data-is-dir="${isDir}" data-editable="${canEdit}" data-preview="${previewType || ''}" ${file._searchResult ? `data-path="${file.path}"` : ''}>
+        <div class="file-grid-icon">
+          <span class="material-icons-outlined">${isDir ? 'folder' : getFileIcon(file)}</span>
+        </div>
+        <div class="file-grid-name">${file.name}</div>
+        <div class="file-grid-meta">${isDir ? '' : formatBytes(file.size)}</div>
+      </div>`;
+    }
+    
     return `
-    <div class="file-item ${isDir ? 'directory' : 'file'}" data-name="${file.name}" data-is-dir="${isDir}" data-editable="${canEdit}">
+    <div class="file-item ${isDir ? 'directory' : 'file'}" data-name="${file.name}" data-is-dir="${isDir}" data-editable="${canEdit}" data-preview="${previewType || ''}" ${file._searchResult ? `data-path="${file.path}"` : ''} draggable="${!isDir ? 'true' : 'false'}">
       <div class="file-select">
         <input type="checkbox" class="file-checkbox" data-name="${file.name}">
       </div>
@@ -435,9 +917,14 @@ function renderFilesList(files, serverId) {
       </div>
       <div class="file-info">
         <span class="file-name">${file.name}</span>
-        <span class="file-meta">${isDir ? '--' : formatBytes(file.size)} • ${formatDate(file.modified_at)}</span>
+        <span class="file-meta">${isDir ? '--' : formatBytes(file.size)} • ${formatDate(file.modified_at)}${searchPath}</span>
       </div>
       <div class="file-actions">
+        ${!isDir && previewType ? `
+          <button class="btn btn-sm btn-ghost btn-preview" title="Preview">
+            <span class="material-icons-outlined">visibility</span>
+          </button>
+        ` : ''}
         ${!isDir && isArchive(file) ? `
           <button class="btn btn-sm btn-ghost btn-decompress" title="Extract">
             <span class="material-icons-outlined">unarchive</span>
@@ -468,7 +955,7 @@ function renderFilesList(files, serverId) {
     checkbox.onclick = (e) => {
       e.stopPropagation();
       const name = checkbox.dataset.name;
-      const item = checkbox.closest('.file-item');
+      const item = checkbox.closest('.file-item, .file-item-grid');
       if (checkbox.checked) {
         selectedFiles.add(name);
         item.classList.add('selected');
@@ -480,22 +967,27 @@ function renderFilesList(files, serverId) {
     };
   });
   
-  filesList.querySelectorAll('.file-item.directory .file-info').forEach(info => {
-    info.onclick = () => {
-      const item = info.closest('.file-item');
+  filesList.querySelectorAll('.file-item.directory .file-info, .file-item-grid.directory').forEach(el => {
+    el.onclick = () => {
+      const item = el.closest('.file-item, .file-item-grid') || el;
       const name = item.dataset.name;
       const newPath = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
       loadFiles(serverId, newPath);
     };
   });
   
-  filesList.querySelectorAll('.file-item.file .file-info').forEach(info => {
-    info.onclick = () => {
-      const item = info.closest('.file-item');
+  filesList.querySelectorAll('.file-item.file .file-info, .file-item-grid.file').forEach(el => {
+    el.onclick = () => {
+      const item = el.closest('.file-item, .file-item-grid') || el;
       const name = item.dataset.name;
+      const preview = item.dataset.preview;
       const canEdit = item.dataset.editable === 'true';
-      if (canEdit) {
-        editFile(serverId, currentPath === '/' ? `/${name}` : `${currentPath}/${name}`);
+      const filePath = item.dataset.path || (currentPath === '/' ? `/${name}` : `${currentPath}/${name}`);
+
+      if (preview) {
+        openPreview(serverId, name, preview, filePath);
+      } else if (canEdit) {
+        editFile(serverId, filePath);
       }
     };
   });
@@ -548,6 +1040,104 @@ function renderFilesList(files, serverId) {
       chmodFile(serverId, name);
     };
   });
+
+  filesList.querySelectorAll('.file-item .btn-preview').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const item = btn.closest('.file-item');
+      const name = item.dataset.name;
+      const preview = item.dataset.preview;
+      const filePath = item.dataset.path || (currentPath === '/' ? `/${name}` : `${currentPath}/${name}`);
+      openPreview(serverId, name, preview, filePath);
+    };
+  });
+
+  setupFileDragToMove(filesList, serverId);
+}
+
+function setupFileDragToMove(filesList, serverId) {
+  filesList.querySelectorAll('.file-item[draggable="true"]').forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', item.dataset.name);
+      e.dataTransfer.effectAllowed = 'move';
+      item.classList.add('dragging');
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+    });
+  });
+
+  filesList.querySelectorAll('.file-item.directory').forEach(folder => {
+    folder.addEventListener('dragover', (e) => {
+      if (e.dataTransfer.types.includes('text/plain')) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        folder.classList.add('drop-target');
+      }
+    });
+    folder.addEventListener('dragleave', () => {
+      folder.classList.remove('drop-target');
+    });
+    folder.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      folder.classList.remove('drop-target');
+      const fileName = e.dataTransfer.getData('text/plain');
+      if (!fileName || fileName === folder.dataset.name) return;
+
+      const destDir = currentPath === '/' ? `/${folder.dataset.name}` : `${currentPath}/${folder.dataset.name}`;
+      try {
+        const res = await api(`/api/servers/${serverId}/files/rename`, {
+          method: 'POST',
+          body: JSON.stringify({
+            root: currentPath,
+            files: [{ from: fileName, to: `${destDir.replace(/^\//, '')}/${fileName}` }]
+          })
+        });
+        if (res.ok) {
+          toast.success(`Moved ${fileName}`);
+          loadFiles(serverId, currentPath);
+        } else {
+          const data = await res.json();
+          toast.error(data.error || 'Failed to move');
+        }
+      } catch {
+        toast.error('Failed to move');
+      }
+    });
+  });
+}
+
+async function openPreview(serverId, name, type, filePath) {
+  try {
+    const res = await api(`/api/servers/${serverId}/files/preview?path=${encodeURIComponent(filePath)}`);
+    const data = await res.json();
+    if (!res.ok || !data.url) {
+      toast.error('Failed to get preview URL');
+      return;
+    }
+
+    let content = '';
+    if (type === 'image') {
+      content = `<div class="preview-container"><img src="${data.url}" class="file-preview-image" alt="${name}"></div>`;
+    } else if (type === 'video') {
+      content = `<div class="preview-container"><video src="${data.url}" controls class="file-preview-video"></video></div>`;
+    } else if (type === 'audio') {
+      content = `<div class="preview-container preview-audio"><span class="material-icons-outlined" style="font-size:3rem;color:var(--accent)">audio_file</span><p>${name}</p><audio src="${data.url}" controls class="file-preview-audio"></audio></div>`;
+    } else if (type === 'pdf') {
+      content = `<div class="preview-container"><iframe src="${data.url}" class="file-preview-pdf"></iframe></div>`;
+    }
+
+    modal.show({
+      title: name,
+      content: content,
+      confirmText: 'Close',
+      cancelText: 'Download'
+    }).then((result) => {
+      if (!result) downloadFile(serverId, filePath);
+    });
+  } catch (e) {
+    toast.error('Failed to preview file');
+  }
 }
 
 function formatDate(dateStr) {
@@ -565,7 +1155,6 @@ async function createNewFolder(serverId) {
   try {
     const res = await api(`/api/servers/${serverId}/files/folder`, {
       method: 'POST',
-      
       body: JSON.stringify({ path })
     });
     
@@ -589,7 +1178,6 @@ async function createNewFile(serverId) {
   try {
     const res = await api(`/api/servers/${serverId}/files/write`, {
       method: 'POST',
-      
       body: JSON.stringify({ path, content: '' })
     });
     
@@ -612,12 +1200,9 @@ async function deleteFile(serverId, path) {
   });
   if (!confirmed) return;
   
-  const username = localStorage.getItem('username');
-  
   try {
     const res = await api(`/api/servers/${serverId}/files/delete`, {
       method: 'POST',
-      
       body: JSON.stringify({ path })
     });
     
@@ -642,13 +1227,11 @@ async function deleteSelectedFiles(serverId) {
   });
   if (!confirmed) return;
   
-  const username = localStorage.getItem('username');
   const files = Array.from(selectedFiles);
   
   try {
     const res = await api(`/api/servers/${serverId}/files/delete`, {
       method: 'POST',
-      
       body: JSON.stringify({ root: currentPath, files })
     });
     
@@ -755,7 +1338,6 @@ async function moveSelectedFiles(serverId) {
   });
   if (!destination || destination === currentPath) return;
   
-  const username = localStorage.getItem('username');
   const files = Array.from(selectedFiles).map(name => ({
     from: name,
     to: `${destination.replace(/\/$/, '')}/${name}`.replace(/^\/+/, '')
@@ -764,7 +1346,6 @@ async function moveSelectedFiles(serverId) {
   try {
     const res = await api(`/api/servers/${serverId}/files/rename`, {
       method: 'POST',
-      
       body: JSON.stringify({ root: currentPath, files })
     });
     
@@ -798,12 +1379,10 @@ async function compressSelectedFiles(serverId) {
       body: JSON.stringify({ root: currentPath, files })
     });
     
-    // If we received progress events, the completion is handled by WebSocket
     if (indicator.hasProgress) {
       return;
     }
     
-    // Fallback for Wings without progress API
     activeProgressIndicators.delete('compress');
     indicator.remove();
     
@@ -833,11 +1412,9 @@ function showDecompressDialog(serverId, filename) {
     
     if (!extractHere) {
       const folderPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`;
-      const username = localStorage.getItem('username');
       
       await api(`/api/servers/${serverId}/files/folder`, {
         method: 'POST',
-        
         body: JSON.stringify({ path: folderPath })
       });
       
@@ -864,12 +1441,10 @@ async function decompressFile(serverId, filename, archiveDir, extractTo) {
       })
     });
     
-    // If we received progress events, the completion is handled by WebSocket
     if (indicator.hasProgress) {
       return;
     }
     
-    // Fallback for Wings without progress API
     activeProgressIndicators.delete('decompress');
     indicator.remove();
     
@@ -888,7 +1463,6 @@ async function decompressFile(serverId, filename, archiveDir, extractTo) {
 }
 
 async function editFile(serverId, path) {
-  const username = localStorage.getItem('username');
   const filesList = document.getElementById('files-list');
   const filename = path.split('/').pop();
   
@@ -960,7 +1534,6 @@ async function editFile(serverId, path) {
 }
 
 async function saveFile(serverId, path) {
-  const username = localStorage.getItem('username');
   const content = editorInstance ? editorInstance.getValue() : '';
   const saveBtn = document.getElementById('btn-save');
   
@@ -970,7 +1543,6 @@ async function saveFile(serverId, path) {
   try {
     const res = await api(`/api/servers/${serverId}/files/write`, {
       method: 'POST',
-      
       body: JSON.stringify({ path, content })
     });
     
@@ -994,70 +1566,72 @@ async function saveFile(serverId, path) {
 }
 
 async function downloadFile(serverId, path) {
-  const username = localStorage.getItem('username');
   window.open(`/api/servers/${serverId}/files/download?path=${encodeURIComponent(path)}`);
 }
 
 async function uploadFile(serverId) {
   const input = document.createElement('input');
   input.type = 'file';
+  input.multiple = true;
   input.onchange = async () => {
-    const file = input.files[0];
-    if (!file) return;
-    
-    const username = localStorage.getItem('username');
-    
-    const indicator = showUploadIndicator(file.name);
-    
-    try {
-      const res = await api(`/api/servers/${serverId}/files/upload`, {
-        method: 'POST',
+    const fileArray = Array.from(input.files);
+    if (fileArray.length === 0) return;
+
+    if (fileArray.length === 1) {
+      const file = fileArray[0];
+      const indicator = showUploadIndicator(file.name);
+      
+      try {
+        const res = await api(`/api/servers/${serverId}/files/upload`, {
+          method: 'POST',
+          body: JSON.stringify({ path: currentPath })
+        });
         
-        body: JSON.stringify({ path: currentPath })
-      });
-      
-      const data = await res.json();
-      if (!res.ok || !data.url) {
-        indicator.remove();
-        toast.error(data.error || 'Failed to get upload URL');
-        return;
-      }
-      
-      const uploadPath = currentPath === '/' ? '' : currentPath.replace(/^\//, '');
-      const uploadUrl = `${data.url}&directory=${encodeURIComponent(uploadPath)}`;
-      
-      const formData = new FormData();
-      formData.append('files', file);
-      
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', uploadUrl);
-      
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          indicator.update(percent);
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          indicator.remove();
+          toast.error(data.error || 'Failed to get upload URL');
+          return;
         }
-      };
-      
-      xhr.onload = () => {
-        indicator.remove();
-        if (xhr.status >= 200 && xhr.status < 300) {
-          toast.success('File uploaded');
-          loadFiles(serverId, currentPath);
-        } else {
-          toast.error('Failed to upload file');
-        }
-      };
-      
-      xhr.onerror = () => {
+        
+        const uploadPath = currentPath === '/' ? '' : currentPath.replace(/^\//, '');
+        const uploadUrl = `${data.url}&directory=${encodeURIComponent(uploadPath)}`;
+        
+        const formData = new FormData();
+        formData.append('files', file);
+        
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadUrl);
+        
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            indicator.update(percent);
+          }
+        };
+        
+        xhr.onload = () => {
+          indicator.remove();
+          if (xhr.status >= 200 && xhr.status < 300) {
+            toast.success('File uploaded');
+            loadFiles(serverId, currentPath);
+          } else {
+            toast.error('Failed to upload file');
+          }
+        };
+        
+        xhr.onerror = () => {
+          indicator.remove();
+          toast.error('Failed to upload');
+        };
+        
+        xhr.send(formData);
+      } catch (e) {
         indicator.remove();
         toast.error('Failed to upload');
-      };
-      
-      xhr.send(formData);
-    } catch (e) {
-      indicator.remove();
-      toast.error('Failed to upload');
+      }
+    } else {
+      uploadMultipleFiles(serverId, fileArray.map(f => ({ file: f, path: '' })));
     }
   };
   input.click();
@@ -1103,6 +1677,18 @@ function restoreFilesList(serverId) {
         <span class="breadcrumb-item" data-path="/">/</span>
       </div>
       <div class="files-actions">
+        <div class="files-search-wrapper" id="files-search-wrapper">
+          <button class="btn btn-xs btn-ghost" id="btn-search-toggle" title="Search">
+            <span class="material-icons-outlined">search</span>
+          </button>
+          <input type="text" class="files-search-input" id="files-search-input" placeholder="Search files..." style="display:none;">
+        </div>
+        <button class="btn btn-xs btn-ghost" id="btn-sort" title="Sort">
+          <span class="material-icons-outlined">sort</span>
+        </button>
+        <button class="btn btn-xs btn-ghost" id="btn-view-toggle" title="Toggle view">
+          <span class="material-icons-outlined">${viewMode === 'list' ? 'grid_view' : 'view_list'}</span>
+        </button>
         <button class="btn btn-xs btn-ghost" id="btn-refresh" title="Refresh">
           <span class="material-icons-outlined">refresh</span>
         </button>
@@ -1122,6 +1708,12 @@ function restoreFilesList(serverId) {
         <span id="selection-count">0</span> selected
       </div>
       <div class="selection-actions">
+        <button class="btn btn-xs btn-ghost" id="btn-copy-clipboard" title="Copy">
+          <span class="material-icons-outlined">content_copy</span>
+        </button>
+        <button class="btn btn-xs btn-ghost" id="btn-cut-clipboard" title="Cut">
+          <span class="material-icons-outlined">content_cut</span>
+        </button>
         <button class="btn btn-xs btn-ghost" id="btn-move" title="Move">
           <span class="material-icons-outlined">drive_file_move</span>
         </button>
@@ -1136,27 +1728,68 @@ function restoreFilesList(serverId) {
         </button>
       </div>
     </div>
+    <div class="files-paste-bar" id="files-paste-bar" style="display: none;">
+      <div class="selection-info">
+        <span id="paste-info">0 file(s) in clipboard</span>
+      </div>
+      <div class="selection-actions">
+        <button class="btn btn-xs btn-ghost" id="btn-paste" title="Paste here">
+          <span class="material-icons-outlined">content_paste</span>
+          Paste
+        </button>
+        <button class="btn btn-xs btn-ghost" id="btn-cancel-paste" title="Cancel">
+          <span class="material-icons-outlined">close</span>
+        </button>
+      </div>
+    </div>
     <div class="files-list" id="files-list">
       <div class="files-loading">Loading files...</div>
     </div>
   `;
   
-  document.getElementById('btn-refresh').onclick = () => loadFiles(serverId, currentPath);
-  document.getElementById('btn-new-folder').onclick = () => createNewFolder(serverId);
-  document.getElementById('btn-new-file').onclick = () => createNewFile(serverId);
-  document.getElementById('btn-upload').onclick = () => uploadFile(serverId);
-  document.getElementById('btn-move').onclick = () => moveSelectedFiles(serverId);
-  document.getElementById('btn-compress').onclick = () => compressSelectedFiles(serverId);
-  document.getElementById('btn-delete-selected').onclick = () => deleteSelectedFiles(serverId);
+  document.getElementById('btn-refresh').onclick = () => loadFiles(currentServerId, currentPath);
+  document.getElementById('btn-new-folder').onclick = () => createNewFolder(currentServerId);
+  document.getElementById('btn-new-file').onclick = () => createNewFile(currentServerId);
+  document.getElementById('btn-upload').onclick = () => uploadFile(currentServerId);
+  document.getElementById('btn-move').onclick = () => moveSelectedFiles(currentServerId);
+  document.getElementById('btn-compress').onclick = () => compressSelectedFiles(currentServerId);
+  document.getElementById('btn-delete-selected').onclick = () => deleteSelectedFiles(currentServerId);
   document.getElementById('btn-clear-selection').onclick = () => clearSelection();
-  
-  loadFiles(serverId, currentPath);
+  document.getElementById('btn-copy-clipboard').onclick = () => clipboardCopy(currentServerId);
+  document.getElementById('btn-cut-clipboard').onclick = () => clipboardCut(currentServerId);
+  document.getElementById('btn-paste').onclick = () => clipboardPaste(currentServerId);
+  document.getElementById('btn-cancel-paste').onclick = () => clipboardClear();
+
+  const searchToggle = document.getElementById('btn-search-toggle');
+  const searchInput = document.getElementById('files-search-input');
+  searchToggle.onclick = () => {
+    const visible = searchInput.style.display !== 'none';
+    searchInput.style.display = visible ? 'none' : 'inline-block';
+    if (!visible) searchInput.focus();
+    else { searchInput.value = ''; searchQuery = ''; loadFiles(currentServerId, currentPath); }
+  };
+  searchInput.oninput = () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      searchQuery = searchInput.value.trim();
+      if (searchQuery.length >= 2) searchFiles(currentServerId, searchQuery);
+      else if (searchQuery.length === 0) loadFiles(currentServerId, currentPath);
+    }, 300);
+  };
+
+  document.getElementById('btn-sort').onclick = () => showSortMenu(currentServerId);
+  document.getElementById('btn-view-toggle').onclick = () => toggleViewMode(currentServerId);
+
+  initDragDrop(currentServerId);
+  loadFiles(currentServerId, currentPath);
 }
 
 export function cleanupFilesTab() {
   currentPath = '/';
   selectedFiles.clear();
   activeProgressIndicators.clear();
+  searchQuery = '';
+  if (searchTimeout) clearTimeout(searchTimeout);
   if (progressSocket) {
     progressSocket.close();
     progressSocket = null;
@@ -1164,5 +1797,9 @@ export function cleanupFilesTab() {
   if (editorInstance) {
     editorInstance.destroy();
     editorInstance = null;
+  }
+  if (window._filesKeyboardHandler) {
+    document.removeEventListener('keydown', window._filesKeyboardHandler);
+    window._filesKeyboardHandler = null;
   }
 }

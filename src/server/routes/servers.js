@@ -877,6 +877,129 @@ router.post('/:id/files/chmod', authenticateUser, async (req, res) => {
   }
 });
 
+router.get('/:id/files/preview', authenticateUser, async (req, res) => {
+  const { path } = req.query;
+  if (!path) return res.status(400).json({ error: 'Path required' });
+  const result = await getServerAndNode(req.params.id, req.user, 'file.read');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  try {
+    const jwt = await import('jsonwebtoken');
+    const uniqueId = generateUUID();
+    const token = jwt.default.sign({
+      server_uuid: server.uuid,
+      user_uuid: result.user.id,
+      unique_id: uniqueId,
+      exp: Math.floor(Date.now() / 1000) + 300
+    }, node.daemon_token);
+    const previewUrl = `${node.scheme}://${node.fqdn}:${node.daemon_port}/download/file?token=${encodeURIComponent(token)}`;
+    res.json({ url: previewUrl });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/:id/files/search', authenticateUser, async (req, res) => {
+  const { query, directory } = req.query;
+  if (!query) return res.status(400).json({ error: 'Query required' });
+  const result = await getServerAndNode(req.params.id, req.user, 'file.read');
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  try {
+    const searchDir = directory || '/';
+    let files;
+    try {
+      files = await wingsRequest(node, 'GET', `/api/servers/${server.uuid}/files/list-directory?directory=${encodeURIComponent(searchDir)}`);
+    } catch (e) {
+      return res.json({ results: [], error: `Could not list directory: ${e.message}` });
+    }
+    if (!Array.isArray(files)) return res.json({ results: [] });
+    const results = [];
+    const lowerQuery = query.toLowerCase();
+    const maxDepth = 5;
+    const searchRecursive = async (dir, fileList, depth) => {
+      if (!Array.isArray(fileList) || depth > maxDepth) return;
+      for (const file of fileList) {
+        if (results.length >= 100) break;
+        const filePath = dir === '/' ? `/${file.name}` : `${dir}/${file.name}`;
+        if (file.name.toLowerCase().includes(lowerQuery)) {
+          results.push({ ...file, path: filePath });
+        }
+        const isDir = file.mimetype === 'inode/directory' || file.mime === 'inode/directory' || (file.is_file === false && !file.is_symlink);
+        if (isDir && results.length < 100 && depth < maxDepth) {
+          try {
+            const subFiles = await wingsRequest(node, 'GET', `/api/servers/${server.uuid}/files/list-directory?directory=${encodeURIComponent(filePath)}`);
+            await searchRecursive(filePath, subFiles, depth + 1);
+          } catch {}
+        }
+      }
+    };
+    await searchRecursive(searchDir, files, 0);
+    res.json({ results: results.slice(0, 100) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+function getCopyName(name) {
+  const ext = name.lastIndexOf('.') > 0 ? name.slice(name.lastIndexOf('.')) : '';
+  const base = ext ? name.slice(0, -ext.length) : name;
+  if (base.endsWith('.tar')) {
+    return base.slice(0, -4) + ' copy.tar' + ext;
+  }
+  return ext ? `${base} copy${ext}` : `${name} copy`;
+}
+
+router.post('/:id/files/paste', authenticateUser, async (req, res) => {
+  const { files, sourceDir, destDir, operation } = req.body;
+  if (!files || !destDir || !operation) return res.status(400).json({ error: 'Missing parameters' });
+  const permission = operation === 'copy' ? 'file.create' : 'file.update';
+  const result = await getServerAndNode(req.params.id, req.user, permission);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { server, node } = result;
+  const srcNorm = sourceDir === '/' ? '' : sourceDir.replace(/^\//, '').replace(/\/$/, '');
+  const destNorm = destDir === '/' ? '' : destDir.replace(/^\//, '').replace(/\/$/, '');
+
+  try {
+    // Prevent moving/copying a folder into itself or a subdirectory of itself
+    const destFull = destDir === '/' ? '/' : destDir.replace(/\/$/, '');
+    for (const name of files) {
+      const itemPath = sourceDir === '/' ? `/${name}` : `${sourceDir.replace(/\/$/, '')}/${name}`;
+      if (destFull === itemPath || destFull.startsWith(itemPath + '/')) {
+        return res.status(400).json({ error: `Cannot move "${name}" into itself` });
+      }
+    }
+
+    if (operation === 'cut') {
+      const renameFiles = files.map(name => ({
+        from: srcNorm ? `${srcNorm}/${name}` : name,
+        to: destNorm ? `${destNorm}/${name}` : name
+      }));
+      await wingsRequest(node, 'PUT', `/api/servers/${server.uuid}/files/rename`, {
+        root: '/',
+        files: renameFiles
+      });
+    } else {
+      for (const name of files) {
+        const location = sourceDir === '/' ? `/${name}` : `${sourceDir}/${name}`;
+        await wingsRequest(node, 'POST', `/api/servers/${server.uuid}/files/copy`, { location });
+        if (srcNorm !== destNorm) {
+          const copiedName = getCopyName(name);
+          const from = srcNorm ? `${srcNorm}/${copiedName}` : copiedName;
+          const to = destNorm ? `${destNorm}/${name}` : name;
+          await wingsRequest(node, 'PUT', `/api/servers/${server.uuid}/files/rename`, {
+            root: '/',
+            files: [{ from, to }]
+          });
+        }
+      }
+    }
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Allocations
 async function syncAllocationsWithWings(node, server) {
   const allocations = server.allocations || [];

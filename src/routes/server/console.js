@@ -60,10 +60,10 @@ function initTerminal() {
   
   terminal = new Terminal({
     theme: {
-      background: '#0d1117',
+      background: '#0a0a0c',
       foreground: '#c9d1d9',
       cursor: '#58a6ff',
-      cursorAccent: '#0d1117',
+      cursorAccent: '#0a0a0c',
       selectionBackground: '#264f78',
       black: '#484f58',
       red: '#ff7b72',
@@ -314,9 +314,6 @@ async function sendCommand(serverId) {
   const command = input.value.trim();
   if (!command) return;
   
-  if (terminal) {
-    terminal.writeln(`\x1b[36m> ${command}\x1b[0m`);
-  }
   input.value = '';
   
   if (consoleSocket && consoleSocket.readyState === WebSocket.OPEN) {

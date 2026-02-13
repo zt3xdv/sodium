@@ -19,7 +19,10 @@ export async function renderServers() {
   app.innerHTML = `
     <div class="servers-page">
       <div class="page-header">
-        <h1>My Servers</h1>
+        <div class="page-header-text">
+          <h1>My Servers</h1>
+          <p class="page-subtitle">Manage and monitor your game servers</p>
+        </div>
         ${canCreate ? `
           <a href="/servers/create" class="btn btn-primary" id="create-server-btn">
             <span class="material-icons-outlined">add</span>
@@ -50,8 +53,11 @@ async function loadServers() {
     if (data.servers.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <span class="material-icons-outlined">dns</span>
-          <p>No servers yet</p>
+          <div class="empty-state-icon">
+            <span class="material-icons-outlined">dns</span>
+          </div>
+          <h3>No servers yet</h3>
+          <p>Create your first server to get started</p>
         </div>
       `;
       return;
@@ -59,50 +65,54 @@ async function loadServers() {
     
     container.innerHTML = data.servers.map(server => `
       <div class="server-card" data-id="${server.id}">
-        <div class="section-header">
-          <span class="material-icons-outlined">dns</span>
-          <h3>${escapeHtml(server.name)}</h3>
-          <span class="status status-loading" data-status-id="${server.id}">loading...</span>
+        <div class="server-card-header">
+          <div class="server-card-title">
+            <div class="server-icon">
+              <span class="material-icons-outlined">dns</span>
+            </div>
+            <div class="server-name-wrap">
+              <h3>${escapeHtml(server.name)}</h3>
+              <span class="server-address">${server.node_address || `${server.allocation?.ip}:${server.allocation?.port}`}</span>
+            </div>
+          </div>
+          <span class="status-badge status-loading" data-status-id="${server.id}">loading...</span>
         </div>
-        <div class="server-card-content">
-          <div class="server-actions">
-            <button class="power-action start" onclick="serverPower('${server.id}', 'start')" title="Start">
+        <div class="server-card-body">
+          <div class="server-resources">
+            <div class="resource-chip">
+              <span class="material-icons-outlined">memory</span>
+              <span>${server.limits?.memory || 0} MB</span>
+            </div>
+            <div class="resource-chip">
+              <span class="material-icons-outlined">storage</span>
+              <span>${server.limits?.disk || 0} MB</span>
+            </div>
+            <div class="resource-chip">
+              <span class="material-icons-outlined">speed</span>
+              <span>${server.limits?.cpu || 0}%</span>
+            </div>
+          </div>
+        </div>
+        <div class="server-card-footer">
+          <div class="power-actions">
+            <button class="power-btn start" onclick="serverPower('${server.id}', 'start')" title="Start">
               <span class="material-icons-outlined">play_arrow</span>
             </button>
-            <button class="power-action restart" onclick="serverPower('${server.id}', 'restart')" title="Restart">
+            <button class="power-btn restart" onclick="serverPower('${server.id}', 'restart')" title="Restart">
               <span class="material-icons-outlined">refresh</span>
             </button>
-            <button class="power-action stop" onclick="serverPower('${server.id}', 'stop')" title="Stop">
+            <button class="power-btn stop" onclick="serverPower('${server.id}', 'stop')" title="Stop">
               <span class="material-icons-outlined">stop</span>
             </button>
-            <a href="/server/${server.id}" class="btn btn-ghost" title="Console">
-              <span class="material-icons-outlined">open_in_new</span>
-              Open
-            </a>
           </div>
-          <div class="server-info">
-            <div class="info-row">
-              <span class="label">Memory</span>
-              <span class="value">${server.limits?.memory || 0} MB</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Disk</span>
-              <span class="value">${server.limits?.disk || 0} MB</span>
-            </div>
-            <div class="info-row">
-              <span class="label">CPU</span>
-              <span class="value">${server.limits?.cpu || 0}%</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Address</span>
-              <span class="value">${server.node_address || `${server.allocation?.ip}:${server.allocation?.port}`}</span>
-            </div>
-          </div>
+          <a href="/server/${server.id}" class="btn btn-primary btn-sm">
+            <span class="material-icons-outlined">terminal</span>
+            Console
+          </a>
         </div>
       </div>
     `).join('');
     
-    // Wah
     connectStatusSockets(data.servers);
   } catch (e) {
     container.innerHTML = `<div class="error">Failed to load servers</div>`;
@@ -138,7 +148,7 @@ function connectStatusSockets(servers) {
 function updateServerStatus(serverId, status) {
   const el = document.querySelector(`[data-status-id="${serverId}"]`);
   if (!el) return;
-  el.className = `status status-${status}`;
+  el.className = `status-badge status-${status}`;
   el.textContent = status;
 }
 
